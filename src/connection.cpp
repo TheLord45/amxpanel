@@ -26,8 +26,15 @@
 #include "connection.h"
 #include "connectionmanager.h"
 #include "requesthandler.h"
-#include "../common/syslog.h"
-#include "hvl.h"
+#include "syslog.h"
+#include "config.h"
+
+using namespace std;
+using namespace strings;
+
+extern Config *Configuration;
+extern string pName;
+extern Syslog *sysl;
 
 #ifdef __APPLE__
 using namespace boost;
@@ -97,9 +104,7 @@ namespace http
 								hlen < bytes_transferred)
 						{
 							m_request.content = buffer.substr(hlen, clen);
-//sysl->setDebug(true);
 							sysl->DebugMsg("Connection::do_read: Content: "+m_request.content);
-//sysl->setDebug(Configuration->getDebug());
 						}
 
 						m_request_handler.HandleRequest(m_request, m_reply);

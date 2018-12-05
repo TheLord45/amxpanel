@@ -6,7 +6,7 @@
 #include "datetime.h"
 #include "strings.h"
 
-namespace Panel
+namespace amx
 {
     /**
      * Contains the version information.

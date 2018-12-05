@@ -26,7 +26,7 @@
 #include <string>
 #include "connectionmanager.h"
 #include "requesthandler.h"
-#include "../common/syslog.h"
+#include "syslog.h"
 
 #ifdef __APPLE__
 using namespace boost;

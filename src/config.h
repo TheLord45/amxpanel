@@ -19,43 +19,51 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-// Which C++ version is supported?
-#ifdef __SUNPRO_CC
-    #define _CPP_STD 3
-#elif defined(__GNUC__) && defined(__cplusplus)
-    #if __cplusplus >= 201103L
-        #define _CPP_STD 11
-    #else
-        #define _CPP_STD 3
-    #endif
-#elif defined(__cplusplus)
-    #if __cplusplus == 199711L
-        #define _CPP_STD 3
-    #elif __cplusplus == 201103L
-        #define _CPP_STD 11
-    #else
-        #define _CPP_STD 3
-    #endif
-#else
-    #define _CPP_STD 3
-#endif
+#include "strings.h"
 
-// 32 or 64 bit environment?
-// GCC
-#if __GNUC__
-    #if __x86_64__ || __ppc64__ || __amd64
-        #define ENVIRONMENT64
-    #else
-        #define ENVIRONMENT32
-    #endif
-#endif
-// Oracle/Sun developer studio
-#ifdef __SUNPRO_CC
-    #if defined(_ILP32) || defined(__i386)
-        #define ENVIRONMENT32
-    #elif _LP64 || __amd64
-        #define ENVIRONMENT64
-    #endif
-#endif
+class Config
+{
+	public:
+		Config();
+		~Config();
+
+		strings::String getListen() { return sListen; }
+		int getPort() { return nPort; }
+		strings::String getHTTProot() { return sHTTProot; }
+		strings::String getPidFile() { return sPidFile; }
+		strings::String getUser() { return usr; }
+		strings::String getGroup() { return grp; }
+		bool getDebug() { return Debug; }
+		strings::String getLogFile() { return LogFile; }
+		strings::String getFontPath() { return FontPath; }
+		strings::String getWebLocation() { return web_location; }
+
+		void setHOME(const strings::String& hm) { HOME = hm.data(); }
+
+		void Initialize() { readConfig(sFileName); }
+		bool isInitialized() { return initialized; }
+
+	protected:
+		void init();
+		void readConfig(const strings::String &file);
+
+	private:
+		strings::String sListen;
+		int nPort;
+		strings::String sHTTProot;
+		bool Debug;
+		strings::String LogFile;
+		strings::String FontPath;
+		strings::String web_location;
+
+		std::ifstream fs;
+		strings::String sFileName;
+		bool fflag;
+		strings::String sPidFile;
+		strings::String grp;
+		strings::String usr;
+		const char *HOME;
+		bool initialized;
+};
 
 #endif  // __CONFIG_H__

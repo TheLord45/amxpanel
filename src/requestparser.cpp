@@ -16,8 +16,10 @@
 
 #include "requestparser.h"
 #include "request.h"
-#include "../common/syslog.h"
-#include "hvl.h"
+#include "syslog.h"
+
+extern std::string pName;
+extern Syslog *sysl;
 
 namespace http
 {

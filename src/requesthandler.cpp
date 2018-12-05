@@ -23,9 +23,10 @@
 #include "mimetypes.h"
 #include "reply.h"
 #include "request.h"
-#include "evaluate.h"
-#include "../common/syslog.h"
-#include "hvl.h"
+#include "syslog.h"
+
+extern std::string pName;
+extern Syslog *sysl;
 
 namespace http
 {
@@ -106,8 +107,8 @@ namespace http
 			else
 			{
 				sysl->DebugMsg("RequestHandler::HandleRequest: Virtual page \""+full_path+"\" was found.");
-				Evaluate ev(req);
-				rep.content = ev.getHttpPage();
+// --> FIXME!				Evaluate ev(req);
+//				rep.content = ev.getHttpPage();
 				extension.assign("html");
 			}
 
