@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fstream>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,10 +28,15 @@
 #include <sys/ioctl.h>
 #include <pwd.h>
 #include <grp.h>
-#include "../common/syslog.h"
-#include "hvl.h"
+#include "syslog.h"
 #include "daemonize.h"
 #include "config.h"
+
+using namespace std;
+
+extern Config *Configuration;
+extern string pName;
+extern Syslog *sysl;
 
 #ifndef SIGCLD
 #   define SIGCLD SIGCHLD
@@ -60,17 +66,17 @@ void Daemonize::daemon_start (bool ignsigcld)
 #endif
 
 	if ((childpid = fork ()) < 0)
-		sysl->errlog("Can't fork this child");
+		sysl->errlog(string("Can't fork this child"));
 	else if (childpid > 0)
 		exit (0);            /* Parent */
 
     if (setpgrp () == -1)
-        sysl->errlog("Can't change process group");
+        sysl->errlog(string("Can't change process group"));
 
     signal (SIGHUP, SIG_IGN);
 
 	if ((childpid = fork ()) < 0)
-		sysl->errlog ("Can't fork second child");
+		sysl->errlog (string("Can't fork second child"));
 	else if (childpid > 0)
 		exit (0);            /* first child */
 
@@ -92,15 +98,15 @@ out:
 
 	// Define a signal handler for terminate signals
 	if (signal(SIGTERM, sig_handler) == SIG_ERR)
-		sysl->warnlog("Can't catch signal SIGTERM!");
+		sysl->warnlog(string("Can't catch signal SIGTERM!"));
 
-	std::ofstream of;
+	ofstream of;
 	/* Create PID file */
-	of.open(Configuration->getPidFile(), std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
+	of.open(Configuration->getPidFile().data(), ofstream::out | ofstream::binary | ofstream::trunc);
 
 	if (!of.is_open())
 	{
-		sysl->warnlog("Can't create PID file " + Configuration->getPidFile() + ": " + strerror(errno));
+		sysl->warnlog(string("Can't create PID file ") + Configuration->getPidFile().toString() + ": " + strerror(errno));
 		return;
 	}
 

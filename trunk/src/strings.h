@@ -24,7 +24,45 @@
 #include <iostream>
 #include <cstring>
 #include <stdexcept>
-#include "config.h"
+
+// Which C++ version is supported?
+#ifdef __SUNPRO_CC
+    #define _CPP_STD 3
+#elif defined(__GNUC__) && defined(__cplusplus)
+    #if __cplusplus >= 201103L
+        #define _CPP_STD 11
+    #else
+        #define _CPP_STD 3
+    #endif
+#elif defined(__cplusplus)
+    #if __cplusplus == 199711L
+        #define _CPP_STD 3
+    #elif __cplusplus == 201103L
+        #define _CPP_STD 11
+    #else
+        #define _CPP_STD 3
+    #endif
+#else
+    #define _CPP_STD 3
+#endif
+
+// 32 or 64 bit environment?
+// GCC
+#if __GNUC__
+    #if __x86_64__ || __ppc64__ || __amd64
+        #define ENVIRONMENT64
+    #else
+        #define ENVIRONMENT32
+    #endif
+#endif
+// Oracle/Sun developer studio
+#ifdef __SUNPRO_CC
+    #if defined(_ILP32) || defined(__i386)
+        #define ENVIRONMENT32
+    #elif _LP64 || __amd64
+        #define ENVIRONMENT64
+    #endif
+#endif
 
 /**
  * \namespace strings strings.h

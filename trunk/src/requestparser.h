@@ -18,8 +18,7 @@
 #define HTTP_REQUEST_PARSER_HPP
 
 #include <tuple>
-#include "../common/syslog.h"
-#include "hvl.h"
+#include "syslog.h"
 
 namespace http
 {
