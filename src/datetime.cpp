@@ -15,8 +15,8 @@
 #include <math.h>
 #include "datetime.h"
 #include "syslog.h"
-#include "utilities.h"
-#include "../src/hvl.h"
+
+extern Syslog *sysl;
 
 using namespace std;
 
@@ -273,7 +273,7 @@ void DateTime::setTimestamp(int year, int month, int day, int hour, int minute, 
 
 	if (tt == -1)
 	{
-		sysl->errlog("DateTime::setTimestamp: No valid system time!");
+		sysl->errlog(std::string("DateTime::setTimestamp: No valid system time!"));
 //		throw "no valid system time";
 		return;
 	}
@@ -335,8 +335,7 @@ chrono::system_clock::time_point DateTime::Interval(string intval)
 	if ((pos2 = intval.find(" ", pos1 + 1)) == string::npos)
 		return timestamp;
 
-	Str str;
-	unsigned long anz = str.strtoi(intval.substr(pos1 + 1, pos2 - pos1));
+	unsigned long anz = std::atoi(intval.substr(pos1 + 1, pos2 - pos1).c_str());
 	chrono::hours day(anz * 24);
 	chrono::hours week(anz * 24 * 7);
 
@@ -607,6 +606,13 @@ DateTime& DateTime::operator= (DateTime& t)
 {
 	timestamp = t.getRawTime();
 	return *this;
+}
+
+DateTime& DateTime::operator= (DateTime& t) const
+{
+	DateTime *me = const_cast<DateTime *>(this);
+	me->timestamp = t.getRawTime();
+	return *me;
 }
 
 DateTime& DateTime::operator+ (DateTime& t)

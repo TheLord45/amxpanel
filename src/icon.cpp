@@ -1,0 +1,75 @@
+/*
+ * Copyright (C) 2018 by Andreas Theofilu <andreas@theosys.at>
+ *
+ * All rights reserved. No warranty, explicit or implicit, provided.
+ *
+ * NOTICE:  All information contained herein is, and remains
+ * the property of Andreas Theofilu and his suppliers, if any.
+ * The intellectual and technical concepts contained
+ * herein are proprietary to Andreas Theofilu and its suppliers and
+ * may be covered by European and Foreign Patents, patents in process,
+ * and are protected by trade secret or copyright law.
+ * Dissemination of this information or reproduction of this material
+ * is strictly forbidden unless prior written permission is obtained
+ * from Andreas Theofilu.
+ */
+
+#include <string>
+#include <iostream>
+#include <locale>
+#include <libxml++/libxml++.h>
+#include <libxml++/parsers/textreader.h>
+#include <glibmm.h>
+#ifdef __APPLE__
+   #include <boost/asio.hpp>
+#else
+   #include <asio.hpp>
+#endif
+#include "datetime.h"
+#include "config.h"
+#include "syslog.h"
+#include "icon.h"
+
+extern Syslog *sysl;
+extern Config *Configuration;
+
+using namespace std;
+using namespace amx;
+using namespace strings;
+
+amx::Icon::Icon(const strings::String& file)
+{
+    int index = 0;
+    String uri = "file://";
+    uri.append(Configuration->getHTTProot());
+    uri.append("/panel/");
+    uri.append(file);
+    xmlpp::TextReader reader(uri.toString());
+
+    while(reader.read())
+    {
+        String name = string(reader.get_name());
+        
+        if (name.caseCompare("icon") == 0 && reader.has_attributes())
+            index = atoi(reader.get_attribute(0).c_str());
+        else if (name.caseCompare("file") == 0 && reader.has_value() && index >= 0)
+        {
+            ICON_T ico;
+            ico.index = index;
+            ico.file = reader.get_value();
+            icons.push_back(ico);
+            index = -1;
+        }
+    }
+
+    reader.close();
+}
+
+strings::String amx::Icon::getFileName(size_t idx)
+{
+    if (idx > icons.size())
+        return "";
+
+    return icons.at(idx).file;
+}
+

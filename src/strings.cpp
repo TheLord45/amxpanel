@@ -1878,7 +1878,7 @@ String& String::ltrim()
 
     size_t nl = _len - pos;
     size_t al = 0;
-    char *buf;
+    char *buf = 0;
     
     try
     {
@@ -1949,7 +1949,7 @@ String& String::ltrim() const
 
     size_t nl = _len - pos;
     size_t al = 0;
-    char *buf;
+    char *buf = 0;
     
     try
     {
@@ -2455,7 +2455,7 @@ size_t String::_find_last(const char *s, const char *what, size_t len)
 
     size_t shift = _len - len;
     
-    for (size_t i = shift; i >= 0; i--)
+    for (long i = shift; i >= 0; i--)
     {
         if (_comp((char *)s+i, (char *)what, len) == 0)
             return i;
@@ -2505,7 +2505,7 @@ char *String::_replace(char *pattern, size_t patlen, char *replacement, size_t r
     // allocate memory for the new string
     size_t retlen = _len + patcnt * (replen - patlen);
     size_t na = 0;
-    char *returned;
+    char *returned = 0;
     
     try
     {
@@ -2666,7 +2666,7 @@ bool strings::String::_insert(size_t pos, const char* s, size_t len)
         return false;
 
     size_t al = 0, ptr = 0;
-    char *buf;
+    char *buf = 0;
     
     try
     {

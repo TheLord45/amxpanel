@@ -18,14 +18,17 @@
 #define __PANEL_H__
 
 #include "panelstruct.h"
+#include "palette.h"
+#include "icon.h"
+#include "fontlist.h"
 
 namespace amx
 {
     class Panel
     {
         public:
-            Panel() {}
-            ~Panel() {}
+            Panel();
+            ~Panel();
 
         private:
             void readProject();
@@ -33,13 +36,16 @@ namespace amx
             void setProjectInfo(const strings::String& name, const strings::String& value, const strings::String& attr);
             void setSupportFileList(const strings::String& name, const strings::String& value);
             void setPanelSetup(const strings::String& name, const strings::String& value);
-            void setPageList(const strings::String& name, const strings::String& value, const strings::String& type);
-            void setResourceList(const strings::String& name, const strings::String& value, const strings::String& type);
+            void setPageList(const strings::String& name, const strings::String& value);
+            void setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr);
             void setFwFeatureList(const strings::String& name, const strings::String& value);
             void setPaletteList(const strings::String& name, const strings::String& value);
-            DateTime getDate(const strings::String& dat);
+            DateTime& getDate(const strings::String& dat, DateTime& dt);
 
             PROJECT Project;
+            Palette *pPalettes;
+            Icon *pIcons;
+            FontList *pFontLists;
     };
 }
 
