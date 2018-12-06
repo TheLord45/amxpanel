@@ -1,6 +1,23 @@
+/*
+ * Copyright (C) 2018 by Andreas Theofilu <andreas@theosys.at>
+ *
+ * All rights reserved. No warranty, explicit or implicit, provided.
+ *
+ * NOTICE:  All information contained herein is, and remains
+ * the property of Andreas Theofilu and his suppliers, if any.
+ * The intellectual and technical concepts contained
+ * herein are proprietary to Andreas Theofilu and its suppliers and
+ * may be covered by European and Foreign Patents, patents in process,
+ * and are protected by trade secret or copyright law.
+ * Dissemination of this information or reproduction of this material
+ * is strictly forbidden unless prior written permission is obtained
+ * from Andreas Theofilu.
+ */
+
 #ifndef __PANELSTRUCT_H__
 #define __PANELSTRUCT_H__
 
+#include <string>
 #include <iostream>
 #include <vector>
 #include "datetime.h"
@@ -12,19 +29,19 @@ namespace amx
      * Contains the version information.
      * This is part of the struct PROJECT.
      */
-    struct VERSION
+    typedef struct VERSION
     {
         int formatVersion;
         int graphicVersion;
         int fileVersion;
         int designVersion;
-    };
+    }VERSION_T;
 
     /**
      * Contains the infomations about the project.
      * This is part of the struct PROJECT.
      */
-    struct PROJECT_INFO
+    typedef struct PROJECT_INFO
     {
         strings::String protection;
         bool encrypted;
@@ -44,9 +61,9 @@ namespace amx
         strings::String colorChoice;
         int specifyPortCount;
         int specifyChanCount;
-    };
- 
-    struct SUPPORT_FILE_LIST
+    }PROJECT_INFO_T;
+
+    typedef struct SUPPORT_FILE_LIST
     {
         strings::String mapFile;
         strings::String colorFile;
@@ -54,9 +71,9 @@ namespace amx
         strings::String themeFile;
         strings::String iconFile;
         strings::String externalButtonFile;
-    };
+    }SUPPORT_FILE_LIST_T;
 
-    struct PANEL_SETUP
+    typedef struct PANEL_SETUP
     {
         int portCount;
         int setupPort;
@@ -108,9 +125,9 @@ namespace amx
         int marqueeSpeed;
         int setupPagesProject;
         int voipCommandPort;
-    };
+    }PANEL_SETUP_T;
 
-    struct PAGE_ENTRY
+    typedef struct PAGE_ENTRY
     {
         strings::String name;
         int pageID;
@@ -118,15 +135,15 @@ namespace amx
         strings::String group;
         int isValid;
         int popupType;
-    };
+    }PAGE_ENTRY_T;
 
-    struct PAGE_LIST
+    typedef struct PAGE_LIST
     {
         strings::String type;
-        std::vector<PAGE_ENTRY> pageList;
-    };
+        std::vector<PAGE_ENTRY_T> pageList;
+    }PAGE_LIST_T;
 
-    struct RESOURCE
+    typedef struct RESOURCE
     {
         strings::String name;
         strings::String protocol;
@@ -137,45 +154,45 @@ namespace amx
         strings::String path;
         strings::String file;
         int refresh;
-    };
+    }RESOURCE_T;
 
-    struct RESOURCE_LIST
+    typedef struct RESOURCE_LIST
     {
         strings::String type;
-        std::vector<RESOURCE> ressource;
-    };
+        std::vector<RESOURCE_T> ressource;
+    }RESOURCE_LIST_T;
 
-    struct FEATURE
+    typedef struct FEATURE
     {
         strings::String featureID;
         int usageCount;
-    };
+    }FEATURE_T;
 
-    struct PALETTE
+    typedef struct PALETTE
     {
         strings::String name;
         strings::String file;
         int paletteID;
-    };
+    }PALETTE_T;
 
     /**
      * This is the main structure.
      * This structure contains all other structures. Many of them are
      * defined as chains.
      */
-    struct PROJECT
+    typedef struct PROJECT
     {
-        VERSION version;
-        PROJECT_INFO projectInfo;
-        SUPPORT_FILE_LIST supportFileList;
-        PANEL_SETUP panelSetup;
-        std::vector<PAGE_LIST> pageLists;
-        std::vector<RESOURCE_LIST> resourceLists;
-        std::vector<FEATURE> fwFeatureList;
-        std::vector<PALETTE> paletteList;
-    };
+        VERSION_T version;
+        PROJECT_INFO_T projectInfo;
+        SUPPORT_FILE_LIST_T supportFileList;
+        PANEL_SETUP_T panelSetup;
+        std::vector<PAGE_LIST_T> pageLists;
+        std::vector<RESOURCE_LIST_T> resourceLists;
+        std::vector<FEATURE_T> fwFeatureList;
+        std::vector<PALETTE_T> paletteList;
+    }PROJECT_T;
 
-    struct SR
+    typedef struct SR
     {
         int number;
         strings::String bs;     // Frame type (circle, ...)
@@ -196,9 +213,9 @@ namespace amx
         int jt;
         int tx;                 // Text X position
         int ty;                 // Text Y position
-    };
+    }SR_T;
 
-    struct BUTTON
+    typedef struct BUTTON
     {
         strings::String type;
         int bi;                 // button ID
@@ -218,10 +235,10 @@ namespace amx
         int rh;
         strings::String pfType;
         strings::String pfName;
-        std::vector<SR> sr;
-    };
+        std::vector<SR_T> sr;
+    }BUTTON_T;
 
-    struct PAGE
+    typedef struct PAGE
     {
         strings::String type;
         int pageID;
@@ -231,9 +248,9 @@ namespace amx
         std::string group;
         int showTime;
         int hideTime;
-        std::vector<BUTTON> buttons;
-        SR sr;
-    };
+        std::vector<BUTTON_T> buttons;
+        SR_T sr;
+    }PAGE_T;
 }
 
 #endif
