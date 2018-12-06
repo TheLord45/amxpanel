@@ -70,7 +70,7 @@ void Config::init()
 
 		if (access(sFileName.data(), R_OK))
 		{
-			sysl->errlog(Strings("Error: Can't find any configuration file!"));
+			sysl->errlog(String("Error: Can't find any configuration file!"));
 			sFileName.clear();
 		}
 	}

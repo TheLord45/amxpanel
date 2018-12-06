@@ -32,7 +32,7 @@ namespace amx
     typedef struct VERSION
     {
         int formatVersion;
-        int graphicVersion;
+        int graphicsVersion;
         int fileVersion;
         int designVersion;
     }VERSION_T;
@@ -135,6 +135,16 @@ namespace amx
         strings::String group;
         int isValid;
         int popupType;
+        
+        void clear()
+        {
+            name.clear();
+            pageID = 0;
+            file.clear();
+            group.clear();
+            isValid = 0;
+            popupType = 0;
+        }
     }PAGE_ENTRY_T;
 
     typedef struct PAGE_LIST
@@ -154,6 +164,19 @@ namespace amx
         strings::String path;
         strings::String file;
         int refresh;
+        
+        void clear()
+        {
+            name.clear();
+            protocol.clear();
+            user.clear();
+            password.clear();
+            encrypted = false;
+            host.clear();
+            path.clear();
+            file.clear();
+            refresh = 0;
+        }
     }RESOURCE_T;
 
     typedef struct RESOURCE_LIST
@@ -215,9 +238,23 @@ namespace amx
         int ty;                 // Text Y position
     }SR_T;
 
+    enum BUTTONTYPE
+    {
+        NONE,
+        GENERAL,
+        MULTISTATE_GENERAL,
+        BARGRAPH,
+        MULTISTATE_BARGRAPH,
+        JOISTICK,
+        TEXT_INPUT,
+        COMPUTER_CONTROL,
+        TAKE_NOTE,
+        SUBPAGE_VIEW
+    };
+
     typedef struct BUTTON
     {
-        strings::String type;
+        BUTTONTYPE type;
         int bi;                 // button ID
         strings::String na;     // name
         int lt;                 // pixel fron left
@@ -230,6 +267,9 @@ namespace amx
         strings::String fb;     // momentary, ...
         int ap;
         int cp;
+        int lp;
+        int va;
+        int rv;
         int ch;
         int rl;
         int rh;
@@ -238,18 +278,27 @@ namespace amx
         std::vector<SR_T> sr;
     }BUTTON_T;
 
+    enum PAGETYPE
+    {
+        PNONE,
+        PAGE,
+        SUBPAGE
+    };
+
     typedef struct PAGE
     {
-        strings::String type;
+        PAGETYPE type;
         int pageID;
         strings::String name;
+        int left;
+        int top;
         int width;
         int height;
         std::string group;
         int showTime;
         int hideTime;
         std::vector<BUTTON_T> buttons;
-        SR_T sr;
+        std::vector<SR_T> sr;
     }PAGE_T;
 }
 

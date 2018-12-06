@@ -48,7 +48,7 @@ void Syslog::cclose() const
 		closelog();
 }
 
-void Syslog::log(Level l, const std::string str)
+void Syslog::log(Level l, const std::string& str)
 {
 	if (debug && l == IDEBUG && !LogFile.empty())
 	{
@@ -66,7 +66,7 @@ void Syslog::log(Level l, const std::string str)
 	close();
 }
 
-void Syslog::errlog(const std::string str) const
+void Syslog::errlog(const std::string& str) const
 {
 	if (!fflag)
 		openlog(pname.c_str(), option, priority);
@@ -75,7 +75,7 @@ void Syslog::errlog(const std::string str) const
 	cclose();
 }
 
-void Syslog::warnlog(const std::string str) const
+void Syslog::warnlog(const std::string& str) const
 {
 	if (!fflag)
 		openlog(pname.c_str(), option, priority);

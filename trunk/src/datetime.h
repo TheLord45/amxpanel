@@ -426,6 +426,7 @@ class DateTime : public SunSet
 		std::ostringstream operator<< (DateTime& t);
 		std::ostringstream operator>> (DateTime& t);
 		DateTime& operator= (DateTime& t);
+		DateTime& operator= (DateTime& t) const;
 		bool operator== (DateTime& t) const;
 		bool operator!= (DateTime& t) const;
 		DateTime& operator+ (DateTime& t);
