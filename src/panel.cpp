@@ -46,6 +46,14 @@ amx::Panel::Panel()
     pFontLists = 0;
 }
 
+Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)
+            : Project(prj)
+{
+    pPalettes = pPalet;
+    pIcons = pIco;
+    pFontLists = pFL;
+}
+
 amx::Panel::~Panel()
 {
     if (pPalettes)
@@ -56,6 +64,10 @@ amx::Panel::~Panel()
 
     if (pFontLists)
         delete pFontLists;
+}
+
+BUTTON_T& Panel::getButton(int id)
+{
 }
 
 void amx::Panel::readProject()
