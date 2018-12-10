@@ -300,6 +300,45 @@ namespace amx
         std::vector<BUTTON_T> buttons;
         std::vector<SR_T> sr;
     }PAGE_T;
+
+    typedef struct MAP
+    {
+        int p;              // port number
+        int c;              // channel number
+        int ax;
+        int pg;             // page number
+        int bt;             // button number
+        strings::String pn; // page name
+        strings::String bn; // button name
+    }MAP_T;
+
+    // Images
+    typedef struct MAP_BM
+    {
+        strings::String i;  // name
+        int id;
+    }MAP_BM_T;
+
+    typedef struct MAP_PM
+    {
+        int a;
+        strings::String t;  // Text
+        int pg;             // page number
+        int bt;             // button number
+        strings::String pn; // page name
+        strings::String bn; // button name
+    }MAP_PM_T;
+
+    typedef struct MAPS
+    {
+        std::vector<MAP_T> map_cm;
+        std::vector<MAP_T> map_am;
+        std::vector<MAP_T> map_lm;
+        std::vector<MAP_BM_T> map_bm;       // Images
+        std::vector<strings::String> map_sm;// sound file names
+        std::vector<MAP_T> map_strm;        // System resources
+        std::vector<MAP_PM_T> map_pm;       // Button -> text
+    }MAPS_T;
 }
 
 #endif

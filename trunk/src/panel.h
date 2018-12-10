@@ -28,7 +28,10 @@ namespace amx
     {
         public:
             Panel();
+            Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL);
             ~Panel();
+
+            BUTTON_T& getButton(int id);
 
         private:
             void readProject();
