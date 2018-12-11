@@ -44,25 +44,37 @@ amx::Icon::Icon(const strings::String& file)
     uri.append(Configuration->getHTTProot());
     uri.append("/panel/");
     uri.append(file);
-    xmlpp::TextReader reader(uri.toString());
-
-    while(reader.read())
+    
+    try
     {
-        String name = string(reader.get_name());
-        
-        if (name.caseCompare("icon") == 0 && reader.has_attributes())
-            index = atoi(reader.get_attribute(0).c_str());
-        else if (name.caseCompare("file") == 0 && reader.has_value() && index >= 0)
+        xmlpp::TextReader reader(uri.toString());
+
+        while(reader.read())
         {
-            ICON_T ico;
-            ico.index = index;
-            ico.file = reader.get_value();
-            icons.push_back(ico);
-            index = -1;
+            String name = string(reader.get_name());
+            
+            if (name.caseCompare("icon") == 0 && reader.has_attributes())
+                index = atoi(reader.get_attribute(0).c_str());
+            else if (name.caseCompare("file") == 0 && reader.has_value() && index >= 0)
+            {
+                ICON_T ico;
+                ico.index = index;
+                ico.file = reader.get_value();
+                icons.push_back(ico);
+                index = -1;
+            }
         }
+
+        reader.close();
+    }
+    catch (xmlpp::internal_error& e)
+    {
+        sysl->errlog(string("Icon::Icon: "+e.what()));
+        status = false;
+        return;
     }
 
-    reader.close();
+    status = true;
 }
 
 strings::String amx::Icon::getFileName(size_t idx)

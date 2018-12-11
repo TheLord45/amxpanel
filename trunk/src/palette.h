@@ -40,12 +40,16 @@ namespace amx
     {
         public:
             Palette(const strings::String& file);
+            ~Palette();
 
+            bool isOk() { return status; }
             unsigned long getColor(size_t idx);
             unsigned long getColor(const strings::String& name);
+            strings::String colorToString(unsigned long col);
 
         private:
             std::vector<PDATA_T> palette;
+            bool status;
     };
 }
 

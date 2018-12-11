@@ -40,8 +40,11 @@ namespace amx
         public:
             FontList(const strings::String& file);
 
+            bool isOk() { return status; }
+
         private:
             std::vector<FONT_T> fontList;
+            bool status;
     };
 }
 

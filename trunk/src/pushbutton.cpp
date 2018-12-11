@@ -19,11 +19,19 @@
 using namespace amx;
 using namespace strings;
 
-PushButton::PushButton(const BUTTON_T& bt)
-        : button(bt)
+PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)
+        : Palette(pfilename),
+          button(bt)
+          
 {
     onOff = false;
     state = 0;
+}
+
+void PushButton::setState(size_t s)
+{
+    if (s > 0 && s <= button.sr.size() && (button.type == MULTISTATE_GENERAL || button.type == MULTISTATE_BARGRAPH))
+        state = s - 1;
 }
 
 String PushButton::getStyle()
@@ -31,29 +39,30 @@ String PushButton::getStyle()
     String style, bgcolor, fgcolor, fillcolor;
     style = "<style>\n";
     style += ".button {\n";
+    style += "  border: none;\n";
     style += "  background-color: ";
 
     if (button.type == GENERAL)
     {
-        if (!onOff && button.sr.size() >= 1)
+        if (button.sr.size() >= 1)
         {
-            
+            int idx = (onOff) ? 1 : 0;
+            style += colorToString(getColor(button.sr[idx].cb));
+            style += ";\n";
+            style += "  color: ";
+            style += colorToString(getColor(button.sr[idx].ct));
+            style += ";\n";
+            style += "  padding: 1px 1px;\n";
+            style += "  text-align: center;\n";
+            style += "  text-decoration: none;\n";
+            style += "  display: inline-block;\n";
+            style += "  font-size: 16px;\n";
+            style += "  margin: 1px 1px;\n";
+            style += "  cursor: pointer;\n";
+            style += "}\n\n";
+            style += "</style>\n";
         }
     }
-  border: none;
-  color: white;
-  padding: 15px 32px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 16px;
-  margin: 4px 2px;
-  cursor: pointer;
-}
 
-.button2 {background-color: #008CBA;} /* Blue */
-.button3 {background-color: #f44336;} /* Red */ 
-.button4 {background-color: #e7e7e7; color: black;} /* Gray */ 
-.button5 {background-color: #555555;} /* Black */
-</style>
+    return style;
 }

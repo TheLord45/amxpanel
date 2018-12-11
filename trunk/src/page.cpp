@@ -39,153 +39,182 @@ using namespace strings;
 
 amx::Page::Page(const strings::String& file)
 {
+    status = false;
     String uri = "file://";
     uri.append(Configuration->getHTTProot());
     uri.append("/panel/");
     uri.append(file);
-    xmlpp::TextReader reader(uri.toString());
-
-    while(reader.read())
+    
+    try
     {
-        String name = string(reader.get_name());
+        xmlpp::TextReader reader(uri.toString());
 
-        if (name.caseCompare("page") == 0 && reader.has_attributes())
+        while(reader.read())
         {
-            String attr = string(reader.get_attribute(0));
-            
-            if (attr.caseCompare("page") == 0)
-                page.type = PAGE;
-            else if (attr.caseCompare("subpage") == 0)
-                page.type = SUBPAGE;
-            else
-                page.type = PNONE;
-        }
-        else if (name.caseCompare("pageID") == 0)
-            page.pageID = atoi(reader.get_value().c_str());
-        else if (name.caseCompare("name") == 0)
-            page.name = reader.get_value();
-        else if (name.caseCompare("left") == 0)
-            page.left = atoi(reader.get_value().c_str());
-        else if (name.caseCompare("top") == 0)
-            page.top = atoi(reader.get_value().c_str());
-        else if (name.caseCompare("width") == 0)
-            page.width = atoi(reader.get_value().c_str());
-        else if (name.caseCompare("height") == 0)
-            page.height = atoi(reader.get_value().c_str());
-        else if (name.caseCompare("group") == 0)
-            page.group = reader.get_value();
-        else if (name.caseCompare("button") == 0 && reader.has_attributes())
-        {
-            BUTTON_T button;
-            String attr = string(reader.get_attribute(0));
+            String name = string(reader.get_name());
 
-            if (attr.caseCompare("general") == 0)
-                button.type = GENERAL;
-            else if (attr.caseCompare("multi-state general") == 0)
-                button.type = MULTISTATE_GENERAL;
-            else if (attr.caseCompare("bargraph") == 0)
-                button.type = BARGRAPH;
-            else if (attr.caseCompare("multi-state bargraph") == 0)
-                button.type = MULTISTATE_BARGRAPH;
-            else if (attr.caseCompare("joistick") == 0)
-                button.type = JOISTICK;
-            else if (attr.caseCompare("text input") == 0)
-                button.type = TEXT_INPUT;
-            else if (attr.caseCompare("computer control") == 0)
-                button.type = COMPUTER_CONTROL;
-            else if (attr.caseCompare("take note") == 0)
-                button.type = TAKE_NOTE;
-            else if (attr.caseCompare("sub-page view") == 0)
-                button.type = SUBPAGE_VIEW;
-
-            page.buttons.push_back(button);
-        }
-
-        if (reader.get_depth() == 3)
-        {
-            if (name.caseCompare("bi") == 0)
-                page.buttons.back().bi = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("na") == 0)
-                page.buttons.back().na = reader.get_value();
-            else if (name.caseCompare("lt") == 0)
-                page.buttons.back().lt = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("tp") == 0)
-                page.buttons.back().tp = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("wt") == 0)
-                page.buttons.back().wt = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("ht") == 0)
-                page.buttons.back().ht = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("zo") == 0)
-                page.buttons.back().zo = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("bs") == 0 && reader.has_value())
-                page.buttons.back().bs = reader.get_value();
-            else if (name.caseCompare("fb") == 0 && reader.has_value())
-                page.buttons.back().fb = reader.get_value();
-            else if (name.caseCompare("ap") == 0)
-                page.buttons.back().ap = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("cp") == 0)
-                page.buttons.back().cp = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("ch") == 0)
-                page.buttons.back().ch = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("lp") == 0)
-                page.buttons.back().lp = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("va") == 0)
-                page.buttons.back().va = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("rv") == 0)
-                page.buttons.back().rv = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("rl") == 0)
-                page.buttons.back().rl = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("rh") == 0)
-                page.buttons.back().rh = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("sr") == 0 && reader.has_attributes())
+            if (name.caseCompare("page") == 0 && reader.has_attributes())
             {
-                SR_T sr;
-                sr.number = atoi(reader.get_attribute(0).c_str());
-                page.buttons.back().sr.push_back(sr);
+                String attr = string(reader.get_attribute(0));
+                
+                if (attr.caseCompare("page") == 0)
+                    page.type = PAGE;
+                else if (attr.caseCompare("subpage") == 0)
+                    page.type = SUBPAGE;
+                else
+                    page.type = PNONE;
             }
-        }
-
-        if (reader.get_depth() == 4)
-        {
-            if (name.caseCompare("bs") == 0)
-                page.buttons.back().sr.back().bs = reader.get_value();
-            else if (name.caseCompare("cb") == 0)
-                page.buttons.back().sr.back().cb = reader.get_value();
-            else if (name.caseCompare("cf") == 0)
-                page.buttons.back().sr.back().cf = reader.get_value();
-            else if (name.caseCompare("ct") == 0)
-                page.buttons.back().sr.back().ct = reader.get_value();
-            else if (name.caseCompare("ec") == 0)
-                page.buttons.back().sr.back().ec = reader.get_value();
-            else if (name.caseCompare("bm") == 0)
+            else if (name.caseCompare("pageID") == 0)
+                page.pageID = atoi(reader.get_value().c_str());
+            else if (name.caseCompare("name") == 0)
+                page.name = reader.get_value();
+            else if (name.caseCompare("left") == 0)
+                page.left = atoi(reader.get_value().c_str());
+            else if (name.caseCompare("top") == 0)
+                page.top = atoi(reader.get_value().c_str());
+            else if (name.caseCompare("width") == 0)
+                page.width = atoi(reader.get_value().c_str());
+            else if (name.caseCompare("height") == 0)
+                page.height = atoi(reader.get_value().c_str());
+            else if (name.caseCompare("group") == 0)
+                page.group = reader.get_value();
+            else if (name.caseCompare("button") == 0 && reader.has_attributes())
             {
-                page.buttons.back().sr.back().bm = reader.get_value();
+                BUTTON_T button;
+                String attr = string(reader.get_attribute(0));
 
-                if (reader.has_attributes())
+                if (attr.caseCompare("general") == 0)
+                    button.type = GENERAL;
+                else if (attr.caseCompare("multi-state general") == 0)
+                    button.type = MULTISTATE_GENERAL;
+                else if (attr.caseCompare("bargraph") == 0)
+                    button.type = BARGRAPH;
+                else if (attr.caseCompare("multi-state bargraph") == 0)
+                    button.type = MULTISTATE_BARGRAPH;
+                else if (attr.caseCompare("joistick") == 0)
+                    button.type = JOISTICK;
+                else if (attr.caseCompare("text input") == 0)
+                    button.type = TEXT_INPUT;
+                else if (attr.caseCompare("computer control") == 0)
+                    button.type = COMPUTER_CONTROL;
+                else if (attr.caseCompare("take note") == 0)
+                    button.type = TAKE_NOTE;
+                else if (attr.caseCompare("sub-page view") == 0)
+                    button.type = SUBPAGE_VIEW;
+
+                page.buttons.push_back(button);
+            }
+
+            if (reader.get_depth() == 3)
+            {
+                if (name.caseCompare("bi") == 0)
+                    page.buttons.back().bi = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("na") == 0)
+                    page.buttons.back().na = reader.get_value();
+                else if (name.caseCompare("lt") == 0)
+                    page.buttons.back().lt = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("tp") == 0)
+                    page.buttons.back().tp = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("wt") == 0)
+                    page.buttons.back().wt = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("ht") == 0)
+                    page.buttons.back().ht = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("zo") == 0)
+                    page.buttons.back().zo = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("bs") == 0 && reader.has_value())
+                    page.buttons.back().bs = reader.get_value();
+                else if (name.caseCompare("fb") == 0 && reader.has_value())
+                    page.buttons.back().fb = reader.get_value();
+                else if (name.caseCompare("ap") == 0)
+                    page.buttons.back().ap = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("cp") == 0)
+                    page.buttons.back().cp = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("ch") == 0)
+                    page.buttons.back().ch = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("lp") == 0)
+                    page.buttons.back().lp = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("va") == 0)
+                    page.buttons.back().va = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("rv") == 0)
+                    page.buttons.back().rv = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("rl") == 0)
+                    page.buttons.back().rl = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("rh") == 0)
+                    page.buttons.back().rh = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("sr") == 0 && reader.has_attributes())
                 {
-                    if (reader.get_attribute(0).compare("0") == 0)
-                        page.buttons.back().sr.back().dynamic = false;
-                    else
-                        page.buttons.back().sr.back().dynamic = true;
+                    SR_T sr;
+                    sr.number = atoi(reader.get_attribute(0).c_str());
+                    page.buttons.back().sr.push_back(sr);
                 }
             }
-            else if (name.caseCompare("ji") == 0)
-                page.buttons.back().sr.back().ji = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("ix") == 0)
-                page.buttons.back().sr.back().ix = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("iy") == 0)
-                page.buttons.back().sr.back().iy = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("jt") == 0)
-                page.buttons.back().sr.back().jt = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("tx") == 0)
-                page.buttons.back().sr.back().tx = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("ty") == 0)
-                page.buttons.back().sr.back().ty = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("fi") == 0)
-                page.buttons.back().sr.back().fi = atoi(reader.get_value().c_str());
-        }
-    }
 
-    reader.close();
+            if (reader.get_depth() == 4)
+            {
+                if (name.caseCompare("bs") == 0)
+                    page.buttons.back().sr.back().bs = reader.get_value();
+                else if (name.caseCompare("cb") == 0)
+                    page.buttons.back().sr.back().cb = reader.get_value();
+                else if (name.caseCompare("cf") == 0)
+                    page.buttons.back().sr.back().cf = reader.get_value();
+                else if (name.caseCompare("ct") == 0)
+                    page.buttons.back().sr.back().ct = reader.get_value();
+                else if (name.caseCompare("ec") == 0)
+                    page.buttons.back().sr.back().ec = reader.get_value();
+                else if (name.caseCompare("bm") == 0)
+                {
+                    page.buttons.back().sr.back().bm = reader.get_value();
+
+                    if (reader.has_attributes())
+                    {
+                        if (reader.get_attribute(0).compare("0") == 0)
+                            page.buttons.back().sr.back().dynamic = false;
+                        else
+                            page.buttons.back().sr.back().dynamic = true;
+                    }
+                }
+                else if (name.caseCompare("ji") == 0)
+                    page.buttons.back().sr.back().ji = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("ix") == 0)
+                    page.buttons.back().sr.back().ix = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("iy") == 0)
+                    page.buttons.back().sr.back().iy = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("jt") == 0)
+                    page.buttons.back().sr.back().jt = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("tx") == 0)
+                    page.buttons.back().sr.back().tx = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("ty") == 0)
+                    page.buttons.back().sr.back().ty = atoi(reader.get_value().c_str());
+                else if (name.caseCompare("fi") == 0)
+                    page.buttons.back().sr.back().fi = atoi(reader.get_value().c_str());
+            }
+        }
+
+        reader.close();
+    }
+    catch (xmlpp::internal_error& e)
+    {
+        sysl->errlog(string("Page::Page: ")+e.what());
+        status = false;
+    }
+    
+    status = true;
 }
 
+String& Page::getWebCode()
+{
+    if (!status || webBuffer.length() > 0)
+        return webBuffer;
+
+    // Here we know, that we've never build the code to draw this page.
+    // Therefore we'll do it now.
+    // First we scan for all buttons and create them.
+    for (size_t i = 0; i < page.buttons.size(); i++)
+    {
+        PushButton *pbt = new PushButton(page.buttons[i]);
+        buttons.push_back(*pbt);
+        delete pbt;
+    }
+
+    return webBuffer;
+}

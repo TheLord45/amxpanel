@@ -44,6 +44,8 @@ amx::Panel::Panel()
     pPalettes = 0;
     pIcons = 0;
     pFontLists = 0;
+    status = false;
+    readProject();
 }
 
 Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)
@@ -52,6 +54,11 @@ Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)
     pPalettes = pPalet;
     pIcons = pIco;
     pFontLists = pFL;
+
+    if (pPalettes && pPalettes->isOk() && pIcons && pIcons->isOk() && pFontLists && pFontLists->isOk())
+        status = true;
+    else
+        status = false;
 }
 
 amx::Panel::~Panel()
@@ -66,10 +73,6 @@ amx::Panel::~Panel()
         delete pFontLists;
 }
 
-BUTTON_T& Panel::getButton(int id)
-{
-}
-
 void amx::Panel::readProject()
 {
     String name, lastName, attr;
@@ -78,7 +81,8 @@ void amx::Panel::readProject()
     bool bFeature = false;
     bool bPalette = false;
     int depth = 0;
-    
+    status = true;
+
     enum PART
     {
         eNone,
@@ -96,149 +100,159 @@ void amx::Panel::readProject()
     String uri = "file://";
     uri.append(Configuration->getHTTProot());
     uri.append("/panel/main.xma");
-    TextReader reader(uri.toString());
-
-    while(reader.read())
+    
+    try
     {
-        name = reader.get_name();
-        
-        if (reader.get_depth() < depth)
+        TextReader reader(uri.toString());
+
+        while(reader.read())
         {
-            bPageEntry = false;
-            bResource = false;
-            bFeature = false;
-            bPalette = false;
-            Part = eNone;
-        }
-
-        depth = reader.get_depth();
-
-        if(reader.has_value())
-        {
-            String value = string(reader.get_value());
-            value.trim();
-
-            if (value.size() > 0)
+            name = reader.get_name();
+            
+            if (reader.get_depth() < depth)
             {
-                switch(Part)
+                bPageEntry = false;
+                bResource = false;
+                bFeature = false;
+                bPalette = false;
+                Part = eNone;
+            }
+
+            depth = reader.get_depth();
+
+            if(reader.has_value())
+            {
+                String value = string(reader.get_value());
+                value.trim();
+
+                if (value.size() > 0)
                 {
-                    case eVersionInfo:      setVersionInfo(name, value); break;
-                    case eProjectInfo:      setProjectInfo(name, value, string(reader.get_attribute(0))); break;
-                    case eSupportFileList:  setSupportFileList(name, value); break;
-                    case ePanelSetup:       setPanelSetup(name, value); break;
+                    switch(Part)
+                    {
+                        case eVersionInfo:      setVersionInfo(name, value); break;
+                        case eProjectInfo:      setProjectInfo(name, value, string(reader.get_attribute(0))); break;
+                        case eSupportFileList:  setSupportFileList(name, value); break;
+                        case ePanelSetup:       setPanelSetup(name, value); break;
 
-                    case ePageList:
-                        if (!bPageEntry)
-                        {
-                            PAGE_LIST_T pageList;
-                            pageList.type = attr;
-                            PAGE_ENTRY_T pe;
-                            pe.clear();
-                            pageList.pageList.push_back(pe);
-                            Project.pageLists.push_back(pageList);
-                        }
-                        else
-                            setPageList(name, value);
-                    break;
-
-                    case eResourceList:
-                        if (!bResource)
-                        {
-                            RESOURCE_LIST_T resource;
-                            resource.type = attr;
-                            RESOURCE_T rs;
-                            rs.clear();
-                            resource.ressource.push_back(rs);
-                            Project.resourceLists.push_back(resource);
-                        }
-                        else
-                        {
-                            if (reader.has_attributes())
-                                attr = reader.get_attribute(0);
+                        case ePageList:
+                            if (!bPageEntry)
+                            {
+                                PAGE_LIST_T pageList;
+                                pageList.type = attr;
+                                PAGE_ENTRY_T pe;
+                                pe.clear();
+                                pageList.pageList.push_back(pe);
+                                Project.pageLists.push_back(pageList);
+                            }
                             else
-                                attr.clear();
+                                setPageList(name, value);
+                        break;
 
-                            setResourceList(name, value, attr);
-                        }
-                    break;
+                        case eResourceList:
+                            if (!bResource)
+                            {
+                                RESOURCE_LIST_T resource;
+                                resource.type = attr;
+                                RESOURCE_T rs;
+                                rs.clear();
+                                resource.ressource.push_back(rs);
+                                Project.resourceLists.push_back(resource);
+                            }
+                            else
+                            {
+                                if (reader.has_attributes())
+                                    attr = reader.get_attribute(0);
+                                else
+                                    attr.clear();
 
-                    case eFwFeatureList:
-                        if (!bFeature)
-                        {
-                            FEATURE_T fw;
-                            Project.fwFeatureList.push_back(fw);
-                        }
+                                setResourceList(name, value, attr);
+                            }
+                        break;
+
+                        case eFwFeatureList:
+                            if (!bFeature)
+                            {
+                                FEATURE_T fw;
+                                Project.fwFeatureList.push_back(fw);
+                            }
+                            else
+                                setFwFeatureList(name, value);
+                        break;
+
+                        case ePaletteList:
+                            if (!bPalette)
+                            {
+                                PALETTE_T pa;
+                                Project.paletteList.push_back(pa);
+                            }
+                            else
+                                setPaletteList(name, value);
+                        break;
+                    }
+
+                    if (name.caseCompare("versionInfo") == 0)
+                        Part = eVersionInfo;
+
+                    if (name.caseCompare("projectInfo") == 0)
+                        Part = eProjectInfo;
+
+                    if (name.caseCompare("supportFileList") == 0)
+                        Part = eSupportFileList;
+
+                    if (name.caseCompare("panelSetup") == 0)
+                        Part = ePanelSetup;
+
+                    if (name.caseCompare("pageList") == 0)
+                    {
+                        Part = ePageList;
+
+                        if (reader.has_attributes())
+                            attr = reader.get_attribute(0);
                         else
-                            setFwFeatureList(name, value);
-                    break;
+                            attr.clear();
+                    }
 
-                    case ePaletteList:
-                        if (!bPalette)
-                        {
-                            PALETTE_T pa;
-                            Project.paletteList.push_back(pa);
-                        }
+                    if (name.caseCompare("resourceList") == 0)
+                    {
+                        Part = eResourceList;
+
+                        if (reader.has_attributes())
+                            attr = reader.get_attribute(0);
                         else
-                            setPaletteList(name, value);
-                    break;
+                            attr.clear();
+                    }
+
+                    if (name.caseCompare("fwFeatureList") == 0)
+                        Part = eFwFeatureList;
+
+                    if (name.caseCompare("paletteList") == 0)
+                        Part = ePaletteList;
+
+                    if (Part == ePageList && name.caseCompare("pageEntry") == 0)
+                        bPageEntry = true;
+
+                    if (Part == eResourceList && name.caseCompare("resource") == 0)
+                        bResource = true;
+
+                    if (Part == eFwFeatureList && name.caseCompare("feature") == 0)
+                        bFeature = true;
+
+                    if (Part == ePageList && name.caseCompare("palette") == 0)
+                        bPalette = true;
+
+                    lastName = name;
                 }
-
-                if (name.caseCompare("versionInfo") == 0)
-                    Part = eVersionInfo;
-
-                if (name.caseCompare("projectInfo") == 0)
-                    Part = eProjectInfo;
-
-                if (name.caseCompare("supportFileList") == 0)
-                    Part = eSupportFileList;
-
-                if (name.caseCompare("panelSetup") == 0)
-                    Part = ePanelSetup;
-
-                if (name.caseCompare("pageList") == 0)
-                {
-                    Part = ePageList;
-
-                    if (reader.has_attributes())
-                        attr = reader.get_attribute(0);
-                    else
-                        attr.clear();
-                }
-
-                if (name.caseCompare("resourceList") == 0)
-                {
-                    Part = eResourceList;
-
-                    if (reader.has_attributes())
-                        attr = reader.get_attribute(0);
-                    else
-                        attr.clear();
-                }
-
-                if (name.caseCompare("fwFeatureList") == 0)
-                    Part = eFwFeatureList;
-
-                if (name.caseCompare("paletteList") == 0)
-                    Part = ePaletteList;
-
-                if (Part == ePageList && name.caseCompare("pageEntry") == 0)
-                    bPageEntry = true;
-
-                if (Part == eResourceList && name.caseCompare("resource") == 0)
-                    bResource = true;
-
-                if (Part == eFwFeatureList && name.caseCompare("feature") == 0)
-                    bFeature = true;
-
-                if (Part == ePageList && name.caseCompare("palette") == 0)
-                    bPalette = true;
-
-                lastName = name;
             }
         }
+        
+        reader.close();
     }
-    
-    reader.close();
+    catch (xmlpp::internal_error& e)
+    {
+        sysl->errlog(string("Panel::readProject")+e.what());
+        status = false;
+    }
+
     // Read the color palette
     if (!pPalettes)
         pPalettes = new Palette(Project.supportFileList.colorFile);
@@ -250,6 +264,29 @@ void amx::Panel::readProject()
     // Read the font map list
     if (!pFontLists)
         pFontLists = new FontList(Project.supportFileList.fontFile);
+    
+    if (!pPalettes->isOk() || !pIcons->isOk() || !pFontLists->isOk())
+        status = false;
+}
+
+vector<String> Panel::getPageFileNames()
+{
+    vector<String> pgFnLst;
+    
+    for (size_t i = 0; i < Project.pageLists.size(); i++)
+    {
+        PAGE_LIST_T pl = Project.pageLists[i];
+
+        for (size_t j = 0; j < pl.pageList.size(); j++)
+        {
+            PAGE_ENTRY_T pe = pl.pageList[i];
+
+            if (pe.file.length() > 0)
+                pgFnLst.push_back(pe.file);
+        }
+    }
+    
+    return pgFnLst;
 }
 
 void amx::Panel::setVersionInfo(const strings::String& name, const strings::String& value)

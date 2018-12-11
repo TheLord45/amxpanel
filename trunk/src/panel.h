@@ -31,7 +31,8 @@ namespace amx
             Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL);
             ~Panel();
 
-            BUTTON_T& getButton(int id);
+            bool isOk() { return status; }
+            std::vector<strings::String> getPageFileNames();
 
         private:
             void readProject();
@@ -49,6 +50,7 @@ namespace amx
             Palette *pPalettes;
             Icon *pIcons;
             FontList *pFontLists;
+            bool status;
     };
 }
 
