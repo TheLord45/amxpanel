@@ -14,32 +14,36 @@
  * from Andreas Theofilu.
  */
 
-#ifndef __ICON_H__
-#define __ICON_H__
+#include "config.h"
+#include "syslog.h"
+#include "touchpanel.h"
 
-#include <vector>
-#include "strings.h"
+using namespace amx;
+using namespace strings;
+using namespace std;
 
-namespace amx
+extern Config *Configuration;
+extern Syslog *sysl;
+
+TouchPanel::TouchPanel()
 {
-    typedef struct ICON
-    {
-        int index;
-        strings::String file;
-    }ICON_T;
-
-    class Icon
-    {
-        public:
-            Icon(const strings::String& file);
-
-            bool isOk() { return status; }
-            strings::String getFileName(size_t idx);
-
-        private:
-            std::vector<ICON_T> icons;
-            bool status;
-    };
+    sysl->TRACE(Syslog::ENTRY, String("TouchPanel::TouchPanel()"));
+    
 }
 
-#endif
+TouchPanel::~TouchPanel()
+{
+    sysl->TRACE(Syslog::EXIT, String("TouchPanel::TouchPanel()"));
+}
+
+void TouchPanel::readPages()
+{
+    vector<String> pgs = getPageFileNames();
+
+    for (size_t i = 0; i < pgs.size(); i++)
+    {
+        Page *p = new Page(pgs[i]);
+        pages.push_back(*p);
+        delete p;
+    }
+}

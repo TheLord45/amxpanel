@@ -14,31 +14,25 @@
  * from Andreas Theofilu.
  */
 
-#ifndef __ICON_H__
-#define __ICON_H__
+#ifndef __TOUCHPANEL_H__
+#define __TOUCHPANEL_H__
 
 #include <vector>
-#include "strings.h"
+#include "panel.h"
+#include "page.h"
 
 namespace amx
 {
-    typedef struct ICON
-    {
-        int index;
-        strings::String file;
-    }ICON_T;
-
-    class Icon
+    class TouchPanel : public Panel
     {
         public:
-            Icon(const strings::String& file);
-
-            bool isOk() { return status; }
-            strings::String getFileName(size_t idx);
+            TouchPanel();
+            ~TouchPanel();
 
         private:
-            std::vector<ICON_T> icons;
-            bool status;
+            void readPages();
+            std::vector<Page> pages;
+            Panel panel;
     };
 }
 

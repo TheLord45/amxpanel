@@ -19,15 +19,18 @@
 
 #include "panelstruct.h"
 #include "strings.h"
+#include "palette.h"
 
 namespace amx
 {
-    class PushButton
+    class PushButton : public Palette
     {
         public:
-            PushButton(const BUTTON_T& bt);
+            PushButton(const BUTTON_T& bt, const strings::String& pfilename);
             ~PushButton() {}
 
+            void setSwitch(bool s) { onOff = s; }
+            void setState(size_t s);
             strings::String getStyle();
 
         private:

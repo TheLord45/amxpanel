@@ -20,6 +20,7 @@
 #include <vector>
 #include "strings.h"
 #include "panelstruct.h"
+#include "pushbutton.h"
 
 namespace amx
 {
@@ -29,8 +30,14 @@ namespace amx
             Page(const strings::String& file);
             ~Page() {}
 
+            bool isOk() { return status; }
+            strings::String& getWebCode();
+
         private:
             PAGE_T page;
+            std::vector<PushButton> buttons;
+            bool status;
+            strings::String webBuffer;
     };
 }
 
