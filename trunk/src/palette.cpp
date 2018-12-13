@@ -41,6 +41,7 @@ using namespace strings;
 amx::Palette::Palette(const strings::String& file)
 {
     sysl->TRACE(Syslog::ENTRY, String("Palette::Palette(const strings::String& file)"));
+    sysl->TRACE(String("Palette file: ")+file);
     status = false;
     String uri = "file://";
     uri.append(Configuration->getHTTProot());
@@ -90,6 +91,8 @@ Palette::~Palette()
 
 unsigned long amx::Palette::getColor(size_t idx)
 {
+    sysl->TRACE(Syslog::MESSAGE, std::string("Palette::getColor(size_t idx)"));
+
     if (idx >= palette.size())
         return 0;
 
@@ -98,6 +101,8 @@ unsigned long amx::Palette::getColor(size_t idx)
 
 unsigned long amx::Palette::getColor(const strings::String& name)
 {
+    sysl->TRACE(Syslog::MESSAGE, std::string("Palette::getColor(const strings::String& name)"));
+
     if (name.at(0) == '#')
     {
         String sCol = String("0x")+name.substring(1);
@@ -115,6 +120,8 @@ unsigned long amx::Palette::getColor(const strings::String& name)
 
 String Palette::colorToString(unsigned long col)
 {
+    sysl->TRACE(Syslog::MESSAGE, std::string("Palette::colorToString(unsigned long col)"));
+
     std::stringstream stream;
     stream << "#" << std::setfill('0') << std::setw(8) << std::hex << col;
     String sCol(stream.str());

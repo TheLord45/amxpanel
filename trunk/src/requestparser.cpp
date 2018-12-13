@@ -28,15 +28,24 @@ namespace http
 		RequestParser::RequestParser()
 				: state_(method_start)
 		{
+			sysl->TRACE(Syslog::ENTRY, std::string("RequestParser::RequestParser()"));
+		}
+
+		RequestParser::~RequestParser()
+		{
+			sysl->TRACE(Syslog::EXIT, std::string("RequestParser::RequestParser()"));
 		}
 
 		void RequestParser::reset()
 		{
+			sysl->TRACE(Syslog::MESSAGE, std::string("RequestParser::reset()"));
 			state_ = method_start;
 		}
 
 		RequestParser::result_type RequestParser::consume(Request& req, char input)
 		{
+			sysl->TRACE(Syslog::MESSAGE, std::string("RequestParser::consume(Request& req, char input)"));
+
 			switch (state_)
 			{
 				case method_start:

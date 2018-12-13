@@ -56,6 +56,10 @@ class Config
 		strings::String LogFile;
 		strings::String FontPath;
 		strings::String web_location;
+		strings::String AMXPanelType;
+		strings::String AMXController;
+		int AMXPort;
+		int AMXChanel;
 
 		std::ifstream fs;
 		strings::String sFileName;

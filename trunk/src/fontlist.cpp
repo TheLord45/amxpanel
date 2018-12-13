@@ -39,6 +39,7 @@ using namespace strings;
 
 amx::FontList::FontList(const strings::String& file)
 {
+    sysl->TRACE(Syslog::ENTRY, std::string("FontList::FontList(const strings::String& file)"));
     FONT_T font;
     String uri = "file://";
     uri.append(Configuration->getHTTProot());
@@ -94,4 +95,9 @@ amx::FontList::FontList(const strings::String& file)
     }
 
     status = true;
+}
+
+amx::FontList::~FontList()
+{
+    sysl->TRACE(Syslog::EXIT, std::string("FontList::FontList(const strings::String& file)"));
 }

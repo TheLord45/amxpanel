@@ -106,6 +106,8 @@ class Syslog
 		void DebugMsg(const strings::String& msg) { DebugMsg(msg.toString()); }
 		void TRACE(FUNCTION f, const std::string& msg);
 		void TRACE(FUNCTION f, const strings::String& msg) { TRACE(f, msg.toString()); }
+		void TRACE(const strings::String& msg) { TRACE(MESSAGE, msg.toString()); }
+		void TRACE(const std::string& msg) { TRACE(MESSAGE, msg); }
 
 	private:
 		void writeToFile(const std::string& str);

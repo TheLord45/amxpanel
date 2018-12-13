@@ -38,7 +38,7 @@ namespace http
 				m_socket(m_io_service),
 				m_request_handler(doc_root)
 		{
-			sysl->DebugMsg(string("Server::Server: Registering signals..."));
+			sysl->TRACE(Syslog::ENTRY, string("Server::Server(const std::string& address, int port, const std::string& doc_root)"));
 			// Register to handle the signals that indicate when the server should exit.
 			// It is safe to register for the same signal multiple times in a program,
 			// provided all registration for the specified signal is made through Asio.
@@ -60,14 +60,21 @@ namespace http
 			sysl->DebugMsg(string("Server::Server: Acceptor was started. Listening now."));
 		}
 
+		Server::~Server()
+		{
+			sysl->TRACE(Syslog::EXIT, string("Server::Server(...)"));
+		}
+
 		void Server::run()
 		{
-			sysl->DebugMsg(string("Server::run(): will be started."));
+			sysl->TRACE(Syslog::MESSAGE, string("Server::run()"));
 			m_io_service.run();
 		}
 
 		void Server::do_accept()
 		{
+			sysl->TRACE(Syslog::MESSAGE, string("Server::do_accept()")));
+
 			m_acceptor.async_accept(m_socket, [this](std::error_code ec)
 			{
 				sysl->DebugMsg(string("Server::do_accept: async_accept"));
@@ -91,6 +98,8 @@ namespace http
 
 		void Server::do_await_stop()
 		{
+			sysl->TRACE(Syslog::MESSAGE, string("Server::do_await_stop()"));
+
 			m_signals.async_wait([this](std::error_code /*ec*/, int /*signo*/)
 			{
 				// The server is stopped by cancelling all outstanding asynchronous

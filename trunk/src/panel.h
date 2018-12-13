@@ -34,6 +34,9 @@ namespace amx
             bool isOk() { return status; }
             std::vector<strings::String> getPageFileNames();
 
+        protected:
+            PROJECT_T& getProject() { return Project; }
+
         private:
             void readProject();
             void setVersionInfo(const strings::String& name, const strings::String& value);
@@ -46,7 +49,7 @@ namespace amx
             void setPaletteList(const strings::String& name, const strings::String& value);
             DateTime& getDate(const strings::String& dat, DateTime& dt);
 
-            PROJECT Project;
+            PROJECT_T Project;
             Palette *pPalettes;
             Icon *pIcons;
             FontList *pFontLists;

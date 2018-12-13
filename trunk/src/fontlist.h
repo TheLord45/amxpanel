@@ -39,6 +39,7 @@ namespace amx
     {
         public:
             FontList(const strings::String& file);
+            ~FontList();
 
             bool isOk() { return status; }
 

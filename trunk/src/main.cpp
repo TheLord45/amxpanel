@@ -43,6 +43,7 @@ int main(int /* argc */, const char **argv)
 	Configuration = new Config();
 	sysl->setDebug(Configuration->getDebug());
 	sysl->setLogFile(Configuration->getLogFile());
+	sysl->TRACE(Syslog::ENTRY, std::string("main(int /* argc */, const char **argv)"));
 	sysl->log(Syslog::INFO, pName + " v" + VERSION);
 	sysl->log(Syslog::INFO, String("(C) Copyright by Andreas Theofilu <andreas@theosys.at>. All rights reserved!"));
 	sysl->log(Syslog::INFO, String("Daemon is starting ..."));
@@ -56,7 +57,7 @@ int main(int /* argc */, const char **argv)
 	server.run();
 
 	// Upon the previous function exits, clean up end exit.
-	sysl->DebugMsg(String("Exiting!"));
+	sysl->TRACE(Syslog::EXIT, std::string("main(int /* argc */, const char **argv)"));
 	delete sysl;
 	delete Configuration;
 	return 0;

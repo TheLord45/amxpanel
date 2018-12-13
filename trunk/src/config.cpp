@@ -31,12 +31,16 @@ using namespace strings;
 
 Config::Config()
 {
+	sysl->TRACE(Syslog::ENTRY, std::string("Config::Config()"));
 	this->fflag = false;
 	initialized = false;
 	sFileName.clear();
 	sPidFile.clear();
 	Debug = false;
-
+	AMXPanelType.clear();
+	AMXController.clear();
+	AMXPort = 1319;
+	AMXChanel = 0;
 	init();
 
 	try
@@ -51,6 +55,8 @@ Config::Config()
 
 void Config::init()
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Config::init()"));
+
 	if (!(HOME = std::getenv("HOME")))
 	{
 		sysl->errlog(String("Error getting environment variable HOME!"));
@@ -87,10 +93,16 @@ void Config::init()
 	LogFile = "";
 	FontPath = "/usr/share/amxpanel/fonts";
 	web_location = "/amxpanel";
+	AMXPanelType = "MVS5200i";
+	AMXController = "0.0.0.0";
+	AMXPort = 1319;
+	AMXChanel = 0;
 }
 
 void Config::readConfig(const String &sFile)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Config::readConfig(const String &sFile)"));
+
 	if (this->fflag)
 	{
 		this->fflag = false;
@@ -141,6 +153,14 @@ void Config::readConfig(const String &sFile)
 				FontPath = right.trim();
 			else if (left.compare("WEBLOCATION") == 0 && !right.empty())
 				web_location = right.trim();
+			else if (left.compare("AMXPanelType") == 0 && !right.empty())
+				AMXPanelType = right.trim();
+			else if (left.compare("AMXController") == 0 && !right.empty())
+				AMXController = right.trim();
+			else if (left.compare("AMXPort") == 0 && !right.empty())
+				AMXPort = std::stoi(right.data());
+			else if (left.compare("AMXChannel") == 0 && !right.empty())
+				AMXChanel = std::stoi(right.data());
 			else if (left.compare("DEBUG") == 0 && !right.empty())
 			{
 				String b = right.trim();
@@ -159,6 +179,8 @@ void Config::readConfig(const String &sFile)
 
 Config::~Config()
 {
+	sysl->TRACE(Syslog::EXIT, std::string("Config::Config()"));
+
 	if (this->fflag)
 	{
 		this->fflag = false;

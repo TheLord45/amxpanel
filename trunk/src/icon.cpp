@@ -39,6 +39,7 @@ using namespace strings;
 
 amx::Icon::Icon(const strings::String& file)
 {
+    sysl->TRACE(Syslog::ENTRY, std::string("Icon::Icon(const strings::String& file)"));
     int index = 0;
     String uri = "file://";
     uri.append(Configuration->getHTTProot());
@@ -69,7 +70,7 @@ amx::Icon::Icon(const strings::String& file)
     }
     catch (xmlpp::internal_error& e)
     {
-        sysl->errlog(string("Icon::Icon: "+e.what()));
+        sysl->errlog(string("Icon::Icon: ")+e.what());
         status = false;
         return;
     }
@@ -77,8 +78,15 @@ amx::Icon::Icon(const strings::String& file)
     status = true;
 }
 
+amx::Icon::~Icon()
+{
+    sysl->TRACE(Syslog::EXIT, std::string("Icon::Icon(const strings::String& file)"));
+}
+
 strings::String amx::Icon::getFileName(size_t idx)
 {
+    sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getFileName(size_t idx)"));
+
     if (idx > icons.size())
         return "";
 

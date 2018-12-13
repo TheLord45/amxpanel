@@ -39,6 +39,7 @@ using namespace strings;
 
 Mapping::Mapping()
 {
+    sysl->TRACE(Syslog::ENTRY, std::string("Mapping::Mapping()"));
     bool cm = false;
     bool am = false;
     bool lm = false;
@@ -285,5 +286,6 @@ Mapping::Mapping()
 
 Mapping::~Mapping()
 {
+    sysl->TRACE(Syslog::EXIT, std::string("Mapping::Mapping()"));
 }
 
