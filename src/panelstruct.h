@@ -295,7 +295,9 @@ namespace amx
         int width;
         int height;
         std::string group;
+        int showEffect;
         int showTime;
+        int hideEffect;
         int hideTime;
         std::vector<BUTTON_T> buttons;
         std::vector<SR_T> sr;

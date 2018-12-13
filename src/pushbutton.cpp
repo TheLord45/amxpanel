@@ -14,7 +14,10 @@
  * from Andreas Theofilu.
  */
 
+#include "syslog.h"
 #include "pushbutton.h"
+
+extern Syslog *sysl;
 
 using namespace amx;
 using namespace strings;
@@ -24,8 +27,14 @@ PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)
           button(bt)
           
 {
+    sysl->TRACE(Syslog::ENTRY, std::string("PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)"));
     onOff = false;
     state = 0;
+}
+
+PushButton::~PushButton()
+{
+	sysl->TRACE(Syslog::EXIT, std::string("PushButton::PushButton(...)"));
 }
 
 void PushButton::setState(size_t s)
@@ -36,6 +45,8 @@ void PushButton::setState(size_t s)
 
 String PushButton::getStyle()
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("PushButton::getStyle()"));
+
     String style, bgcolor, fgcolor, fillcolor;
     style = "<style>\n";
     style += ".button {\n";

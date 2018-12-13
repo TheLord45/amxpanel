@@ -31,6 +31,7 @@ namespace http
 		public:
 			/// Construct ready to parse the request method.
 			RequestParser();
+			~RequestParser();
 
 			/// Reset to initial parser state.
 			void reset();

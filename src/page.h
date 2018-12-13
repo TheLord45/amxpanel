@@ -24,21 +24,30 @@
 
 namespace amx
 {
-    class Page
-    {
-        public:
-            Page(const strings::String& file);
-            ~Page() {}
+	class Page
+	{
+		public:
+			Page(const strings::String& file);
+			~Page();
 
-            bool isOk() { return status; }
-            strings::String& getWebCode();
+			bool isOk() { return status; }
+			strings::String& getStyleCode();
+			strings::String& getWebCode();
+			int getPageID() { return page.pageID; }
+			strings::String& getPageName() { return page.name; }
 
-        private:
-            PAGE_T page;
-            std::vector<PushButton> buttons;
-            bool status;
-            strings::String webBuffer;
-    };
+			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
+
+		private:
+			void clear();
+
+			PAGE_T page;
+			std::vector<PushButton> buttons;
+			bool status;
+			strings::String webBuffer;
+			strings::String styleBuffer;
+			strings::String paletteFile;
+	};
 }
 
 #endif

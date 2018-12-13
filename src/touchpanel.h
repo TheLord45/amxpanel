@@ -23,17 +23,24 @@
 
 namespace amx
 {
-    class TouchPanel : public Panel
-    {
-        public:
-            TouchPanel();
-            ~TouchPanel();
+	class TouchPanel : public Panel
+	{
+		public:
+			TouchPanel();
+			~TouchPanel();
 
-        private:
-            void readPages();
-            std::vector<Page> pages;
-            Panel panel;
-    };
+			strings::String getPage(int id);
+			strings::String getPage(const strings::String& name);
+			strings::String getStartPage();
+
+		private:
+			void readPages();
+			std::vector<Page> pages;
+			Panel panel;
+			friend class Panel;
+
+			std::vector<strings::String> commands;		// Commands from controller
+	};
 }
 
 #endif

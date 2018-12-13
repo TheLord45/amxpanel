@@ -41,6 +41,7 @@ using namespace strings;
 
 amx::Panel::Panel()
 {
+	sysl->TRACE(Syslog::ENTRY, std::string("Panel::Panel()"));
     pPalettes = 0;
     pIcons = 0;
     pFontLists = 0;
@@ -51,6 +52,7 @@ amx::Panel::Panel()
 Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)
             : Project(prj)
 {
+	sysl->TRACE(Syslog::ENTRY, std::string("Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)"));
     pPalettes = pPalet;
     pIcons = pIco;
     pFontLists = pFL;
@@ -63,6 +65,8 @@ Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)
 
 amx::Panel::~Panel()
 {
+	sysl->TRACE(Syslog::EXIT, std::string("Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)"));
+
     if (pPalettes)
         delete pPalettes;
 
@@ -75,26 +79,28 @@ amx::Panel::~Panel()
 
 void amx::Panel::readProject()
 {
-    String name, lastName, attr;
-    bool bPageEntry = false;
-    bool bResource = false;
-    bool bFeature = false;
-    bool bPalette = false;
-    int depth = 0;
-    status = true;
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::readProject()"));
 
-    enum PART
-    {
-        eNone,
-        eVersionInfo,
-        eProjectInfo,
-        eSupportFileList,
-        ePanelSetup,
-        ePageList,
-        eResourceList,
-        eFwFeatureList,
-        ePaletteList
-    };
+	String name, lastName, attr;
+	bool bPageEntry = false;
+	bool bResource = false;
+	bool bFeature = false;
+	bool bPalette = false;
+	int depth = 0;
+	status = true;
+
+	enum PART
+	{
+		eNone,
+		eVersionInfo,
+		eProjectInfo,
+		eSupportFileList,
+		ePanelSetup,
+		ePageList,
+		eResourceList,
+		eFwFeatureList,
+		ePaletteList
+	};
 
     PART Part;
     String uri = "file://";
@@ -271,6 +277,7 @@ void amx::Panel::readProject()
 
 vector<String> Panel::getPageFileNames()
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::getPageFileNames()"));
     vector<String> pgFnLst;
     
     for (size_t i = 0; i < Project.pageLists.size(); i++)
@@ -291,6 +298,8 @@ vector<String> Panel::getPageFileNames()
 
 void amx::Panel::setVersionInfo(const strings::String& name, const strings::String& value)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setVersionInfo(const strings::String& name, const strings::String& value)"));
+
     if (name.caseCompare("formatVersion") == 0)
         Project.version.formatVersion = atoi(value.data());
     
@@ -306,6 +315,8 @@ void amx::Panel::setVersionInfo(const strings::String& name, const strings::Stri
 
 void amx::Panel::setProjectInfo(const strings::String& name, const strings::String& value, const strings::String& attr)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setProjectInfo(const strings::String& name, const strings::String& value, const strings::String& attr)"));
+
     if (name.caseCompare("protection") == 0)
         Project.projectInfo.protection = value;
 
@@ -367,6 +378,8 @@ void amx::Panel::setProjectInfo(const strings::String& name, const strings::Stri
 
 void amx::Panel::setSupportFileList(const strings::String& name, const strings::String& value)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setSupportFileList(const strings::String& name, const strings::String& value)"));
+
     if (name.caseCompare("mapFile") == 0)
         Project.supportFileList.mapFile = value;
     else if (name.caseCompare("colorFile") == 0)
@@ -383,6 +396,8 @@ void amx::Panel::setSupportFileList(const strings::String& name, const strings::
 
 void amx::Panel::setPanelSetup(const strings::String& name, const strings::String& value)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setPanelSetup(const strings::String& name, const strings::String& value)"));
+
     if (name.caseCompare("portCount") == 0)
         Project.panelSetup.portCount = atoi(value.data());
     else if (name.caseCompare("setupPort") == 0)
@@ -485,6 +500,8 @@ void amx::Panel::setPanelSetup(const strings::String& name, const strings::Strin
 
 void amx::Panel::setPageList(const strings::String& name, const strings::String& value)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setPageList(const strings::String& name, const strings::String& value)"));
+
     PAGE_LIST_T pl = Project.pageLists.back();
     PAGE_ENTRY_T pe = pl.pageList.back();
 
@@ -504,6 +521,8 @@ void amx::Panel::setPageList(const strings::String& name, const strings::String&
 
 void amx::Panel::setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr)"));
+
     RESOURCE_LIST_T rl = Project.resourceLists.back();
     RESOURCE_T rs = rl.ressource.back();
     
@@ -532,6 +551,8 @@ void amx::Panel::setResourceList(const strings::String& name, const strings::Str
 
 void amx::Panel::setFwFeatureList(const strings::String& name, const strings::String& value)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setFwFeatureList(const strings::String& name, const strings::String& value)"));
+
     FEATURE_T fw = Project.fwFeatureList.back();
     
     if (name.caseCompare("featureID") == 0)
@@ -542,6 +563,8 @@ void amx::Panel::setFwFeatureList(const strings::String& name, const strings::St
 
 void amx::Panel::setPaletteList(const strings::String& name, const strings::String& value)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setPaletteList(const strings::String& name, const strings::String& value)"));
+
     PALETTE_T pa = Project.paletteList.back();
     
     if (name.caseCompare("name") == 0)
@@ -557,6 +580,8 @@ void amx::Panel::setPaletteList(const strings::String& name, const strings::Stri
  */
 DateTime& amx::Panel::getDate(const strings::String& dat, DateTime& dt)
 {
+	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::getDate(const strings::String& dat, DateTime& dt)"));
+
     int day, month, year, hour, min, sec;
     std::vector<String> teile = dat.split(' ');
     

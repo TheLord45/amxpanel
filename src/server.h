@@ -40,6 +40,7 @@ namespace http
 		{
 			public:
 				Server(const Server&) = delete;
+				~Server();
 				Server& operator= (const Server&) = delete;
 
 				// Construct the server to listen on the specified TCP address and port.

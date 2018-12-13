@@ -32,6 +32,7 @@ namespace amx
     {
         public:
             Icon(const strings::String& file);
+            ~Icon();
 
             bool isOk() { return status; }
             strings::String getFileName(size_t idx);

@@ -27,7 +27,7 @@ namespace amx
     {
         public:
             PushButton(const BUTTON_T& bt, const strings::String& pfilename);
-            ~PushButton() {}
+            ~PushButton();
 
             void setSwitch(bool s) { onOff = s; }
             void setState(size_t s);
