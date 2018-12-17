@@ -56,10 +56,18 @@ String PushButton::getStyle()
 		style = String(".button")+String(i)+"-"+NameFormat::toValidName(button.na)+" {\n";
 		style += "  position: absolut;";
 		style += "  border: none;\n";
+		style += String("  background-image: url(images/")+button.sr[i].bm+");\n";
+		style += "  background-repeat: no-repeat;\n";
 
-		if (button.sr.size() >= 1)
+		if (button.type == GENERAL && i == 0)
 		{
-			int idx = (onOff) ? 1 : 0;
+			style += "  display: ";
+			style += (onOff) ? "none;" : "inline;";
+		}
+		else if (button.type == MULTISTATE_GENERAL || button.type == MULTISTATE_BARGRAPH)
+		{
+			
+		}
 			style += colorToString(getColor(button.sr[idx].cb));
 			style += ";\n";
 			style += "  color: ";
@@ -78,4 +86,22 @@ String PushButton::getStyle()
 	}
 
 	return style;
+}
+
+String PushButton::getWebCode()
+{
+	String code;
+
+	for (size_t i = 0; i < button.sr.size(); i++)
+	{
+		String nm = String("button")+String(i)+"-"+NameFormat::toValidName(button.na);
+		code += String("<div id=\"")+nm+"\" class=\""+nm+"\">";
+
+		if (button.sr[i].ct.length() > 0)
+			code += button.sr[i].ct;
+
+		code += "</div>\n";
+	}
+
+	return code;
 }
