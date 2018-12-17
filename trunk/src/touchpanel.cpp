@@ -39,7 +39,7 @@ TouchPanel::~TouchPanel()
 String TouchPanel::getPage(int id)
 {
 	sysl->TRACE(String("TouchPanel::getPage(int id)"));
-    
+
 	for (size_t i = 0; i < pages.size(); i++)
 	{
 		if (pages[i].isOk() && pages[i].getPageID() == id)
@@ -89,6 +89,7 @@ void TouchPanel::readPages()
 	{
 		Page *p = new Page(pgs[i]);
 		p->setPaletteFile(getProject().supportFileList.colorFile);
+		p->setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
 		pages.push_back(*p);
 		delete p;
 	}

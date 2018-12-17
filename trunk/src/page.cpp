@@ -29,6 +29,7 @@
 #include "config.h"
 #include "syslog.h"
 #include "palette.h"
+#include "nameformat.h"
 #include "page.h"
 
 extern Syslog *sysl;
@@ -48,7 +49,7 @@ amx::Page::Page(const strings::String& file)
 	uri.append(Configuration->getHTTProot());
 	uri.append("/panel/");
 	uri.append(file);
-    
+
 	try
 	{
         xmlpp::TextReader reader(uri.toString());
@@ -60,7 +61,7 @@ amx::Page::Page(const strings::String& file)
             if (name.caseCompare("page") == 0 && reader.has_attributes())
             {
                 String attr = string(reader.get_attribute(0));
-                
+
                 if (attr.caseCompare("page") == 0)
                     page.type = PAGE;
                 else if (attr.caseCompare("subpage") == 0)
@@ -209,7 +210,7 @@ amx::Page::Page(const strings::String& file)
         sysl->errlog(string("Page::Page: ")+e.what());
         status = false;
     }
-    
+
     status = true;
 }
 
@@ -246,10 +247,10 @@ String& Page::getStyleCode()
 
 		if (page.showEffect && page.showTime)
 		{
-			styleBuffer += "  animation-name: animateit;\n";
+			styleBuffer += String("  animation-name: ani-")+NameFormat::toValidName(page.name)+";\n";
 			styleBuffer += String("  animation-duration: ")+String((double)page.showTime / 10.0)+"s;\n";
 			styleBuffer += "}\n";
-			styleBuffer += "@keyframes animateit {\n";
+			styleBuffer += String("@keyframes ani-")+NameFormat::toValidName(page.name)+" {\n";
 
 			switch (page.showEffect)
 			{
@@ -266,8 +267,8 @@ String& Page::getStyleCode()
 					styleBuffer += String("  to { right: 0; opacity: 1;\n");
 				break;
 				case 4:		// bottom
-					styleBuffer += String("  from { bottom: ")+String(page.top+page.height)+"px; opacity: 0;\n";
-					styleBuffer += String("  to { bottom: 0; opacity: 1;\n");
+					styleBuffer += String("  from { top: ")+String(totalHeight)+"px; opacity: 0;\n";
+					styleBuffer += String("  to { top: ")+String(totalHeight-page.height)+"; opacity: 1;\n";
 				break;
 			}
 		}

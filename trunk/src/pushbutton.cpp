@@ -15,6 +15,7 @@
  */
 
 #include "syslog.h"
+#include "nameformat.h"
 #include "pushbutton.h"
 
 extern Syslog *sysl;
@@ -23,13 +24,13 @@ using namespace amx;
 using namespace strings;
 
 PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)
-        : Palette(pfilename),
-          button(bt)
-          
+		: Palette(pfilename),
+		  button(bt)
+
 {
-    sysl->TRACE(Syslog::ENTRY, std::string("PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)"));
-    onOff = false;
-    state = 0;
+	sysl->TRACE(Syslog::ENTRY, std::string("PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)"));
+	onOff = false;
+	state = 0;
 }
 
 PushButton::~PushButton()
@@ -39,41 +40,42 @@ PushButton::~PushButton()
 
 void PushButton::setState(size_t s)
 {
-    if (s > 0 && s <= button.sr.size() && (button.type == MULTISTATE_GENERAL || button.type == MULTISTATE_BARGRAPH))
-        state = s - 1;
+	if (s > 0 && s <= button.sr.size() && (button.type == MULTISTATE_GENERAL || button.type == MULTISTATE_BARGRAPH))
+		state = s - 1;
 }
 
 String PushButton::getStyle()
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("PushButton::getStyle()"));
 
-    String style, bgcolor, fgcolor, fillcolor;
-    style = "<style>\n";
-    style += ".button {\n";
-    style += "  border: none;\n";
-    style += "  background-color: ";
+	String style, bgcolor, fgcolor, fillcolor;
 
-    if (button.type == GENERAL)
-    {
-        if (button.sr.size() >= 1)
-        {
-            int idx = (onOff) ? 1 : 0;
-            style += colorToString(getColor(button.sr[idx].cb));
-            style += ";\n";
-            style += "  color: ";
-            style += colorToString(getColor(button.sr[idx].ct));
-            style += ";\n";
-            style += "  padding: 1px 1px;\n";
-            style += "  text-align: center;\n";
-            style += "  text-decoration: none;\n";
-            style += "  display: inline-block;\n";
-            style += "  font-size: 16px;\n";
-            style += "  margin: 1px 1px;\n";
-            style += "  cursor: pointer;\n";
-            style += "}\n\n";
-            style += "</style>\n";
-        }
-    }
+	for (size_t i = 0; i < button.sr.size(); i++)
+	{
+		// Name: .button<number>-<name>
+		style = String(".button")+String(i)+"-"+NameFormat::toValidName(button.na)+" {\n";
+		style += "  position: absolut;";
+		style += "  border: none;\n";
 
-    return style;
+		if (button.sr.size() >= 1)
+		{
+			int idx = (onOff) ? 1 : 0;
+			style += colorToString(getColor(button.sr[idx].cb));
+			style += ";\n";
+			style += "  color: ";
+			style += colorToString(getColor(button.sr[idx].ct));
+			style += ";\n";
+			style += "  padding: 1px 1px;\n";
+			style += "  text-align: center;\n";
+			style += "  text-decoration: none;\n";
+			style += "  display: inline-block;\n";
+			style += "  font-size: 16px;\n";
+			style += "  margin: 1px 1px;\n";
+			style += "  cursor: pointer;\n";
+			style += "}\n\n";
+			style += "</style>\n";
+		}
+	}
+
+	return style;
 }

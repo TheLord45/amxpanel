@@ -37,6 +37,7 @@ namespace amx
 			strings::String& getPageName() { return page.name; }
 
 			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
+			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }
 
 		private:
 			void clear();
@@ -47,6 +48,8 @@ namespace amx
 			strings::String webBuffer;
 			strings::String styleBuffer;
 			strings::String paletteFile;
+			int totalWidth;
+			int totalHeight;
 	};
 }
 

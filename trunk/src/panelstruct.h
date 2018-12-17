@@ -135,7 +135,7 @@ namespace amx
         strings::String group;
         int isValid;
         int popupType;
-        
+
         void clear()
         {
             name.clear();
@@ -164,7 +164,7 @@ namespace amx
         strings::String path;
         strings::String file;
         int refresh;
-        
+
         void clear()
         {
             name.clear();
@@ -220,10 +220,10 @@ namespace amx
         int number;
         strings::String bs;     // Frame type (circle, ...)
         strings::String mi;     // Chameleon image
-        strings::String cb;     // Background color
-        strings::String cf;     // Frame color
-        strings::String ct;     // Foreground Color
-        strings::String ec;     // Fill color
+        strings::String cb;     // Border color
+        strings::String cf;     // Fill color
+        strings::String ct;     // Text Color
+        strings::String ec;     // Text effect color
         strings::String bm;     // bitmap file name
         bool dynamic;
         int sb;
@@ -265,14 +265,15 @@ namespace amx
         strings::String hs;     // bounding, ...
         strings::String bs;     // Frame type (circle, ...)
         strings::String fb;     // momentary, ...
-        int ap;
-        int cp;
+        int ap;					// Address port
+        int ad;					// Address channel
         int lp;
         int va;
         int rv;
-        int ch;
-        int rl;
-        int rh;
+        int ch;					// Channel
+        int cp;					// Port
+        int rl;					// Range low
+        int rh;					// Range high
         strings::String pfType;
         strings::String pfName;
         std::vector<SR_T> sr;
@@ -285,6 +286,20 @@ namespace amx
         SUBPAGE
     };
 
+	enum SHOWEFFECT
+	{
+		SE_NONE,
+		SE_FADE,
+		SE_SLIDE_LEFT,
+		SE_SLIDE_RIGHT,
+		SE_SLIDE_TOP,
+		SE_SLIDE_BOTTOM,
+		SE_SLIDE_LEFT_FADE,
+		SE_SLIDE_RIGHT_FADE,
+		SE_SLIDE_TOP_FADE,
+		SE_SLIDE_BOTTOM_FADE
+	};
+
     typedef struct PAGE
     {
         PAGETYPE type;
@@ -295,9 +310,9 @@ namespace amx
         int width;
         int height;
         std::string group;
-        int showEffect;
+        SHOWEFFECT showEffect;
         int showTime;
-        int hideEffect;
+        SHOWEFFECT hideEffect;
         int hideTime;
         std::vector<BUTTON_T> buttons;
         std::vector<SR_T> sr;
