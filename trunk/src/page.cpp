@@ -219,6 +219,19 @@ Page::~Page()
     sysl->TRACE(Syslog::EXIT, std::string("Page::Page(...)"));
 }
 
+void Page::generateButtons()
+{
+	if (buttons.size() > 0)
+		return;
+
+	for (size_t i = 0; i < page.buttons.size(); i++)
+	{
+		PushButton *pbt = new PushButton(page.buttons[i], paletteFile);
+		buttons.push_back(*pbt);
+		delete pbt;
+	}
+}
+
 String& Page::getStyleCode()
 {
 	sysl->TRACE(String("Page::getStyleCode()"));
@@ -227,23 +240,25 @@ String& Page::getStyleCode()
 	if (!status || styleBuffer.length() > 0)
 		return styleBuffer;
 
-	if (page.type == SUBPAGE)
+	styleBuffer = String(".")+page.name+" {\n";
+	styleBuffer += String("  width: ")+String(page.width)+"px;\n";
+	styleBuffer += String("  height: ")+String(page.height)+"px;\n";
+
+	if (page.sr.size() > 0 && page.sr[0].bm.length() > 0)
 	{
-		styleBuffer = String(".")+page.name+" {\n";
-		styleBuffer += "  display: block;\n";		// Show the popup
-		styleBuffer += "  position: fixed;\n";		// Fixed position, don't move
-		styleBuffer += "  z-index: 1;\n";			// Display on top
 		styleBuffer += String("  left: ")+String(page.left)+"px;\n";
 		styleBuffer += String("  top: ")+String(page.top)+"px;\n";
-		styleBuffer += String("  width: ")+String(page.width)+"px;\n";
-		styleBuffer += String("  height: ")+String(page.height)+"px;\n";
-		styleBuffer += "  overflow: auto;\n";		// Enable scroll if needed
+		styleBuffer += String("  background-color: ")+pal.colorToString(pal.getColor(page.sr[0].cf))+";\n";
+		styleBuffer += String("  color: ")+pal.colorToString(pal.getColor(page.sr[0].ct))+";\n";
+		styleBuffer += String("  background-image: url(images/")+page.sr[0].bm+");\n";
+		styleBuffer += "  background-repeat: no-repeat;\n";
+	}
 
-		if (page.sr.size() > 0)
-		{
-			styleBuffer += String("  background-color: ")+pal.colorToString(pal.getColor(page.sr[0].cb))+";\n";
-			styleBuffer += String("  color: ")+pal.colorToString(pal.getColor(page.sr[0].cf))+";\n";
-		}
+	if (page.type == SUBPAGE)
+	{
+		styleBuffer += "  display: block;\n";		// Show the popup
+		styleBuffer += "  position: absolut;\n";		// Fixed position, don't move
+		styleBuffer += "  z-index: 1;\n";			// Display on top
 
 		if (page.showEffect && page.showTime)
 		{
@@ -254,49 +269,71 @@ String& Page::getStyleCode()
 
 			switch (page.showEffect)
 			{
-				case 1:		// top
+				case SE_SLIDE_TOP:			// top
+				case SE_SLIDE_TOP_FADE:
 					styleBuffer += String("  from { top: -")+String(page.top)+"px; opacity: 0;\n";
 					styleBuffer += String("  to { top: 0; opacity: 1;\n");
 				break;
-				case 2:		// left
+				case SE_SLIDE_LEFT:			// left
+				case SE_SLIDE_LEFT_FADE:
 					styleBuffer += String("  from { left: -")+String(page.left)+"px; opacity: 0;\n";
 					styleBuffer += String("  to { left: 0; opacity: 1;\n");
 				break;
-				case 3:		// rght
+				case SE_SLIDE_RIGHT:		// rght
+				case SE_SLIDE_RIGHT_FADE:
 					styleBuffer += String("  from { right: -")+String(page.left+page.width)+"px; opacity: 0;\n";
 					styleBuffer += String("  to { right: 0; opacity: 1;\n");
 				break;
-				case 4:		// bottom
+				case SE_SLIDE_BOTTOM:		// bottom
+				case SE_SLIDE_BOTTOM_FADE:
 					styleBuffer += String("  from { top: ")+String(totalHeight)+"px; opacity: 0;\n";
 					styleBuffer += String("  to { top: ")+String(totalHeight-page.height)+"; opacity: 1;\n";
+				break;
+				case SE_FADE:
+					styleBuffer += String("  from { bottom: ")+String(totalHeight)+"px; opacity: 0;\n";
+					styleBuffer += String("  to { bottom: ")+String(totalHeight-page.height)+"; opacity: 1;\n";
 				break;
 			}
 		}
 
 		styleBuffer += "}\n";
 	}
+	else if (page.type == PAGE)
+	{
+		styleBuffer += "  left: 0;\n";
+		styleBuffer += "  top: 0;\n";
+		styleBuffer += "  position: absolut;\n";		// Fixed position, don't move
+		styleBuffer += "  overflow: hidden;\n";		// Enable scroll if needed
+	}
+
+	generateButtons();
+
+	for (size_t i = 0; i < buttons.size(); i++)
+		styleBuffer += buttons[i].getStyle();
 
 	return styleBuffer;
 }
 
 String& Page::getWebCode()
 {
-    sysl->TRACE(std::string("Page::getWebCode()"));
+	sysl->TRACE(std::string("Page::getWebCode()"));
 
-    if (!status || webBuffer.length() > 0)
-        return webBuffer;
+	if (!status || webBuffer.length() > 0)
+		return webBuffer;
 
-    // Here we know, that we've never build the code to draw this page.
-    // Therefore we'll do it now.
-    // First we scan for all buttons and create them.
-    for (size_t i = 0; i < page.buttons.size(); i++)
-    {
-        PushButton *pbt = new PushButton(page.buttons[i], paletteFile);
-        buttons.push_back(*pbt);
-        delete pbt;
-    }
+	// Here we know, that we've never build the code to draw this page.
+	// Therefore we'll do it now.
+	// First we scan for all buttons and create them.
+	generateButtons();
 
-    return webBuffer;
+	String code;
+	code = String("<div id=\"")+NameFormat::toValidName(page.name)+"\" class=\""+NameFormat::toValidName(page.name)+"\">\n";
+
+	for (size_t i = 0; i < buttons.size(); i++)
+		code += buttons[i].getWebCode();
+
+	code += "</div>\n";
+	return webBuffer;
 }
 
 void Page::clear()
@@ -304,12 +341,12 @@ void Page::clear()
 	page.buttons.clear();
 	page.group.clear();
 	page.height = 0;
-	page.hideEffect = 0;
+	page.hideEffect = SE_NONE;
 	page.hideTime = 0;
 	page.left = 0;
 	page.name.clear();
 	page.pageID = 0;
-	page.showEffect = 0;
+	page.showEffect = SE_NONE;
 	page.showTime = 0;
 	page.sr.clear();
 	page.top = 0;

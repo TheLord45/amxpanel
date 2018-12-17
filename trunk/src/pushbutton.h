@@ -23,21 +23,22 @@
 
 namespace amx
 {
-    class PushButton : public Palette
-    {
-        public:
-            PushButton(const BUTTON_T& bt, const strings::String& pfilename);
-            ~PushButton();
+	class PushButton : public Palette
+	{
+		public:
+			PushButton(const BUTTON_T& bt, const strings::String& pfilename);
+			~PushButton();
 
-            void setSwitch(bool s) { onOff = s; }
-            void setState(size_t s);
-            strings::String getStyle();
+			void setSwitch(bool s) { onOff = s; }
+			void setState(size_t s);
+			strings::String getStyle();
+			strings::String getWebCode();
 
-        private:
-            BUTTON_T button;
-            bool onOff;
-            int state;
-    };
+		private:
+			BUTTON_T button;
+			bool onOff;
+			int state;
+	};
 }
 
 #endif

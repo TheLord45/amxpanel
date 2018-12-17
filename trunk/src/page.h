@@ -41,6 +41,7 @@ namespace amx
 
 		private:
 			void clear();
+			void generateButtons();
 
 			PAGE_T page;
 			std::vector<PushButton> buttons;
