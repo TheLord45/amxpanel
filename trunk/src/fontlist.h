@@ -22,31 +22,38 @@
 
 namespace amx
 {
-    typedef struct FONT
-    {
-        int number;
-        strings::String file;
-        int fileSize;
-        int faceIndex;
-        strings::String name;
-        strings::String subfamilyName;
-        strings::String fullName;
-        int size;
-        int usageCount;
-    }FONT_T;
+	typedef struct FONT
+	{
+		int number;
+		strings::String file;
+		int fileSize;
+		int faceIndex;
+		strings::String name;
+		strings::String subfamilyName;
+		strings::String fullName;
+		int size;
+		int usageCount;
+	}FONT_T;
 
-    class FontList
-    {
-        public:
-            FontList(const strings::String& file);
-            ~FontList();
+	class FontList
+	{
+		public:
+			FontList(const strings::String& file);
+			~FontList();
 
-            bool isOk() { return status; }
+			strings::String getFontStyles();
+			FONT_T& findFont(int idx);
+			bool isOk() { return status; }
+			strings::String getFontStyle(const strings::String& fs);
+			strings::String getFontWeight(const strings::String& fw);
 
-        private:
-            std::vector<FONT_T> fontList;
-            bool status;
-    };
+		private:
+			bool exist(const strings::String& ff);
+
+			std::vector<FONT_T> fontList;
+			std::vector<strings::String> fontFaces;
+			bool status;
+	};
 }
 
 #endif

@@ -27,6 +27,8 @@ class NameFormat
 
 		static strings::String toValidName(strings::String& str);
 		static strings::String cutNumbers(strings::String& str);
+		static strings::String toShortName(strings::String& str);
+		static strings::String transFontName(strings::String& str);
 };
 
 #endif

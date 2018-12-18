@@ -20,10 +20,12 @@
 #include "syslog.h"
 #include "daemonize.h"
 #include "server.h"
+#include "touchpanel.h"
 
 Config *Configuration;
 std::string pName;
 Syslog *sysl;
+amx::TouchPanel *pTouchPanel;
 
 #define VERSION		"1.0"
 
@@ -54,6 +56,9 @@ int main(int /* argc */, const char **argv)
 	sysl->DebugMsg(String("Starting up Server ..."));
 	http::server::Server server(Configuration->getListen().toString(), Configuration->getPort(), Configuration->getHTTProot().toString());
 	sysl->log(Syslog::INFO, pName + " v" + VERSION + ": Startup finished. All components should run now.");
+	// Create the panel
+	pTouchPanel = new amx::TouchPanel();
+
 	server.run();
 
 	// Upon the previous function exits, clean up end exit.

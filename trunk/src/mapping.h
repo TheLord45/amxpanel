@@ -30,7 +30,7 @@ namespace amx
 
         private:
             MAPS_T maps;
-    }
+    };
 }
 
 #endif

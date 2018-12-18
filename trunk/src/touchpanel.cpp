@@ -16,6 +16,7 @@
 
 #include "config.h"
 #include "syslog.h"
+#include "fontlist.h"
 #include "touchpanel.h"
 
 using namespace amx;
@@ -28,6 +29,8 @@ extern Syslog *sysl;
 TouchPanel::TouchPanel()
 {
 	sysl->TRACE(Syslog::ENTRY, String("TouchPanel::TouchPanel()"));
+	openPage = 0;
+	busy = false;
 	readPages();
 }
 
@@ -78,6 +81,37 @@ String TouchPanel::getStartPage()
 	pg += "</head>\n";
 	// The page body
 	pg += "<body>\n";
+	// FIXME!
+}
+
+void TouchPanel::setCommand(const String& cmd)
+{
+	commands.push_back(cmd);
+
+	if (busy)
+		return;
+
+	busy = true;
+	
+	while (commands.size() > 0)
+	{
+		String bef = commands.at(0);
+		commands.erase(commands.begin());
+		
+		if (bef.contains("PAGE-"))
+		{
+			// FIXME: find page, discard all popups and display page
+		}
+	}
+}
+
+String TouchPanel::requestPage(const http::server::Request& req)
+{
+	String uri = req.uri;
+	// FIXME: Find the channel, port and other parameters to send to the
+	// controller.
+	// Return the actual page to the browser.
+	return getStartPage();
 }
 
 void TouchPanel::readPages()
@@ -90,6 +124,7 @@ void TouchPanel::readPages()
 		Page *p = new Page(pgs[i]);
 		p->setPaletteFile(getProject().supportFileList.colorFile);
 		p->setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
+		p->setFontClass(getFontList());
 		pages.push_back(*p);
 		delete p;
 	}
