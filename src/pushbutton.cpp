@@ -31,6 +31,7 @@ PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)
 	sysl->TRACE(Syslog::ENTRY, std::string("PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)"));
 	onOff = false;
 	state = 0;
+	fontClass = 0;
 }
 
 PushButton::~PushButton()
@@ -53,35 +54,63 @@ String PushButton::getStyle()
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
 		// Name: .button<number>-<name>
-		style = String(".button")+String(i)+"-"+NameFormat::toValidName(button.na)+" {\n";
+		style += String(".button")+String(i)+"-"+NameFormat::toValidName(button.na)+" {\n";
 		style += "  position: absolut;";
-		style += "  border: none;\n";
-		style += String("  background-image: url(images/")+button.sr[i].bm+");\n";
+		style += String("  left: ")+String(button.lt)+";\n";
+		style += String("  top: ")+String(button.tp)+";\n";
+		style += String("  width: ")+String(button.wt)+";\n";
+		style += String("  height: ")+String(button.ht)+";\n";
+		style += "  border: none;\n";		// FIXME!
+		
+		if (button.sr[i].mi.length() && button.sr[i].bm.length())
+		{
+			style += String("  background-image: url(images/")+button.sr[i].mi+"), ";
+			style += String("url(images/")+button.sr[i].bm+");\n";
+			style += "  background-blend-mode: screen;\n";
+		}
+		else if (button.sr[i].bm.length())
+			style += String("  background-image: url(images/")+button.sr[i].bm+");\n";
+
 		style += "  background-repeat: no-repeat;\n";
+		style += "  display: ";
 
 		if (button.type == GENERAL && i == 0)
-		{
-			style += "  display: ";
-			style += (onOff) ? "none;" : "inline;";
-		}
+			style += (onOff) ? "none;\n" : "inline;\n";
 		else if (button.type == MULTISTATE_GENERAL || button.type == MULTISTATE_BARGRAPH)
 		{
-			
+			if ((int)i == state)
+				style += "inline;\n";
+			else
+				style += "none;\n";
 		}
-			style += colorToString(getColor(button.sr[idx].cb));
-			style += ";\n";
-			style += "  color: ";
-			style += colorToString(getColor(button.sr[idx].ct));
-			style += ";\n";
-			style += "  padding: 1px 1px;\n";
-			style += "  text-align: center;\n";
-			style += "  text-decoration: none;\n";
-			style += "  display: inline-block;\n";
-			style += "  font-size: 16px;\n";
-			style += "  margin: 1px 1px;\n";
-			style += "  cursor: pointer;\n";
-			style += "}\n\n";
-			style += "</style>\n";
+		else	// FIXME!
+			style += "inline;\n";
+
+		style += String("  background-color: ")+colorToString(getColor(button.sr[i].cf))+";\n";
+		style += String("  color: ")+colorToString(getColor(button.sr[i].ct))+";\n";
+		style += "}\n";
+
+		FONT_T font = fontClass->findFont(button.sr[i].fi);
+
+		if (font.number == button.sr[i].fi)
+		{
+			style += String(".button")+String(i)+"-"+NameFormat::toValidName(button.na)+"_font {\n";
+			style += "  position: absolute;\n";
+			style += "  border: none;\n";
+			style += String("  font-family: ")+NameFormat::toValidName(font.name)+";\n";
+			style += String("  font-size: ")+String(font.size)+"pt;\n";
+			style += String("  font-style: ")+fontClass->getFontStyle(font.subfamilyName)+";\n";
+			style += String("  font-weight: ")+fontClass->getFontWeight(font.subfamilyName)+";\n";
+
+			if (button.sr[i].jt == 0)
+			{
+				style += String("  left: ")+String(button.sr[i].tx)+"pt;\n";
+				style += String("  top: ")+String(button.sr[i].ty)+"pt;\n";
+			}
+			else
+				style += "  text-align: center;\n";		// FIXME!
+
+			style += "}\n";
 		}
 	}
 

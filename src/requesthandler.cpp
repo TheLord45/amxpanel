@@ -24,9 +24,11 @@
 #include "reply.h"
 #include "request.h"
 #include "syslog.h"
+#include "touchpanel.h"
 
 extern std::string pName;
 extern Syslog *sysl;
+extern amx::TouchPanel *pTouchPanel;
 
 namespace http
 {
@@ -109,6 +111,7 @@ namespace http
 				sysl->DebugMsg("RequestHandler::HandleRequest: Virtual page \""+full_path+"\" was found.");
 // --> FIXME!				Evaluate ev(req);
 //				rep.content = ev.getHttpPage();
+				rep.content = pTouchPanel->requestPage(req).toString();
 				extension.assign("html");
 			}
 

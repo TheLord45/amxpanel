@@ -28,6 +28,7 @@
 #include "datetime.h"
 #include "config.h"
 #include "syslog.h"
+#include "nameformat.h"
 #include "fontlist.h"
 
 extern Syslog *sysl;
@@ -39,65 +40,133 @@ using namespace strings;
 
 amx::FontList::FontList(const strings::String& file)
 {
-    sysl->TRACE(Syslog::ENTRY, std::string("FontList::FontList(const strings::String& file)"));
-    FONT_T font;
-    String uri = "file://";
-    uri.append(Configuration->getHTTProot());
-    uri.append("/panel/");
-    uri.append(file);
+	sysl->TRACE(Syslog::ENTRY, std::string("FontList::FontList(const strings::String& file)"));
+	FONT_T font;
+	String uri = "file://";
+	uri.append(Configuration->getHTTProot());
+	uri.append("/panel/");
+	uri.append(file);
     
-    try
-    {
-        xmlpp::TextReader reader(uri.toString());
+	try
+	{
+		xmlpp::TextReader reader(uri.toString());
 
-        while(reader.read())
-        {
-            String name = string(reader.get_name());
-            
-            if (name.caseCompare("font") == 0 && reader.has_attributes())
-            {
-                font.number = atoi(reader.get_attribute(0).c_str());
-                font.file.clear();
-                font.fileSize = 0;
-                font.faceIndex = 0;
-                font.name.clear();
-                font.subfamilyName.clear();
-                font.fullName.clear();
-                font.size = 0;
-                font.usageCount = 0;
-                fontList.push_back(font);
-            }
-            else if (name.caseCompare("file") == 0)
-                fontList.back().file = reader.get_value();
-            else if (name.caseCompare("fileSize") == 0)
-                fontList.back().fileSize = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("faceIndex") == 0)
-                fontList.back().faceIndex = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("name") == 0)
-                fontList.back().name = reader.get_value();
-            else if (name.caseCompare("subfamilyName") == 0)
-                fontList.back().subfamilyName = reader.get_value();
-            else if (name.caseCompare("fullName") == 0)
-                fontList.back().fullName = reader.get_value();
-            else if (name.caseCompare("size") == 0)
-                fontList.back().size = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("usageCount") == 0)
-                fontList.back().usageCount = atoi(reader.get_value().c_str());
-        }
+		while(reader.read())
+		{
+			String name = string(reader.get_name());
 
-        reader.close();
-    }
-    catch (xmlpp::internal_error& e)
-    {
-        sysl->errlog(string("FontList::FontList")+e.what());
-        status = false;
-        return;
-    }
+			if (name.caseCompare("font") == 0 && reader.has_attributes())
+			{
+				font.number = atoi(reader.get_attribute(0).c_str());
+				font.file.clear();
+				font.fileSize = 0;
+				font.faceIndex = 0;
+				font.name.clear();
+				font.subfamilyName.clear();
+				font.fullName.clear();
+				font.size = 0;
+				font.usageCount = 0;
+				fontList.push_back(font);
+			}
+			else if (name.caseCompare("file") == 0)
+				fontList.back().file = reader.get_value();
+			else if (name.caseCompare("fileSize") == 0)
+				fontList.back().fileSize = atoi(reader.get_value().c_str());
+			else if (name.caseCompare("faceIndex") == 0)
+				fontList.back().faceIndex = atoi(reader.get_value().c_str());
+			else if (name.caseCompare("name") == 0)
+				fontList.back().name = reader.get_value();
+			else if (name.caseCompare("subfamilyName") == 0)
+				fontList.back().subfamilyName = reader.get_value();
+			else if (name.caseCompare("fullName") == 0)
+				fontList.back().fullName = reader.get_value();
+			else if (name.caseCompare("size") == 0)
+				fontList.back().size = atoi(reader.get_value().c_str());
+			else if (name.caseCompare("usageCount") == 0)
+				fontList.back().usageCount = atoi(reader.get_value().c_str());
+		}
 
-    status = true;
+		reader.close();
+	}
+	catch (xmlpp::internal_error& e)
+	{
+		sysl->errlog(string("FontList::FontList")+e.what());
+		status = false;
+		return;
+	}
+
+	status = true;
 }
 
 amx::FontList::~FontList()
 {
-    sysl->TRACE(Syslog::EXIT, std::string("FontList::FontList(const strings::String& file)"));
+	sysl->TRACE(Syslog::EXIT, std::string("FontList::FontList(const strings::String& file)"));
+}
+
+strings::String amx::FontList::getFontStyles()
+{
+	String styles;
+	fontFaces.clear();
+
+	for (size_t i = 0; i < fontList.size(); i++)
+	{
+		String name = fontList[i].name+","+fontList[i].subfamilyName;
+
+		if (fontFaces.size() == 0 || !exist(name))
+		{
+			fontFaces.push_back(name);
+			styles += "@font-face {\n";
+			styles += String("  font-family: ")+NameFormat::toValidName(fontList[i].name)+";\n";
+			styles += String("  src: url(")+NameFormat::transFontName(fontList[i].file)+");\n";
+			styles += String("  font-style: ")+getFontStyle(fontList[i].subfamilyName)+";\n";
+			styles += String("  font-weight: ")+getFontWeight(fontList[i].subfamilyName)+";\n";
+			styles += "}\n";
+		}
+	}
+
+	return styles;
+}
+
+FONT_T& FontList::findFont(int idx)
+{
+	for (size_t i = 0; i < fontList.size(); i++)
+	{
+		if (fontList[i].faceIndex == idx)
+			return fontList[i];
+	}
+
+	return fontList.back();
+}
+
+bool amx::FontList::exist(const String& ff)
+{
+	for (size_t i = 0; i < fontFaces.size(); i++)
+	{
+		if (fontFaces[i].compare(ff) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+strings::String amx::FontList::getFontStyle(const strings::String& fs)
+{
+	if (fs.caseCompare("Regular") == 0)
+		return "normal";
+	
+	if (fs.caseCompare("Italic") == 0 || fs.caseCompare("Bold Italic") == 0)
+		return "italic";
+
+	return "normal";
+}
+
+strings::String amx::FontList::getFontWeight(const strings::String& fw)
+{
+	if (fw.caseCompare("Regular") == 0)
+		return "normal";
+
+	if (fw.caseCompare("Bold") == 0 || fw.caseCompare("Bold Italic") == 0)
+		return "bold";
+
+	return "normal";
 }

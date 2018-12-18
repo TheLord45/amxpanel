@@ -73,7 +73,7 @@ namespace http
 
 		void Server::do_accept()
 		{
-			sysl->TRACE(Syslog::MESSAGE, string("Server::do_accept()")));
+			sysl->TRACE(Syslog::MESSAGE, string("Server::do_accept()"));
 
 			m_acceptor.async_accept(m_socket, [this](std::error_code ec)
 			{

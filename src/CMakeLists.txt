@@ -1,6 +1,9 @@
 add_executable(amxpanel main.cpp
             daemonize.cpp
+            touchpanel.cpp
             panel.cpp
+            page.cpp
+            pushbutton.cpp
             palette.cpp
             icon.cpp
             fontlist.cpp
@@ -8,10 +11,13 @@ add_executable(amxpanel main.cpp
             server.cpp
             reply.cpp
             requesthandler.cpp
+            requestparser.cpp
             connection.cpp
             connectionmanager.cpp
             requestparser.cpp
+            mapping.cpp
             mimetypes.cpp
+            nameformat.cpp
             datetime.cpp
             sunset.cpp
             strings.cpp

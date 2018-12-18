@@ -65,3 +65,43 @@ String NameFormat::cutNumbers(String& str)
 
 	return ret;
 }
+
+String NameFormat::toShortName(String& str)
+{
+	String ret;
+	bool ignore = false;
+
+	for (size_t i = 0; i < str.length(); i++)
+	{
+		char c = str.at(i);
+
+		if (c == ' ')
+			ignore = true;
+
+		if (ignore && c == '.')
+			ignore = false;
+
+		if (!ignore)
+			ret.append(c);
+	}
+
+	return ret;
+}
+
+String NameFormat::transFontName(String& str)
+{
+	String ret;
+
+	for (size_t i = 0; i < str.length(); i++)
+	{
+		char c = str.at(i);
+
+		if (c == ' ' || c == '%')
+			c = '_';
+
+		ret.append(c);
+	}
+
+	ret.replace(".ttf", ".woff", strings::LAST);
+	return ret;
+}

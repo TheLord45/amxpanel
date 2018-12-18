@@ -20,6 +20,7 @@
 #include "panelstruct.h"
 #include "strings.h"
 #include "palette.h"
+#include "fontlist.h"
 
 namespace amx
 {
@@ -31,6 +32,7 @@ namespace amx
 
 			void setSwitch(bool s) { onOff = s; }
 			void setState(size_t s);
+			void setFontClass(FontList *fl) { fontClass = fl; }
 			strings::String getStyle();
 			strings::String getWebCode();
 
@@ -38,6 +40,7 @@ namespace amx
 			BUTTON_T button;
 			bool onOff;
 			int state;
+			FontList *fontClass;
 	};
 }
 

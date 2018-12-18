@@ -20,6 +20,7 @@
 #include <vector>
 #include "panel.h"
 #include "page.h"
+#include "request.h"
 
 namespace amx
 {
@@ -33,11 +34,16 @@ namespace amx
 			strings::String getPage(const strings::String& name);
 			strings::String getStartPage();
 
+			void setCommand(const strings::String& cmd);
+			strings::String requestPage(const http::server::Request& req);
+
 		private:
 			void readPages();
 			std::vector<Page> pages;
 			Panel panel;
-			friend class Panel;
+			int openPage;		// The index number of the currently open page
+			std::vector<int> openPopups;	// The currently open popups connected
+			bool busy;
 
 			std::vector<strings::String> commands;		// Commands from controller
 	};

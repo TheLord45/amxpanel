@@ -38,6 +38,7 @@ namespace amx
 
 			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
 			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }
+			void setFontClass(FontList *fl) { fontClass = fl; }
 
 		private:
 			void clear();
@@ -51,6 +52,7 @@ namespace amx
 			strings::String paletteFile;
 			int totalWidth;
 			int totalHeight;
+            FontList *fontClass;
 	};
 }
 

@@ -45,6 +45,7 @@ amx::Page::Page(const strings::String& file)
 	status = false;
 	paletteFile = "pal_001.xma";
 	clear();
+	fontClass = 0;
 	String uri = "file://";
 	uri.append(Configuration->getHTTProot());
 	uri.append("/panel/");
@@ -84,11 +85,11 @@ amx::Page::Page(const strings::String& file)
             else if (name.caseCompare("group") == 0)
                 page.group = reader.get_value();
             else if (name.caseCompare("showEffect") == 0)
-                page.showEffect = atoi(reader.get_value().c_str());
+                page.showEffect = (SHOWEFFECT)atoi(reader.get_value().c_str());
             else if (name.caseCompare("showTime") == 0)
                 page.showTime = atoi(reader.get_value().c_str());
             else if (name.caseCompare("hideEffect") == 0)
-                page.hideEffect = atoi(reader.get_value().c_str());
+                page.hideEffect = (SHOWEFFECT)atoi(reader.get_value().c_str());
             else if (name.caseCompare("hideEffect") == 0)
                 page.hideTime = atoi(reader.get_value().c_str());
             else if (name.caseCompare("button") == 0 && reader.has_attributes())
@@ -227,6 +228,7 @@ void Page::generateButtons()
 	for (size_t i = 0; i < page.buttons.size(); i++)
 	{
 		PushButton *pbt = new PushButton(page.buttons[i], paletteFile);
+		pbt->setFontClass(fontClass);
 		buttons.push_back(*pbt);
 		delete pbt;
 	}
