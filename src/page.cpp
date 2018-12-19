@@ -92,53 +92,69 @@ amx::Page::Page(const strings::String& file)
                 page.hideEffect = (SHOWEFFECT)atoi(reader.get_value().c_str());
             else if (name.caseCompare("hideEffect") == 0)
                 page.hideTime = atoi(reader.get_value().c_str());
-            else if (name.caseCompare("button") == 0 && reader.has_attributes())
-            {
-                BUTTON_T button;
-                String attr = string(reader.get_attribute(0));
+			else if (name.caseCompare("button") == 0 && reader.has_attributes())
+			{
+				BUTTON_T button;
+				String attr = string(reader.get_attribute(0));
 
-                if (attr.caseCompare("general") == 0)
-                    button.type = GENERAL;
-                else if (attr.caseCompare("multi-state general") == 0)
-                    button.type = MULTISTATE_GENERAL;
-                else if (attr.caseCompare("bargraph") == 0)
-                    button.type = BARGRAPH;
-                else if (attr.caseCompare("multi-state bargraph") == 0)
-                    button.type = MULTISTATE_BARGRAPH;
-                else if (attr.caseCompare("joistick") == 0)
-                    button.type = JOISTICK;
-                else if (attr.caseCompare("text input") == 0)
-                    button.type = TEXT_INPUT;
-                else if (attr.caseCompare("computer control") == 0)
-                    button.type = COMPUTER_CONTROL;
-                else if (attr.caseCompare("take note") == 0)
-                    button.type = TAKE_NOTE;
-                else if (attr.caseCompare("sub-page view") == 0)
-                    button.type = SUBPAGE_VIEW;
+				if (attr.caseCompare("general") == 0)
+					button.type = GENERAL;
+				else if (attr.caseCompare("multi-state general") == 0)
+					button.type = MULTISTATE_GENERAL;
+				else if (attr.caseCompare("bargraph") == 0)
+					button.type = BARGRAPH;
+				else if (attr.caseCompare("multi-state bargraph") == 0)
+					button.type = MULTISTATE_BARGRAPH;
+				else if (attr.caseCompare("joistick") == 0)
+					button.type = JOISTICK;
+				else if (attr.caseCompare("text input") == 0)
+					button.type = TEXT_INPUT;
+				else if (attr.caseCompare("computer control") == 0)
+					button.type = COMPUTER_CONTROL;
+				else if (attr.caseCompare("take note") == 0)
+					button.type = TAKE_NOTE;
+				else if (attr.caseCompare("sub-page view") == 0)
+					button.type = SUBPAGE_VIEW;
 
-                page.buttons.push_back(button);
-            }
+				button.fb = FB_NONE;
+				page.buttons.push_back(button);
+			}
 
-            if (reader.get_depth() == 3)
-            {
-                if (name.caseCompare("bi") == 0)
-                    page.buttons.back().bi = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("na") == 0)
-                    page.buttons.back().na = reader.get_value();
-                else if (name.caseCompare("lt") == 0)
-                    page.buttons.back().lt = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("tp") == 0)
-                    page.buttons.back().tp = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("wt") == 0)
-                    page.buttons.back().wt = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("ht") == 0)
-                    page.buttons.back().ht = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("zo") == 0)
-                    page.buttons.back().zo = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("bs") == 0 && reader.has_value())
-                    page.buttons.back().bs = reader.get_value();
-                else if (name.caseCompare("fb") == 0 && reader.has_value())
-                    page.buttons.back().fb = reader.get_value();
+			if (reader.get_depth() == 3)
+			{
+				if (name.caseCompare("bi") == 0)
+					page.buttons.back().bi = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("na") == 0)
+					page.buttons.back().na = reader.get_value();
+				else if (name.caseCompare("lt") == 0)
+					page.buttons.back().lt = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("tp") == 0)
+					page.buttons.back().tp = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("wt") == 0)
+					page.buttons.back().wt = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("ht") == 0)
+					page.buttons.back().ht = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("zo") == 0)
+					page.buttons.back().zo = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("bs") == 0 && reader.has_value())
+					page.buttons.back().bs = reader.get_value();
+				else if (name.caseCompare("fb") == 0 && reader.has_value())
+				{
+					String value(reader.get_value());
+
+					if (value.caseCompare("channel") == 0)
+						page.buttons.back().fb = FB_CHANNEL;
+					else if (value.caseCompare("inverted channel") == 0)
+						page.buttons.back().fb = FB_INV_CHANNEL;
+					else if (value.caseCompare("always on") == 0)
+						page.buttons.back().fb = FB_ALWAYS_ON;
+					else if (value.caseCompare("momentary") == 0)
+						page.buttons.back().fb = FB_MOMENTARY;
+					else if (value.caseCompare("blink") == 0)
+						page.buttons.back().fb = FB_BLINK;
+					else
+						page.buttons.back().fb = FB_NONE;
+				}
                 else if (name.caseCompare("ap") == 0)
                     page.buttons.back().ap = atoi(reader.get_value().c_str());
                 else if (name.caseCompare("cp") == 0)

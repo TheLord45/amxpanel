@@ -236,6 +236,7 @@ namespace amx
         int jt;
         int tx;                 // Text X position
         int ty;                 // Text Y position
+        int ww;                 // line break when 1
     }SR_T;
 
     enum BUTTONTYPE
@@ -252,32 +253,42 @@ namespace amx
         SUBPAGE_VIEW
     };
 
-    typedef struct BUTTON
-    {
-        BUTTONTYPE type;
-        int bi;                 // button ID
-        strings::String na;     // name
-        int lt;                 // pixel fron left
-        int tp;                 // pixel from top
-        int wt;                 // width
-        int ht;                 // height
-        int zo;                 // Z-Order
-        strings::String hs;     // bounding, ...
-        strings::String bs;     // Frame type (circle, ...)
-        strings::String fb;     // momentary, ...
-        int ap;					// Address port
-        int ad;					// Address channel
-        int lp;
-        int va;
-        int rv;
-        int ch;					// Channel
-        int cp;					// Port
-        int rl;					// Range low
-        int rh;					// Range high
-        strings::String pfType;
-        strings::String pfName;
-        std::vector<SR_T> sr;
-    }BUTTON_T;
+	enum FEEDBACK
+	{
+		FB_NONE,
+		FB_CHANNEL,
+		FB_INV_CHANNEL,		// inverted channel
+		FB_ALWAYS_ON,
+		FB_MOMENTARY,
+		FB_BLINK
+	};
+
+	typedef struct BUTTON
+	{
+		BUTTONTYPE type;
+		int bi;                	// button ID
+		strings::String na;		// name
+		int lt;					// pixel from left
+		int tp;					// pixel from top
+		int wt;                	// width
+		int ht;                	// height
+		int zo;                	// Z-Order
+		strings::String hs;    	// bounding, ...
+		strings::String bs;    	// Frame type (circle, ...)
+		FEEDBACK fb;			// momentary, ...
+		int ap;					// Address port
+		int ad;					// Address channel
+		int ch;					// Channel
+		int cp;					// Port
+		int lp;					// Level port
+		int va;
+		int rv;
+		int rl;					// Range low
+		int rh;					// Range high
+		strings::String pfType;
+		strings::String pfName;
+		std::vector<SR_T> sr;
+	}BUTTON_T;
 
     enum PAGETYPE
     {
@@ -309,7 +320,7 @@ namespace amx
         int top;
         int width;
         int height;
-        std::string group;
+        strings::String group;
         SHOWEFFECT showEffect;
         int showTime;
         SHOWEFFECT hideEffect;

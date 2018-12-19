@@ -38,6 +38,10 @@ class Config
 		strings::String getLogFile() { return LogFile; }
 		strings::String getFontPath() { return FontPath; }
 		strings::String getWebLocation() { return web_location; }
+		strings::String getAMXPanelType() { return AMXPanelType; }
+		strings::String getAMXController() { return AMXController; }
+		int getAMXPort() { return AMXPort; }
+		int getAMXChannel() { return AMXChanel; }
 
 		void setHOME(const strings::String& hm) { HOME = hm.data(); }
 

@@ -35,6 +35,8 @@ namespace amx
 			strings::String& getWebCode();
 			int getPageID() { return page.pageID; }
 			strings::String& getPageName() { return page.name; }
+			PAGETYPE getType() { return page.type; }
+			strings::String& getGroupName() { return page.group; }
 
 			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
 			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }
