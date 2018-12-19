@@ -119,15 +119,32 @@ String PushButton::getStyle()
 
 String PushButton::getWebCode()
 {
-	String code;
+	String code, names;
+	
+	if (button.type == GENERAL && button.sr.size() >= 2)
+	{
+		names = String("'button1-")+NameFormat::toValidName(button.na)+"','";
+		names += String("'button2-")+NameFormat::toValidName(button.na)+"'";
+	}
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
 		String nm = String("button")+String(i)+"-"+NameFormat::toValidName(button.na);
-		code += String("<div id=\"")+nm+"\" class=\""+nm+"\">";
+		code += String("<div id=\"")+nm+"\" class=\""+nm+"\"";
+		
+		if (button.type == GENERAL && button.fb == FB_MOMENTARY && (i == 0 || i == 1))
+		{
+			code += String(" onmousedown=\"switchDisplay(")+names+",1);\"";
+			code += String(" onmouseup=\"switchDisplay(")+names+",0);\"";
+		}
+
+		code += ">\n";
 
 		if (button.sr[i].ct.length() > 0)
-			code += button.sr[i].ct;
+		{
+			code += String("   <div class=\"")+nm+"_font\">";
+			code += button.sr[i].ct+"</div>\n";
+		}
 
 		code += "</div>\n";
 	}

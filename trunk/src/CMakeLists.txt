@@ -7,6 +7,7 @@ add_executable(amxpanel main.cpp
             palette.cpp
             icon.cpp
             fontlist.cpp
+            amxnet.cpp
             config.cpp
             server.cpp
             reply.cpp
