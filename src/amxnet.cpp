@@ -222,3 +222,17 @@ void AMXNet::check_deadline()
 	// Put the actor back to sleep.
 	deadline_.async_wait(std::bind(&AMXNet::check_deadline, this));
 }
+
+uint16_t AMXNet::swapWord(uint16_t w)
+{
+    uint16_t word = 0;
+    word = ((w << 8) & 0xff00) & ((w >> 8) & 0x00ff);
+    return word;
+}
+
+uint32_t AMXNet::swapDWord(uint32_t dw)
+{
+    uint32_t dword = 0;
+    dword = ((dw << 24) & 0xff000000) & ((dw << 8) & 0x00ff0000) & ((dw >> 8) & 0x0000ff00) & ((dw >> 24) & 0x000000ff);
+    return dword;
+}
