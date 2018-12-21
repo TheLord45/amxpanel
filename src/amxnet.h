@@ -44,50 +44,87 @@ namespace amx
 			 *     0x00  Initializing information
 			 *     0x12  Panel identification
 			 */
-			typedef struct CNT_HEAD
+			typedef struct COMMAND		// Structure of type command (type = 0x00, status = 0x000c)
 			{
-				char ID;			// 0x00:        Always 0x02
-				uint16_t hlen;		// 0x01 - 0x02: Header length (length + 3 for total length!)
-				char sep1;			// 0x03:        Seperator always 0x02
-				char type;			// 0x04:        Type of header (see above)
-				uint16_t pan_port;	// 0x05 - 0x06: Port number of panel
-				uint16_t device;	// 0x07 - 0x08: Channel number of panel
-				uint16_t pan_level;	// 0x09 - 0x0a: Level number
-				uint16_t channel;	// 0x0d - 0x0e: channel number of the panel
-				uint16_t port;		// 0x0f - 0x10: port number?
-				char unk7;			// 0x11:
-				uint16_t count;		// 0x12 - 0x13: From Panel: Counter per command
-				uint16_t unk9;		// 0x14 - 0x15:
-				uint16_t channel2;	// 0x16 - 0x17:
-				uint16_t port2;		// 0x18 - 0x19:
-				uint16_t unk10;		// 0x1a - 0x1b:
-				uint16_t unk11;		// 0x1c - 0x1d:
-				
-				uint16_t len;		// 0x1d - 0x1e: Length of command
-				uint16_t unk12;		// 0x1f - 0x1f:
-				uint16_t modID;		// 0x20 - 0x21: Internal model ID
-				char serial[16];	// 0x22 - 0x31: A serial number or "N/A" or nothing
-				uint16_t firmwareID;// 0x32 - 0x33: Internal modul number
-			}HEAD;
+				char ID;				// 0x00:        Always 0x02
+				uint16_t hlen;			// 0x01 - 0x02: Header length (length + 3 for total length!)
+				char sep1;				// 0x03:        Seperator always 0x02
+				char type;				// 0x04:        Type of header (see above)
+				uint16_t unk1;			// 0x05 - 0x06:
+				uint16_t device1;		// 0x07 - 0x08: Channel number of panel
+				uint16_t unk2;			// 0x09 - 0x0a: Level number
+				uint16_t unk3;			// 0x0b - 0x0c: channel number of the panel
+				uint16_t unk4;			// 0x0d - 0x0e: port number?
+				uint16_t unk5;			// 0x0f - 0x10:
+				char unk6;				// 0x11:        Always 0x0f
+				uint16_t count;			// 0x12 - 0x13: Counter
+				uint16_t status;		// 0x14 - 0x15: Header type?
+				uint16_t channel2;		// 0x16 - 0x17:
+				uint16_t port2;			// 0x18 - 0x19:
+				uint16_t unk7;			// 0x1a - 0x1b:
+				char unk8;				// 0x1c
+				uint16_t length;		// 0x1d - 0x1e:
+				char command[256];  	// 0x1f - hlen + 2
+				unsigned char checksum;	// Last byte: Checksum
+			}COMMAND;
 
+			typedef struct CNTINFO		// Structure of type command (type = 0x01, status = 0x0502)
+			{
+				char ID;				// 0x00:        Always 0x02
+				uint16_t hlen;			// 0x01 - 0x02: Header length (length + 3 for total length!)
+				char sep1;				// 0x03:        Seperator always 0x02
+				char type;				// 0x04:        Type of header (see above)
+				uint16_t unk1;			// 0x05 - 0x06:
+				uint16_t unk2;		// 0x07 - 0x08: Channel number of panel
+				uint16_t unk3;			// 0x09 - 0x0a: Level number
+				uint16_t unk4;			// 0x0b - 0x0c: channel number of the panel
+				uint16_t unk5;			// 0x0d - 0x0e: port number?
+				uint16_t unk6;			// 0x0f - 0x10:
+				char unk7;				// 0x11:        Always 0x0f
+				uint16_t count;			// 0x12 - 0x13: = 0x0000
+				uint16_t status;		// 0x14 - 0x15: 0x0502
+				uint16_t channel2;		// 0x16 - 0x17:
+				uint16_t port2;			// 0x18 - 0x19:
+				uint16_t unk7;			// 0x1a - 0x1b:
+				char unk8;				// 0x1c
+				uint16_t length;		// 0x1d - 0x1e:
+				char command[256];  	// 0x1f - hlen + 2
+				unsigned char checksum;	// Last byte: Checksum
+			}CNTINFO;
+
+			/*
+			 * Staus of bytes 0x14, 0x15:
+			 *    0x0084  press?
+			 *    0x0085  release?
+			 *    0x008c  Initialize a SIP call?
+			 *    0x0090 ?
+			 *    0x0091 ?
+			 *    0x0092 ?
+			 *    0x0093  Button press
+			 *    0x0094  Button release
+			 *    0x0097  Identification string
+			 *    0x0581 ?
+			 */
 			typedef struct PAN_HEAD
 			{
-				char ID;			// 0x00:        Always 0x02
-				uint16_t hlen;		// 0x01 - 0x02: Header length (length + 3 for total length!)
-				char sep1;			// 0x03:        Seperator always 0x02
-				char type;			// 0x04:        Type of header
-				uint16_t unk1;		// 0x05 - 0x06:
-				uint16_t unk2;		// 0x07 - 0x08:
-				uint16_t unk3;		// 0x09 - 0x0a:
-				uint16_t unk4;		// 0x0b - 0x0c:
-				uint16_t device1;	// 0x0d - 0x0e: Channel number panel
-
-				uint16_t count;		// 0x12 - 0x13: Counter
-				uint16_t bchannel;	// 0x14 - 0x15: 
-				uint16_t device2;	// 0x16 - 0x17: Channel number panel
-				uint16_t port;		// 0x18 - 0x19: Port number
-				uint16_t level;		// 0x0a - 0x0b: level number?
-				uint16_t channel;	// 0x1c - 0x0d: Channel number
+				char ID;				// 0x00:        Always 0x02
+				uint16_t hlen;			// 0x01 - 0x02: Header length (length + 3 for total length!)
+				char sep1;				// 0x03:        Seperator always 0x02
+				char type;				// 0x04:        Type of header?
+				uint16_t unk1;			// 0x05 - 0x06:
+				uint16_t unk2;			// 0x07 - 0x08:
+				uint16_t unk3;			// 0x09 - 0x0a:
+				uint16_t unk4;			// 0x0b - 0x0c:
+				uint16_t device1;		// 0x0d - 0x0e: Channel number panel
+				uint16_t unk5;			// 0x0f - 0x10: Always 0x0001?
+				char unk6;				// 0x11:        Always 0x0f?
+				uint16_t count;			// 0x12 - 0x13: Counter
+				uint16_t status;		// 0x14 - 0x15: Status (see above)
+				uint16_t device2;		// 0x16 - 0x17: Channel number panel
+				uint16_t port;			// 0x18 - 0x19: Port number
+				uint16_t level;			// 0x1a - 0x1b: level number?
+				uint16_t channel;		// 0x1c - 0x1d: Channel number
+				unsigned char checksum;
 			}PAN_HEAD;
 
 		private:
