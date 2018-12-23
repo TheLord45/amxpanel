@@ -34,16 +34,48 @@ namespace amx
 			void setCallback(std::function<void(const strings::String&)> func) { callback = func; }
 
 		protected:
-			/*
-			 *  Header types from controller:
-			 *     0x00  Normal header with informations or a command
-			 *     0x01  Startheader with controler identification
-			 *     0x08  End of initialisation
-			 * 
-			 *  Header type from Panel
-			 *     0x00  Initializing information
-			 *     0x12  Panel identification
-			 */
+			// Channel on or off from master or device
+			typedef struct CHAN_ONOFF
+			{
+				uint16_t MC;			// type of content
+				uint16_t device;		// device number
+				uint16_t port;			// port number
+				uint16_t system;		// system number
+				uint16_t channel;		// channel number
+			}CHAN_ONOFF;
+
+			typedef struct MSG
+			{
+				uint16_t MC;			// type of content
+				uint16_t device;		// device number
+				uint16_t port;			// port number
+				uint16_t system;		// system number
+				uint16_t value;			// value of command
+				unsigned char type;		// defines how to interpret the content of cmd
+				typedef union
+				{
+					unsigned char byte;	// type = 0x10
+					char ch;			// type = 0x11
+					uint16_t ineteger;	// type = 0x20 (also wide char)
+					int16_t sinteger;	// type = 0x21
+					uint32_t dword;		// type = 0x40
+					int32_t sdword;		// type = 0x41
+					float_t fvalue;		// type = 0x4f
+					double_t dvalue;	// type = 0x8f
+				}content;
+			}MSG;
+
+			typedef struct MSG_STRING
+			{
+				uint16_t MC;			// type of content
+				uint16_t device;		// device number
+				uint16_t port;			// port number
+				uint16_t system;		// system number
+				unsigned char type;		// Definnes the type of content (0x01 = 8 bit chars, 0x02 = 16 bit chars --> wide chars)
+				uint16_t length;		// length of following content
+				unsigned char content[1500];// content string
+			}MSG_STRING;
+
 			typedef struct COMMAND		// Structure of type command (type = 0x00, status = 0x000c)
 			{
 				char ID;				// 0x00:        Always 0x02
@@ -59,9 +91,9 @@ namespace amx
 				char unk6;				// 0x11:        Always 0x0f
 				uint16_t count;			// 0x12 - 0x13: Counter
 				uint16_t status;		// 0x14 - 0x15: Header type?
-				uint16_t channel2;		// 0x16 - 0x17:
+				uint16_t device2;		// 0x16 - 0x17:
 				uint16_t port2;			// 0x18 - 0x19:
-				uint16_t unk7;			// 0x1a - 0x1b:
+				uint16_t system;		// 0x1a - 0x1b:
 				char unk8;				// 0x1c
 				uint16_t length;		// 0x1d - 0x1e:
 				char command[256];  	// 0x1f - hlen + 2
@@ -122,7 +154,7 @@ namespace amx
 				uint16_t status;		// 0x14 - 0x15: Status (see above)
 				uint16_t device2;		// 0x16 - 0x17: Channel number panel
 				uint16_t port;			// 0x18 - 0x19: Port number
-				uint16_t level;			// 0x1a - 0x1b: level number?
+				uint16_t system;		// 0x1a - 0x1b: system number?
 				uint16_t channel;		// 0x1c - 0x1d: Channel number
 				unsigned char checksum;
 			}PAN_HEAD;
