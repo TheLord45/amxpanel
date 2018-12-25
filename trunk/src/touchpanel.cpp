@@ -17,13 +17,20 @@
 #include <utility>
 #include <memory>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <boost/asio/ip/tcp.hpp>
+#else
 #include <asio/ip/tcp.hpp>
-
+#endif
 #include "config.h"
 #include "syslog.h"
 #include "fontlist.h"
 #include "amxnet.h"
 #include "touchpanel.h"
+
+#ifdef __APPLE__
+using namespace boost;
+#endif
 
 using namespace amx;
 using namespace strings;
@@ -132,7 +139,7 @@ String TouchPanel::getStartPage()
 	PROJECT_T prg = getProject();
 	int aid = getActivePage();
 	styles = getPageStyle(aid);
-	
+
 	for (size_t i = 0; i < stPopups.size(); i++)
 	{
 		for (size_t j = 0; j < stPopups[i].onPages.size(); j++)
@@ -144,14 +151,27 @@ String TouchPanel::getStartPage()
 
 	// Scripts
 	pg += "<script>\n";
-	pg += "function switchDisplay(name1, name2, dStat)\n{\n";
+	pg += "function switchDisplay(name1, name2, dStat, bid)\n{\n";
+	pg += "\tvar bname;\n\tvar url;\n";
 	pg += "\tif (dStat == 1)\n\t{\n";
 	pg += "\t\tdocument.getElementById(name1).style.display = \"none\";\n";
 	pg += "\t\tdocument.getElementById(name2).style.display = \"inline\";\n";
+	pg += "\t\tbname = \"button_\"+bid;\n";
+	pg += "\t\turl = makeURL(document.getElementById(bname).href);\n";
+	pg += "\t\tdocument.getElementById(bname).href = url+\"1\";\n";
 	pg += "\t}\n\telse\n\t{\n";
 	pg += "\t\tdocument.getElementById(name1).style.display = \"inline\";\n";
 	pg += "\t\tdocument.getElementById(name2).style.display = \"none\";\n";
-	pg += "\t}\n}\n";
+	pg += "\t\tbname = \"button_\"+bid;\n";
+	pg += "\t\turl = makeURL(document.getElementById(bname).href);\n";
+	pg += "\t\tdocument.getElementById(bname).href = url+\"0\";\n";
+	pg += "\t}\n";
+	pg += "function makeURL(url)\n{\n";
+	pg += "\tvar pos;\n\tvar u;\n\n";
+	pg += "\tpos = url.lastIndexOf('=');\n\n";
+	pg += "\tif (pos != -1)\n";
+	pg += "\t\tu = url.substring(0, pos+1);\n\n";
+	pg += "\treturn u;\n}\n}\n";
 	pg += "</script>\n";
 	pg += "</head>\n";
 	// The page body
@@ -169,9 +189,10 @@ String TouchPanel::getStartPage()
 
 	pg += "</body>\n</html>\n";
 	// FIXME!
+	return pg;
 }
 
-void TouchPanel::setCommand(const String& cmd)
+void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 {
 	commands.push_back(cmd);
 
@@ -179,50 +200,59 @@ void TouchPanel::setCommand(const String& cmd)
 		return;
 
 	busy = true;
-	
+
 	while (commands.size() > 0)
 	{
-		String bef = commands.at(0);
+		ANET_COMMAND bef = commands.at(0);
 		commands.erase(commands.begin());
-		
-		if (bef.contains("PAGE-"))
+
+		switch (bef.MC)
 		{
-			String name = bef.substring(5);
-			int id = findPage(name);
-			int aid = 0;
-			
-			if ((aid = getActivePage()) != id)
-			{
-				for (size_t i = 0; i < stPages.size(); i++)
+			case 0x000c:
+				ANET_MSG_STRING msg = bef.data.message_string;
+				String com((char *)&msg.content);
+
+				if (com.contains("PAGE-"))
 				{
-					if (stPages[i].ID == aid)
-						stPages[i].active = false;
-					else if (stPages[i].ID == id)
-						stPages[i].active = true;
+					String name = com.substring(5);
+					int id = findPage(name);
+					int aid = 0;
+
+					if ((aid = getActivePage()) != id)
+					{
+						for (size_t i = 0; i < stPages.size(); i++)
+						{
+							if (stPages[i].ID == aid)
+								stPages[i].active = false;
+							else if (stPages[i].ID == id)
+								stPages[i].active = true;
+						}
+					}
+				}
+				else if (com.caseCompare("@PPA") == 0)
+				{
+					// FIXME: Close all popups on current page
+				}
+				else if (com.caseCompare("@PPX") == 0)
+				{
+					// FIXME: Close all popups on all pages
+				}
+				else if (com.contains("@PPF-") == 0)
+				{
+					String name = com.substring(5);
+					// FIXME: Close a partucular popup
+				}
+				else if (com.contains("@PPN-") == 0)
+				{
+					String name = com.substring(5);
+					// FIXME: Open a partucular popup
 				}
 			}
-		}
-		else if (bef.caseCompare("@PPA") == 0)
-		{
-			// FIXME: Close all popups on current page
-		}
-		else if (bef.caseCompare("@PPX") == 0)
-		{
-			// FIXME: Close all popups on all pages
-		}
-		else if (bef.contains("@PPF-") == 0)
-		{
-			String name = bef.substring(5);
-			// FIXME: Close a partucular popup
-		}
-		else if (bef.contains("@PPN-") == 0)
-		{
-			String name = bef.substring(5);
-			// FIXME: Open a partucular popup
-		}
+		break;
 	}
 
 	// FIXME: Add a function to inform the client about a new page.
+	busy = false;
 }
 
 String TouchPanel::requestPage(const http::server::Request& req)

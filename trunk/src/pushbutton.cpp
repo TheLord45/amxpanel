@@ -16,9 +16,11 @@
 
 #include "syslog.h"
 #include "nameformat.h"
+#include "config.h"
 #include "pushbutton.h"
 
 extern Syslog *sysl;
+extern Config *Configuration;
 
 using namespace amx;
 using namespace strings;
@@ -61,7 +63,7 @@ String PushButton::getStyle()
 		style += String("  width: ")+String(button.wt)+";\n";
 		style += String("  height: ")+String(button.ht)+";\n";
 		style += "  border: none;\n";		// FIXME!
-		
+
 		if (button.sr[i].mi.length() && button.sr[i].bm.length())
 		{
 			style += String("  background-image: url(images/")+button.sr[i].mi+"), ";
@@ -120,22 +122,24 @@ String PushButton::getStyle()
 String PushButton::getWebCode()
 {
 	String code, names;
-	
+
 	if (button.type == GENERAL && button.sr.size() >= 2)
 	{
 		names = String("'button1-")+NameFormat::toValidName(button.na)+"','";
 		names += String("'button2-")+NameFormat::toValidName(button.na)+"'";
 	}
 
+	code = String("<a href=\"")+Configuration->getHTTProot()+"/button_1?pg="+pageID+"&bt="+button.bi+"&press=\"> id=\"button_"+button.bi+"\">\n";
+
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
 		String nm = String("button")+String(i)+"-"+NameFormat::toValidName(button.na);
 		code += String("<div id=\"")+nm+"\" class=\""+nm+"\"";
-		
+
 		if (button.type == GENERAL && button.fb == FB_MOMENTARY && (i == 0 || i == 1))
 		{
-			code += String(" onmousedown=\"switchDisplay(")+names+",1);\"";
-			code += String(" onmouseup=\"switchDisplay(")+names+",0);\"";
+			code += String(" onmousedown=\"switchDisplay(")+names+",1,"+button.bi+");\"";
+			code += String(" onmouseup=\"switchDisplay(")+names+",0,"+button.bi+");\"";
 		}
 
 		code += ">\n";
@@ -148,6 +152,8 @@ String PushButton::getWebCode()
 
 		code += "</div>\n";
 	}
+
+	code += "</a>\n";
 
 	return code;
 }
