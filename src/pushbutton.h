@@ -33,6 +33,7 @@ namespace amx
 			void setSwitch(bool s) { onOff = s; }
 			void setState(size_t s);
 			void setFontClass(FontList *fl) { fontClass = fl; }
+			void setPageID(int id) { pageID = id; }
 			strings::String getStyle();
 			strings::String getWebCode();
 
@@ -41,6 +42,7 @@ namespace amx
 			bool onOff;
 			int state;
 			FontList *fontClass;
+			int pageID;
 	};
 }
 

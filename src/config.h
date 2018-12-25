@@ -42,6 +42,7 @@ class Config
 		strings::String getAMXController() { return AMXController; }
 		int getAMXPort() { return AMXPort; }
 		int getAMXChannel() { return AMXChanel; }
+		int getAMXSystem() { return AMXSystem; }
 
 		void setHOME(const strings::String& hm) { HOME = hm.data(); }
 
@@ -64,6 +65,7 @@ class Config
 		strings::String AMXController;
 		int AMXPort;
 		int AMXChanel;
+		int AMXSystem;
 
 		std::ifstream fs;
 		strings::String sFileName;

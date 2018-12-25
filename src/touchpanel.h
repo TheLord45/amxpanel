@@ -27,11 +27,8 @@
 #endif
 #include "panel.h"
 #include "page.h"
+#include "amxnet.h"
 #include "request.h"
-
-#ifdef __APPLE__
-using namespace boost;
-#endif
 
 namespace amx
 {
@@ -63,7 +60,7 @@ namespace amx
 			int findPage(const strings::String& name);
 			int getActivePage();
 
-			void setCommand(const strings::String& cmd);
+			void setCommand(const struct ANET_COMMAND& cmd);
 			strings::String requestPage(const http::server::Request& req);
 			bool startClient();
 
@@ -78,7 +75,7 @@ namespace amx
 			std::vector<ST_POPUP> stPopups;
 			bool busy;
 
-			std::vector<strings::String> commands;		// Commands from controller
+			std::vector<ANET_COMMAND> commands;		// Commands from controller
 	};
 }
 
