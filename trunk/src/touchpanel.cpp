@@ -206,6 +206,9 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 		ANET_COMMAND bef = commands.at(0);
 		commands.erase(commands.begin());
 
+		if (bef.device1 != Configuration->getAMXChannel())
+			continue;
+
 		switch (bef.MC)
 		{
 			case 0x000c:
@@ -214,7 +217,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 
 				if (com.contains("PAGE-"))
 				{
-					String name = com.substring(5);
+					String name = com.substring(com.findFirstOf('-')+1);
 					int id = findPage(name);
 					int aid = 0;
 
