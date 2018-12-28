@@ -39,9 +39,6 @@ Config::Config()
 	Debug = false;
 	AMXPanelType.clear();
 	AMXController.clear();
-	AMXPort = 1319;
-	AMXChanel = 0;
-	AMXSystem = 1;
 
 	init();
 
@@ -100,6 +97,7 @@ void Config::init()
 	AMXPort = 1319;
 	AMXChanel = 0;
 	AMXSystem = 1;
+	sidePort = 11012;
 }
 
 void Config::readConfig(const String &sFile)
@@ -166,6 +164,8 @@ void Config::readConfig(const String &sFile)
 				AMXChanel = std::stoi(right.data());
 			else if (left.compare("AMXSystem") == 0 && !right.empty())
 				AMXSystem = std::stoi(right.data());
+			else if (left.compare("SIDEPORT") == 0 && !right.empty())
+				sidePort = std::stoi(right.data());
 			else if (left.compare("DEBUG") == 0 && !right.empty())
 			{
 				String b = right.trim();

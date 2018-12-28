@@ -647,7 +647,7 @@ unsigned char AMXNet::calcChecksum(const unsigned char* buffer, size_t len)
 	unsigned long sum;
 
 	for (size_t i = 0; i < len; i++)
-		sum += (long)*(buffer+i);
+		sum += (unsigned long)*(buffer+i);
 
 	sum &= 0x000000ff;
 	return (unsigned char)sum;
@@ -655,12 +655,12 @@ unsigned char AMXNet::calcChecksum(const unsigned char* buffer, size_t len)
 
 uint16_t AMXNet::makeWord ( unsigned char b1, unsigned char b2 )
 {
-	return ((b2 << 8) & 0xff00) | b1;
+	return ((b1 << 8) & 0xff00) | b2;
 }
 
 uint32_t AMXNet::makeDWord ( unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4 )
 {
-	return ((b4 << 24) & 0xff000000) | ((b3 << 16) & 0x00ff0000) | ((b2  << 8) & 0x0000ff00) | b1;
+	return ((b1 << 24) & 0xff000000) | ((b2 << 16) & 0x00ff0000) | ((b3  << 8) & 0x0000ff00) | b4;
 }
 
 unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
