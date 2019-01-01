@@ -98,6 +98,10 @@ void Config::init()
 	AMXChanel = 0;
 	AMXSystem = 1;
 	sidePort = 11012;
+	sshServerFile = "server.pem";
+	sshDHFile = "dh.pem";
+	sshPassword.clear();
+	webSocketServer = "www.theosys.at";
 }
 
 void Config::readConfig(const String &sFile)
@@ -133,45 +137,53 @@ void Config::readConfig(const String &sFile)
 			String left = parts[0];
 			String right = parts[1];
 
-			left.toUpper();
+//			left.toUpper();
 			sysl->log(Syslog::INFO, String("Config::readConfig: ")+left+" : "+right);
 
-			if (left.compare("LISTEN") == 0 && !right.empty())
+			if (left.caseCompare("LISTEN") == 0 && !right.empty())
 				sListen = right.trim();
-			else if (left.compare("PORT") == 0 && !right.empty())
+			else if (left.caseCompare("PORT") == 0 && !right.empty())
 				nPort = std::stoi(right.data());
-			else if (left.compare("HTTP_ROOT") == 0 && !right.empty())
+			else if (left.caseCompare("HTTP_ROOT") == 0 && !right.empty())
 				sHTTProot = right.trim();
-			else if (left.compare("PIDFILE") == 0 && !right.empty())
+			else if (left.caseCompare("PIDFILE") == 0 && !right.empty())
 				sPidFile = right.trim();
-			else if (left.compare("USER") == 0 && !right.empty())
+			else if (left.caseCompare("USER") == 0 && !right.empty())
 				usr = right.trim();
-			else if (left.compare("GROUP") == 0 && !right.empty())
+			else if (left.caseCompare("GROUP") == 0 && !right.empty())
 				grp = right.trim();
-			else if (left.compare("LOGFILE") == 0 && !right.empty())
+			else if (left.caseCompare("LOGFILE") == 0 && !right.empty())
 				LogFile = right.trim();
-			else if (left.compare("FONTPATH") == 0 && !right.empty())
+			else if (left.caseCompare("FONTPATH") == 0 && !right.empty())
 				FontPath = right.trim();
-			else if (left.compare("WEBLOCATION") == 0 && !right.empty())
+			else if (left.caseCompare("WEBLOCATION") == 0 && !right.empty())
 				web_location = right.trim();
-			else if (left.compare("AMXPanelType") == 0 && !right.empty())
+			else if (left.caseCompare("AMXPanelType") == 0 && !right.empty())
 				AMXPanelType = right.trim();
-			else if (left.compare("AMXController") == 0 && !right.empty())
+			else if (left.caseCompare("AMXController") == 0 && !right.empty())
 				AMXController = right.trim();
-			else if (left.compare("AMXPort") == 0 && !right.empty())
+			else if (left.caseCompare("AMXPort") == 0 && !right.empty())
 				AMXPort = std::stoi(right.data());
-			else if (left.compare("AMXChannel") == 0 && !right.empty())
+			else if (left.caseCompare("AMXChannel") == 0 && !right.empty())
 				AMXChanel = std::stoi(right.data());
-			else if (left.compare("AMXSystem") == 0 && !right.empty())
+			else if (left.caseCompare("AMXSystem") == 0 && !right.empty())
 				AMXSystem = std::stoi(right.data());
-			else if (left.compare("SIDEPORT") == 0 && !right.empty())
+			else if (left.caseCompare("SIDEPORT") == 0 && !right.empty())
 				sidePort = std::stoi(right.data());
-			else if (left.compare("DEBUG") == 0 && !right.empty())
+			else if (left.caseCompare("SSHSERVER") == 0 && !right.empty())
+				sshServerFile = right.trim();
+			else if (left.caseCompare("SSHDH") == 0 && !right.empty())
+				sshDHFile = right.trim();
+			else if (left.caseCompare("SSHPassword") == 0 && !right.empty())
+				sshPassword = right.trim();
+			else if (left.caseCompare("WEBSOCKETSERVER") == 0 && !right.empty())
+				webSocketServer = right.trim();
+			else if (left.caseCompare("DEBUG") == 0 && !right.empty())
 			{
 				String b = right.trim();
-				b.toUpper();
 
-				if (b.compare("1") == 0 || b.compare("TRUE") == 0 || b.compare("YES") == 0)
+				if (b.compare("1") == 0 || b.caseCompare("TRUE") == 0 ||
+					b.caseCompare("YES") == 0 || b.caseCompare("ON") == 0)
 					Debug = true;
 			}
 		}

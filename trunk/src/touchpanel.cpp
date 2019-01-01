@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 by Andreas Theofilu <andreas@theosys.at>
+ * Copyright (C) 2018, 2019 by Andreas Theofilu <andreas@theosys.at>
  *
  * All rights reserved. No warranty, explicit or implicit, provided.
  *
@@ -17,6 +17,8 @@
 #include <utility>
 #include <memory>
 #include <unistd.h>
+#include <thread>
+#include <exception>
 #ifdef __APPLE__
 #include <boost/asio/ip/tcp.hpp>
 #else
@@ -27,6 +29,7 @@
 #include "fontlist.h"
 #include "amxnet.h"
 #include "touchpanel.h"
+#include "panelstruct.h"
 
 #ifdef __APPLE__
 using namespace boost;
@@ -45,6 +48,16 @@ TouchPanel::TouchPanel()
 	openPage = 0;
 	busy = false;
 	readPages();
+	// Start thread for websocket
+	try
+	{
+		thread thr = thread([=] { run(); });
+		thr.detach();
+	}
+	catch (std::exception &e)
+	{
+		sysl->errlog(std::string("TouchPanel::TouchPanel: Error creating a thread: ")+e.what());
+	}
 }
 
 TouchPanel::~TouchPanel()
@@ -348,5 +361,255 @@ void TouchPanel::readPages()
 		}
 
 		delete p;
+	}
+}
+
+bool TouchPanel::parsePages()
+{
+	sysl->TRACE(std::string("TouchPanel::parsePages()"));
+	fstream pgFile;
+	std::string fname = Configuration->getHTTProot().toString()+"/index.html";
+
+	try
+	{
+		pgFile.open(fname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!pgFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+fname);
+			return false;
+		}
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		return false;
+	}
+
+	// Page header
+	pgFile << "<!DOCTYPE html>\n";
+	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
+	pgFile << "<title>AMX Panel</title>\n";
+
+	// Font faces
+	pgFile << getFontList()->getFontStyles();
+	// The styles
+	// write the styles of all popups
+	for (size_t i = 0; i < stPopups.size(); i++)
+		pgFile << getPageStyle(stPopups[i].ID);
+	// Write the main pages
+	for (size_t i = 0; i < stPages.size(); i++)
+		pgFile << getPageStyle(stPages[i].ID);
+
+	// Scripts
+	pgFile << "<script>\n";
+	pgFile << "\"use strict\";\n";
+	pgFile << "var pageName = \"\";\n";
+	pgFile << "var wsocket;\n";
+	writePopups(pgFile);
+	writeGroups(pgFile);
+	pgFile << "var Popups;\n";
+	pgFile << "var popupGroups;\n\n";
+	pgFile << "Popups = JSON.parse(pageNames);\n";
+	pgFile << "popupGroups = JSON.parse(pageGroups);\n\n";
+	// findPageNumber
+	pgFile << "function findPageNumber(name)\n{\n";
+	pgFile << "\tvar i;\n\n";
+	pgFile << "for (i in Popups.pages)\n\t{\n";
+	pgFile << "\t\tif (Popups.pages[i].name == name)\n";
+	pgFile << "\t\t\treturn Popups.pages[i].ID;\n";
+	pgFile << "\t}\n\n\treturn -1;\n}\n";
+	// findPageGroup
+	pgFile << "function findPageGroup(name)\n{\n";
+	pgFile << "\tvar i;\n\n";
+	pgFile << "\tfor (i in Popups.pages)\n\t{\n";
+	pgFile << "\t\tif (Popups.pages[i].name == name)\n";
+	pgFile << "\t\t\treturn Popups.pages[i].group;\n\t}\n\n";
+	pgFile << "\treturn "";\n}\n";
+	// hideGroup
+	pgFile << "function hideGroup(name)\n{\n";
+	pgFile << "\tvar nm;\n\tvar group;\n\tvar i;\n";
+	pgFile << "\tgroup = popupGroups[name];\n\n";
+	pgFile << "\tfor (i in group)\n\t{\n";
+	pgFile << "\t\tvar pg;\n";
+	pgFile << "\t\tpg = findPageNumber(group[i]);\n";
+	pgFile << "\t\tnm = 'Page_'+pg;\n";
+	pgFile << "\t\tdocument.getElementById(nm).style.display = 'none';\n";
+	pgFile << "\t}\n}\n";
+	// showPopup
+	pgFile << "function showPopup(name)\n{\n";
+	pgFile << "\tvar pname;\n\tvar pID;\n\tvar group;\n\n";
+	pgFile << "\tpID = findPageNumber(name);\n";
+	pgFile << "\tgroup = findPageGroup(name);\n";
+	pgFile << "\tpname = \"Page_\"+pID;\n";
+	pgFile << "\thideGroup(group);\n";
+	pgFile << "\tdocument.getElementById(pname).style.display = 'inline';\n}\n";
+	// hidePopup
+	pgFile << "function hidePopup(name)\n{\n";
+	pgFile << "\tvar pname;\n\tvar pID;\n\n";
+	pgFile << "\tpID = findPageNumber(name);\n";
+	pgFile << "\tpname = \"Page_\"+pID;\n";
+	pgFile << "\tdocument.getElementById(pname).style.display = 'none';\n}\n";
+	// switchDisplay
+	pgFile << "function switchDisplay(name1, name2, dStat, bid)\n{\n";
+	pgFile << "\tvar bname;\n\tvar url;\n";
+	pgFile << "\tif (dStat == 1)\n\t{\n";
+	pgFile << "\t\tdocument.getElementById(name1).style.display = \"none\";\n";
+	pgFile << "\t\tdocument.getElementById(name2).style.display = \"inline\";\n";
+	pgFile << "\t\tbname = pageName+\":button_\"+bid;\n";
+	pgFile << "\t\twriteText(\"PUSH:\"+bname+\":1;\");\n";
+	pgFile << "\t}\n\telse\n\t{\n";
+	pgFile << "\t\tdocument.getElementById(name1).style.display = \"inline\";\n";
+	pgFile << "\t\tdocument.getElementById(name2).style.display = \"none\";\n";
+	pgFile << "\t\tbname = pageName+\":button_\"+bid;\n";
+	pgFile << "\t\twriteText(\"PUSH:\"+bname+\":0;\");\n";
+	pgFile << "\t}\n";
+	// connect()
+	pgFile << "function connect()\n{\n";
+	pgFile << "\ttry\n\t{\n";
+	pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
+	pgFile << "\t\twsocket.onopen = function() { wsocket.send('READY;'); }\n";
+	pgFile << "\t\twsocket.onerror = function(error) { console.log(`WebSocket error: ${error}`); }\n";
+	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
+	pgFile << "\t\twsocket.onclose = function() { console.log('WebSocket is closed!'); }\n";
+	pgFile << "\t}\n\tcatch (exception)\n";
+	pgFile << "\t{\n\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
+	// writeText()
+	pgFile << "function writeText(msg)\n{\n";
+	pgFile << "\tif (wsocket.readyState != WebSocket.OPEN)\n\t{\n";
+	pgFile << "\t\talert(\"Socket not ready!\");\n\t\treturn;\n\t}\n";
+	pgFile << "\twsocket.send(msg);\n}\n";
+	// Check for time scripts
+	pgFile << "function checkTime(i) {\n";
+	pgFile << "\tif (i < 10) {i = \"0\" + i};\n";
+	pgFile << "\treturn i;\n";
+	pgFile << "}\n";
+	// This is the "main" program
+	PROJECT_T prg = getProject();
+	int aid = findPage(prg.panelSetup.powerUpPage);
+	pgFile << "showPage('Page_"<< aid << "');\n";
+
+	for (size_t i = 0; i < prg.panelSetup.powerUpPopup.size(); i++)
+		pgFile << "showPopup('" << prg.panelSetup.powerUpPopup[i] << "');\n";
+
+	pgFile << "</script>\n";
+	pgFile << "</head>\n";
+	// The page body
+	pgFile << "<body onload=\"connect();\">\n";
+	pgFile << getPage(aid);
+
+	for (size_t i = 0; i < pages.size(); i++)
+	{
+		if (pages[i].getType() != PAGE)
+			continue;
+
+		pgFile << pages[i].getWebCode();
+		writeAllPopups(pgFile);
+		pgFile << "</div>\n";
+	}
+
+	pgFile << "</body>\n</html>\n";
+}
+
+void TouchPanel::writeGroups (fstream& pgFile)
+{
+	sysl->TRACE("TouchPanel::writeGroups (fstream& pgFile)");
+	std::vector<strings::String> grName;
+	strings::String actGroup;
+	bool repeat = true;
+	bool found = false;
+	pgFile << "var pageGroups = '{";
+
+	while (repeat)
+	{
+		bool komma = false;
+
+		if (found)
+			komma = true;
+
+		found = false;
+
+		for (size_t i = 0; i < pages.size(); i++)
+		{
+			String gn = pages[i].getGroupName();
+
+			if (pages[i].getType() != SUBPAGE || gn.empty())
+				continue;
+
+			// Make sure we don't have the page already put to any group
+			bool have = false;
+
+			for (size_t j = 0; j < grName.size(); j++)
+			{
+				if (grName[j].compare(gn) == 0)
+				{
+					have = true;
+					break;
+				}
+			}
+
+			if (have && actGroup.compare(gn) != 0)
+			{
+				have = false;
+				continue;
+			}
+
+			if (!have)
+			{
+				grName.push_back(gn);
+				actGroup = gn;
+
+				if (komma)
+					pgFile << ",";
+
+				pgFile << "\"" << actGroup << "\":[";
+			}
+			else
+				pgFile << ",";
+
+			pgFile << "\"" << pages[i].getPageName() << "\"";
+			found = true;
+		}
+
+		if (found)
+			pgFile << "]";
+		else
+			repeat = false;
+	}
+
+	pgFile << "}';\n\n";
+}
+
+void TouchPanel::writePopups (fstream& pgFile)
+{
+	sysl->TRACE("TouchPanel::writePopups (fstream& pgFile)");
+	bool first = true;
+	pgFile << "var pageNames = \"'{\"pages\":[";
+
+	for (size_t i = 0; i < pages.size(); i++)
+	{
+		if (pages[i].getType() == PAGE)
+			continue;
+
+		if (!first)
+			pgFile << ",";
+
+		pgFile << "{\"name\":\"" << pages[i].getPageName() << "\",\"ID\":" << pages[i].getPageID() << ",\"group\":\"" << pages[i].getGroupName() << "\"}";
+		first = false;
+	}
+
+	pgFile << "]}';\n";
+}
+
+void TouchPanel::writeAllPopups (fstream& pgFile)
+{
+	sysl->TRACE("TouchPanel::writeAllPopups (fstream& pgFile)");
+
+	for (size_t i = 0; i < pages.size(); i++)
+	{
+		if (pages[i].getType != SUBPAGE)
+			continue;
+
+		pgFile << pages[i].getWebCode();
 	}
 }

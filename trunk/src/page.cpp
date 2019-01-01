@@ -155,22 +155,34 @@ amx::Page::Page(const strings::String& file)
 					else
 						page.buttons.back().fb = FB_NONE;
 				}
-                else if (name.caseCompare("ap") == 0)
-                    page.buttons.back().ap = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("cp") == 0)
-                    page.buttons.back().cp = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("ch") == 0)
-                    page.buttons.back().ch = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("lp") == 0)
-                    page.buttons.back().lp = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("va") == 0)
-                    page.buttons.back().va = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("rv") == 0)
-                    page.buttons.back().rv = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("rl") == 0)
-                    page.buttons.back().rl = atoi(reader.get_value().c_str());
-                else if (name.caseCompare("rh") == 0)
-                    page.buttons.back().rh = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("ap") == 0)
+					page.buttons.back().ap = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("cp") == 0)
+					page.buttons.back().cp = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("ch") == 0)
+					page.buttons.back().ch = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("lp") == 0)
+					page.buttons.back().lp = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("va") == 0)
+					page.buttons.back().va = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("rv") == 0)
+					page.buttons.back().rv = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("rl") == 0)
+					page.buttons.back().rl = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("rh") == 0)
+					page.buttons.back().rh = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("pf") == 0)
+				{
+					page.buttons.back().pfName = reader.get_value().c_str();
+
+					if (reader.has_attributes())
+					{
+						page.buttons.back().pfType = reader.get_attribute(0).c_str();	// FIXME: Find all commands and make an enum.
+						// Known commands:
+						// sShow      show popup
+						// sHide      hide popup
+					}
+				}
                 else if (name.caseCompare("sr") == 0 && reader.has_attributes())
                 {
                     SR_T sr;
@@ -245,9 +257,21 @@ void Page::generateButtons()
 	{
 		PushButton *pbt = new PushButton(page.buttons[i], paletteFile);
 		pbt->setFontClass(fontClass);
+		pbt->setParentPage(this);
 		buttons.push_back(*pbt);
 		delete pbt;
 	}
+}
+
+int Page::findPage (const String& name)
+{
+	for (size_t i = 0; i < pgList.size(); i++)
+	{
+		if (pgList[i].name.compare(name) == 0)
+			return pgList[i].pageID;
+	}
+
+	return 0;
 }
 
 String& Page::getStyleCode()
@@ -258,7 +282,8 @@ String& Page::getStyleCode()
 	if (!status || styleBuffer.length() > 0)
 		return styleBuffer;
 
-	styleBuffer = String(".")+page.name+" {\n";
+	String pgName = String("Page_")+page.pageID;
+	styleBuffer = String(".")+pgName+" {\n";
 	styleBuffer += String("  width: ")+String(page.width)+"px;\n";
 	styleBuffer += String("  height: ")+String(page.height)+"px;\n";
 
@@ -280,10 +305,10 @@ String& Page::getStyleCode()
 
 		if (page.showEffect && page.showTime)
 		{
-			styleBuffer += String("  animation-name: ani-")+NameFormat::toValidName(page.name)+";\n";
+			styleBuffer += String("  animation-name: ani-")+pgName+";\n";
 			styleBuffer += String("  animation-duration: ")+String((double)page.showTime / 10.0)+"s;\n";
 			styleBuffer += "}\n";
-			styleBuffer += String("@keyframes ani-")+NameFormat::toValidName(page.name)+" {\n";
+			styleBuffer += String("@keyframes ani-")+pgName+" {\n";
 
 			switch (page.showEffect)
 			{
@@ -345,12 +370,15 @@ String& Page::getWebCode()
 	generateButtons();
 
 	String code;
-	code = String("<div id=\"")+NameFormat::toValidName(page.name)+"\" class=\""+NameFormat::toValidName(page.name)+"\">\n";
+	String pgName = String("Page_")+page.pageID;
+	code = String("<div id=\"")+pgName+"\" class=\""+pgName+"\">\n";
 
 	for (size_t i = 0; i < buttons.size(); i++)
 		code += buttons[i].getWebCode();
 
-	code += "</div>\n";
+	if (page.type != SUBPAGE)
+		code += "</div>\n";
+
 	return webBuffer;
 }
 

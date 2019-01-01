@@ -49,20 +49,29 @@ namespace http
 				m_connection_manager(manager),
 				m_request_handler(handler)
 		{
+			sysl->TRACE(Syslog::ENTRY, std::string("Connection::Connection(asio::ip::tcp::socket socket, ConnectionManager& manager, RequestHandler& handler)"));
+		}
+
+		Connection::~Connection()
+		{
+			sysl->TRACE(Syslog::EXIT, std::string("Connection::Connection(asio::ip::tcp::socket socket, ConnectionManager& manager, RequestHandler& handler)"));
 		}
 
 		void Connection::start()
 		{
+			sysl->TRACE(std::string("Connection::start()"));
 			do_read();
 		}
 
 		void Connection::stop()
 		{
+			sysl->TRACE(std::string("Connection::stop()"));
 			m_socket.close();
 		}
 
 		void Connection::do_read()
 		{
+			sysl->TRACE(std::string("Connection::do_read()"));
 			auto self(shared_from_this());
 #ifdef __APPLE__
 			m_socket.async_read_some(asio::buffer(m_buffer), [this, self](system::error_code ec, std::size_t bytes_transferred)
@@ -129,6 +138,7 @@ namespace http
 
 		void Connection::do_write()
 		{
+			sysl->TRACE(std::string("Connection::do_write()"));
 			auto self(shared_from_this());
 #ifdef __APPLE__
 			asio::async_write(m_socket, m_reply.to_buffers(), [this, self](system::error_code ec, std::size_t)

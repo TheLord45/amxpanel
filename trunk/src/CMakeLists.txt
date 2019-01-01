@@ -8,6 +8,7 @@ add_executable(amxpanel main.cpp
             icon.cpp
             fontlist.cpp
             amxnet.cpp
+            websocket.cpp
             config.cpp
             server.cpp
             reply.cpp
@@ -39,7 +40,7 @@ endif(APPLE)
 
 add_definitions(-pedantic -fexceptions -Wextra)
 
-target_link_libraries(amxpanel m pthread gd png z jpeg freetype ${LIBS})
+target_link_libraries(amxpanel m pthread ssl crypto gd png z jpeg freetype ${LIBS} ${Boost_LIBRARIES})
 
 install(TARGETS amxpanel RUNTIME DESTINATION usr)
 

@@ -37,14 +37,18 @@ namespace http
 		RequestHandler::RequestHandler(const std::string& doc_root)
 				: m_doc_root(doc_root)
 		{
-			URIs.push_back(doc_root+"/weather/year");
-			URIs.push_back(doc_root+"/weather/month");
-			URIs.push_back(doc_root+"/weather/day");
-			URIs.push_back(doc_root+"/weather/range");
+			sysl->TRACE(Syslog::ENTRY, std::string("RequestHandler::RequestHandler(const std::string& doc_root)"));
+			URIs.push_back(doc_root+"/amxpanel");
+		}
+
+		RequestHandler::~RequestHandler()
+		{
+			sysl->TRACE(Syslog::EXIT, std::string("RequestHandler::RequestHandler(const std::string& doc_root)"));
 		}
 
 		void RequestHandler::HandleRequest(const Request& req, Reply& rep)
 		{
+			sysl->TRACE(std::string("RequestHandler::HandleRequest(const Request& req, Reply& rep)"));
 			// Decode url to path.
 			std::string request_path;
 
@@ -138,6 +142,8 @@ namespace http
 
 		bool RequestHandler::url_decode(const std::string& in, std::string& out)
 		{
+			sysl->TRACE(std::string("RequestHandler::url_decode(const std::string& in, std::string& out)"));
+
 			out.clear();
 			out.reserve(in.length());
 
@@ -180,6 +186,7 @@ namespace http
 
 		bool RequestHandler::testURL(const std::string& URL)
 		{
+			sysl->TRACE(std::string("RequestHandler::testURL(const std::string& URL)"));
 			std::size_t pos = URL.find("?");
 			std::string u;
 

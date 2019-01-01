@@ -285,8 +285,8 @@ namespace amx
 		int rv;
 		int rl;					// Range low
 		int rh;					// Range high
-		strings::String pfType;
-		strings::String pfName;
+		strings::String pfType;	// command to execute when button was pushed
+		strings::String pfName;	// Name of popup
 		std::vector<SR_T> sr;
 	}BUTTON_T;
 

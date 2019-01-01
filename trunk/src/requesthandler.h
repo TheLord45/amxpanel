@@ -30,6 +30,7 @@ namespace http
 		{
 			public:
 				RequestHandler(const RequestHandler&) = delete;
+				~RequestHandler();
 				RequestHandler& operator=(const RequestHandler&) = delete;
 
 				explicit RequestHandler(const std::string& doc_root);

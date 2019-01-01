@@ -46,7 +46,7 @@ amx::FontList::FontList(const strings::String& file)
 	uri.append(Configuration->getHTTProot());
 	uri.append("/panel/");
 	uri.append(file);
-    
+
 	try
 	{
 		xmlpp::TextReader reader(uri.toString());
@@ -117,7 +117,7 @@ strings::String amx::FontList::getFontStyles()
 			fontFaces.push_back(name);
 			styles += "@font-face {\n";
 			styles += String("  font-family: ")+NameFormat::toValidName(fontList[i].name)+";\n";
-			styles += String("  src: url(")+NameFormat::transFontName(fontList[i].file)+");\n";
+			styles += String("  src: url(")+NameFormat::toURL(fontList[i].file)+");\n";
 			styles += String("  font-style: ")+getFontStyle(fontList[i].subfamilyName)+";\n";
 			styles += String("  font-weight: ")+getFontWeight(fontList[i].subfamilyName)+";\n";
 			styles += "}\n";
@@ -153,7 +153,7 @@ strings::String amx::FontList::getFontStyle(const strings::String& fs)
 {
 	if (fs.caseCompare("Regular") == 0)
 		return "normal";
-	
+
 	if (fs.caseCompare("Italic") == 0 || fs.caseCompare("Bold Italic") == 0)
 		return "italic";
 

@@ -29,6 +29,7 @@ class NameFormat
 		static strings::String cutNumbers(strings::String& str);
 		static strings::String toShortName(strings::String& str);
 		static strings::String transFontName(strings::String& str);
+		static strings::String toURL(strings::String& str);
 };
 
 #endif

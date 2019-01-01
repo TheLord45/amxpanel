@@ -20,6 +20,7 @@
 #include <vector>
 #include <array>
 #include <memory>
+#include <fstream>
 #ifdef __APPLE__
 #include <boost/asio.hpp>
 #else
@@ -29,6 +30,8 @@
 #include "page.h"
 #include "amxnet.h"
 #include "request.h"
+#include "websocket.h"
+#include "fontlist.h"
 
 namespace amx
 {
@@ -46,7 +49,7 @@ namespace amx
 		std::vector<int> onPages;	// Linked to page ID
 	}ST_POPUP;
 
-	class TouchPanel : public Panel
+	class TouchPanel : public Panel, WebSocket
 	{
 		public:
 			TouchPanel();
@@ -59,6 +62,7 @@ namespace amx
 			strings::String getStartPage();
 			int findPage(const strings::String& name);
 			int getActivePage();
+			bool parsePages();
 
 			void setCommand(const struct ANET_COMMAND& cmd);
 			strings::String requestPage(const http::server::Request& req);
@@ -66,6 +70,9 @@ namespace amx
 
 		private:
 			void readPages();
+			void writeGroups(std::fstream& pgFile);
+			void writePopups(std::fstream& pgFile);
+			void writeAllPopups(std::fstream& pgFile);
 
 			std::vector<Page> pages;
 			Panel panel;
