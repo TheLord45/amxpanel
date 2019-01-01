@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.6)
 project(hvl)
 
+FIND_PACKAGE( Boost 1.62 COMPONENTS system REQUIRED )
+INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
+
 find_package(PkgConfig)
 
 pkg_check_modules(LIBXML++ REQUIRED libxml++-2.6)

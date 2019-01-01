@@ -2492,6 +2492,13 @@ namespace strings
             friend std::ostream& operator<< (std::ostream& os, const String& str) { return os << str.toString(); }
             friend std::ostream& operator<< (std::ostream& os, const std::string& str) { return os << str; }
             friend std::ostream& operator<< (std::ostream& os, const char *s) { return os << s; }
+            friend std::ostream& operator<< (std::ostream& os, char c) { return os << c; }
+            friend std::ostream& operator<< (std::ostream& os, int i) { return os << i; }
+            friend std::ostream& operator<< (std::ostream& os, LONG l) { return os << l; }
+            friend std::ostream& operator<< (std::ostream& os, unsigned int i) { return os << i; }
+            friend std::ostream& operator<< (std::ostream& os, ULONG l) { return os << l; }
+            friend std::ostream& operator<< (std::ostream& os, float f) { return os << f; }
+            friend std::ostream& operator<< (std::ostream& os, double d) { return os << d; }
 
             friend std::istream& operator>> (std::istream& in, String& str)
             {

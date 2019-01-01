@@ -46,6 +46,7 @@ namespace http
 			public:
 				Connection(const Connection&) = delete;
 				Connection& operator=(const Connection&) = delete;
+				~Connection();
 
 				/// Construct a connection with the given socket.
 				explicit Connection(asio::ip::tcp::socket socket, ConnectionManager& manager, RequestHandler& handler);

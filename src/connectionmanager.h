@@ -28,14 +28,15 @@ namespace http
 		{
 			public:
 				ConnectionManager(const ConnectionManager&) = delete;
+				~ConnectionManager();
 				ConnectionManager operator= (const ConnectionManager&) = delete;
-				
+
 				ConnectionManager();
-				
+
 				void start(ConnectionPtr c);
 				void stop(ConnectionPtr c);
 				void stop_all();
-				
+
 			private:
 				std::set<ConnectionPtr> m_connections;
 		};

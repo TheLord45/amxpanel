@@ -44,6 +44,10 @@ class Config
 		int getAMXChannel() { return AMXChanel; }
 		int getAMXSystem() { return AMXSystem; }
 		int getSidePort() { return sidePort; }
+		strings::String getSSHServerFile() { return sshServerFile; }
+		strings::String getSSHDHFile() { return sshDHFile; }
+		strings::String getSSHPassword() { return sshPassword; }
+		strings::String getWebSocketServer() { return webSocketServer; }
 
 		void setHOME(const strings::String& hm) { HOME = hm.data(); }
 
@@ -68,6 +72,10 @@ class Config
 		int AMXChanel;
 		int AMXSystem;
 		int sidePort;
+		strings::String sshServerFile;
+		strings::String sshDHFile;
+		strings::String sshPassword;
+		strings::String webSocketServer;
 
 		std::ifstream fs;
 		strings::String sFileName;

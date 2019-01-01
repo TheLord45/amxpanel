@@ -22,7 +22,7 @@
 class Daemonize
 {
 	public:
-		Daemonize() {}
+		Daemonize();
 		~Daemonize();
 
 		void daemon_start (bool ignsigcld);

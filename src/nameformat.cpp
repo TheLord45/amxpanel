@@ -14,6 +14,9 @@
  * from Andreas Theofilu.
  */
 
+#include <string>
+#include <ios>
+#include <iomanip>
 #include "syslog.h"
 #include "nameformat.h"
 
@@ -103,5 +106,27 @@ String NameFormat::transFontName(String& str)
 	}
 
 	ret.replace(".ttf", ".woff", strings::LAST);
+	return ret;
+}
+
+String NameFormat::toURL(String& str)
+{
+	String ret;
+
+	for (size_t i = 0; i < str.length(); i++)
+	{
+		char c = str.at(i);
+
+		if ((c < '0' || c > '9') && (c < 'a' || c > 'z') && (c < 'A' && c > 'Z'))
+		{
+			ret.append("%");
+			std::stringstream stream;
+			stream << std::setfill ('0') << std::setw(2) << std::hex << c;
+			ret.append(stream.str());
+		}
+		else
+			ret.append(c);
+	}
+
 	return ret;
 }

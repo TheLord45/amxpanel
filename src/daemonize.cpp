@@ -45,11 +45,18 @@ extern Syslog *sysl;
 void sig_child (int x);
 void sig_handler(int sig);
 
+Daemonize::Daemonize()
+{
+	sysl->TRACE(Syslog::ENTRY, std::string("Daemonize::Daemonize()"));
+}
+
 /*
  * Detach application from console and make it a daemon.
  */
 void Daemonize::daemon_start (bool ignsigcld)
 {
+	sysl->TRACE(std::string("Daemonize::daemon_start (bool ignsigcld)"));
+
 	int childpid, fd;
 
 	if (getpid () == 1)
@@ -116,6 +123,7 @@ out:
 
 void Daemonize::changeToUser(const std::string &usr, const std::string &grp)
 {
+	sysl->TRACE(std::string("Daemonize::changeToUser(const std::string &usr, const std::string &grp)"));
 	gid_t gr_gid;
 
 	if (!usr.empty())
@@ -174,10 +182,13 @@ void Daemonize::changeToUser(const std::string &usr, const std::string &grp)
 
 Daemonize::~Daemonize()
 {
+	sysl->TRACE(Syslog::EXIT, std::string("Daemonize::Daemonize()"));
 }
 
 void sig_child (int /* x */)
 {
+	sysl->TRACE(std::string("sig_child(int)"));
+
 #if defined(BSD) && !defined(sinix) && !defined(Linux)
 	int pid;
 	int status;
@@ -193,11 +204,11 @@ void sig_child (int /* x */)
  */
 void sig_handler(int sig)
 {
+	sysl->TRACE(std::string("sig_handler(int sig) [sig=")+std::to_string(sig)+"]");
+
 	if (sig == SIGTERM || sig == SIGKILL)
 	{
 		sysl->log(Syslog::INFO, "Terminating program! Killed by signal " + std::to_string(sig));
-
-		std::string msg = "STOP;";
 		exit(0);
 	}
 }
