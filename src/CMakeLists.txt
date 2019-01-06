@@ -10,15 +10,6 @@ add_executable(amxpanel main.cpp
             amxnet.cpp
             websocket.cpp
             config.cpp
-            server.cpp
-            reply.cpp
-            requesthandler.cpp
-            requestparser.cpp
-            connection.cpp
-            connectionmanager.cpp
-            requestparser.cpp
-            mapping.cpp
-            mimetypes.cpp
             nameformat.cpp
             datetime.cpp
             sunset.cpp

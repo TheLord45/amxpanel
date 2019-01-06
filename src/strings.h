@@ -2526,7 +2526,7 @@ namespace strings
              * \exception ERR_OUT_OF_MEMORY
              * Can't allocate more meory
              */
-            void assertMemory(size_t i) const;
+            bool assertMemory(size_t i) const;
 
         private:
             void copyString(const char *s, size_t len);

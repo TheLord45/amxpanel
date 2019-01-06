@@ -38,55 +38,104 @@ using namespace std;
 using namespace amx;
 using namespace strings;
 
-amx::Palette::Palette(const strings::String& file)
+Palette::Palette()
 {
-    sysl->TRACE(Syslog::ENTRY, String("Palette::Palette(const strings::String& file)"));
-    sysl->TRACE(String("Palette file: ")+file);
-    status = false;
-    String uri = "file://";
-    uri.append(Configuration->getHTTProot());
-    uri.append("/panel/");
-    uri.append(file);
-    
-    try
-    {
-        xmlpp::TextReader reader(uri.toString());
+	sysl->TRACE(Syslog::ENTRY, String("Palette::Palette()"));
+	status = false;
+}
 
-        while(reader.read())
-        {
-            String name = string(reader.get_name());
-            sysl->TRACE(Syslog::MESSAGE, String("Palette::Palette: Node: ")+name);
+Palette::Palette(const strings::String& file)
+{
+	sysl->TRACE(Syslog::ENTRY, String("Palette::Palette(const strings::String& file)"));
+	paletteFile = file;
+	parsePalette();
+}
 
-            if (name.caseCompare("color") == 0 && reader.has_attributes() && reader.has_value())
-            {
-                sysl->TRACE(Syslog::MESSAGE, String("Palette::Palette: Node: ")+name+", Value: "+reader.get_value()+", Attr[0].: "+reader.get_attribute(0));
-                PDATA_T color;
-                color.clear();
-                String sCol;
-                color.index = atoi(reader.get_attribute("index").c_str());
-                color.name = reader.get_attribute("name");
-                sCol = reader.get_value();
-                sCol = String("0x")+sCol.substring(1);
-                color.color = strtoul(sCol.data(), 0, 16);
-                palette.push_back(color);
-            }
-        }
+bool amx::Palette::parsePalette(const strings::String& f)
+{
+	sysl->TRACE(String("Palette::parsePalette(const strings::String& f)"));
+	paletteFile = f;
+	return parsePalette();
+}
 
-        reader.close();
-    }
-    catch (xmlpp::internal_error& e)
-    {
-        sysl->errlog(string("Palette::Palette: ")+e.what());
-        status = false;
-        return;
-    }
+bool amx::Palette::parsePalette()
+{
+	sysl->TRACE(String("Palette::parsePalette()"));
+	String lastName, at_index, at_name, value;
+	status = false;
+	String uri = "file://";
+	uri.append(Configuration->getHTTProot());
+	uri.append("/");
+	uri.append(paletteFile);
+	sysl->TRACE(String("Palette file: ")+uri);
 
-    status = true;
+	try
+	{
+		xmlpp::TextReader reader(uri.toString());
+
+		while(reader.read())
+		{
+			String name = string(reader.get_name());
+
+			if (name.at(0) == '#')
+				name = lastName;
+
+			if (reader.has_attributes())
+			{
+				at_index = reader.get_attribute("index");
+				at_name = reader.get_attribute("name");
+			}
+
+			if (reader.has_value())
+			{
+				value = reader.get_value();
+				value.trim();
+			}
+			else
+				value.clear();
+
+			if (name.caseCompare("color") == 0 && !value.empty() && !at_index.empty())
+			{
+				sysl->TRACE(String("Palette::parsePalette: Node: ")+name+", Value: "+reader.get_value()+", Attr[0].: "+at_name+", Attr[1].: "+at_index);
+				PDATA_T color;
+				color.clear();
+				String sCol;
+				color.index = atoi(at_index.data());
+				color.name = at_name;
+				sCol = reader.get_value();
+				sCol = String("0x")+sCol.substring(1);
+				color.color = strtoul(sCol.data(), 0, 16);
+				palette.push_back(color);
+				at_index.clear();
+				at_name.clear();
+			}
+
+			lastName = name;
+		}
+
+		reader.close();
+	}
+	catch (xmlpp::internal_error& e)
+	{
+		sysl->errlog(string("Palette::parsePalette: XML parser error: ")+e.what());
+		status = false;
+		return status;
+	}
+	catch (exception& e)
+	{
+		sysl->errlog(string("Palette::parsePalette: Error: ")+e.what());
+		status = false;
+		return status;
+	}
+
+	sysl->TRACE(String("Palette::parsePalette: Found ")+palette.size()+" colors.");
+	status = true;
+	return status;
 }
 
 Palette::~Palette()
 {
-    sysl->TRACE(Syslog::EXIT, String("Palette::Palette(const strings::String& file)"));
+    sysl->TRACE(Syslog::EXIT, String("Palette::Palette(...)"));
 }
 
 unsigned long amx::Palette::getColor(size_t idx)

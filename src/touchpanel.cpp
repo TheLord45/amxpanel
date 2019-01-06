@@ -49,7 +49,7 @@ TouchPanel::TouchPanel()
 	busy = false;
 	readPages();
 	// Start thread for websocket
-	try
+/*	try
 	{
 		thread thr = thread([=] { run(); });
 		thr.detach();
@@ -57,7 +57,7 @@ TouchPanel::TouchPanel()
 	catch (std::exception &e)
 	{
 		sysl->errlog(std::string("TouchPanel::TouchPanel: Error creating a thread: ")+e.what());
-	}
+	} */
 }
 
 TouchPanel::~TouchPanel()
@@ -91,10 +91,16 @@ String TouchPanel::getPage(int id)
 {
 	sysl->TRACE(String("TouchPanel::getPage(int id)"));
 
-	for (size_t i = 0; i < pages.size(); i++)
+	for (size_t i = 0; i < stPages.size(); i++)
 	{
-		if (pages[i].isOk() && pages[i].getPageID() == id)
-			return pages[i].getWebCode();
+		if (!stPages[i].webcode.empty() && stPages[i].ID == id)
+			return stPages[i].webcode;
+	}
+
+	for (size_t i = 0; i < stPopups.size(); i++)
+	{
+		if (!stPopups[i].webcode.empty() && stPopups[i].ID == id)
+			return stPopups[i].webcode;
 	}
 
 	return "";
@@ -104,10 +110,16 @@ String TouchPanel::getPageStyle(int id)
 {
 	sysl->TRACE(String("TouchPanel::getPageStyle(int id)"));
 
-	for (size_t i = 0; i < pages.size(); i++)
+	for (size_t i = 0; i < stPages.size(); i++)
 	{
-		if (pages[i].isOk() && pages[i].getPageID() == id)
-			return pages[i].getStyleCode();
+		if (!stPages[i].styles.empty() && stPages[i].ID == id)
+			return stPages[i].styles;
+	}
+
+	for (size_t i = 0; i < stPopups.size(); i++)
+	{
+		if (!stPopups[i].styles.empty() && stPopups[i].ID == id)
+			return stPopups[i].styles;
 	}
 
 	return "";
@@ -117,10 +129,16 @@ String TouchPanel::getPage(const String& name)
 {
 	sysl->TRACE(String("TouchPanel::getPage(const String& name)"));
 
-	for (size_t i = 0; i < pages.size(); i++)
+	for (size_t i = 0; i < stPages.size(); i++)
 	{
-		if (pages[i].isOk() && pages[i].getPageName().compare(name) == 0)
-			return pages[i].getWebCode();
+		if (!stPages[i].webcode.empty() && stPages[i].name.compare(name) == 0)
+			return stPages[i].webcode;
+	}
+
+	for (size_t i = 0; i < stPopups.size(); i++)
+	{
+		if (!stPopups[i].webcode.empty() && stPopups[i].name.compare(name) == 0)
+			return stPopups[i].webcode;
 	}
 
 	return "";
@@ -130,79 +148,19 @@ String TouchPanel::getPageStyle(const String& name)
 {
 	sysl->TRACE(String("TouchPanel::getPageStyle(const String& name)"));
 
-	for (size_t i = 0; i < pages.size(); i++)
+	for (size_t i = 0; i < stPages.size(); i++)
 	{
-		if (pages[i].isOk() && pages[i].getPageName().compare(name) == 0)
-			return pages[i].getStyleCode();
+		if (!stPages[i].styles.empty() && stPages[i].name.compare(name) == 0)
+			return stPages[i].styles;
+	}
+
+	for (size_t i = 0; i < stPopups.size(); i++)
+	{
+		if (!stPopups[i].styles.empty() && stPopups[i].name.compare(name) == 0)
+			return stPopups[i].styles;
 	}
 
 	return "";
-}
-
-String TouchPanel::getStartPage()
-{
-	sysl->TRACE(String("TouchPanel::getStartPage()"));
-	String pg, styles;
-
-	// The head of the document
-	pg = "<!DOCTYPE html>\n";
-	pg += "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
-	pg += "<title>AMX Panel</title>\n";
-	// The styles
-	PROJECT_T prg = getProject();
-	int aid = getActivePage();
-	styles = getPageStyle(aid);
-
-	for (size_t i = 0; i < stPopups.size(); i++)
-	{
-		for (size_t j = 0; j < stPopups[i].onPages.size(); j++)
-		{
-			if (stPopups[i].onPages[j] == aid && stPopups[i].active)
-				styles += getPageStyle(stPopups[i].ID);
-		}
-	}
-
-	// Scripts
-	pg += "<script>\n";
-	pg += "function switchDisplay(name1, name2, dStat, bid)\n{\n";
-	pg += "\tvar bname;\n\tvar url;\n";
-	pg += "\tif (dStat == 1)\n\t{\n";
-	pg += "\t\tdocument.getElementById(name1).style.display = \"none\";\n";
-	pg += "\t\tdocument.getElementById(name2).style.display = \"inline\";\n";
-	pg += "\t\tbname = \"button_\"+bid;\n";
-	pg += "\t\turl = makeURL(document.getElementById(bname).href);\n";
-	pg += "\t\tdocument.getElementById(bname).href = url+\"1\";\n";
-	pg += "\t}\n\telse\n\t{\n";
-	pg += "\t\tdocument.getElementById(name1).style.display = \"inline\";\n";
-	pg += "\t\tdocument.getElementById(name2).style.display = \"none\";\n";
-	pg += "\t\tbname = \"button_\"+bid;\n";
-	pg += "\t\turl = makeURL(document.getElementById(bname).href);\n";
-	pg += "\t\tdocument.getElementById(bname).href = url+\"0\";\n";
-	pg += "\t}\n";
-	pg += "function makeURL(url)\n{\n";
-	pg += "\tvar pos;\n\tvar u;\n\n";
-	pg += "\tpos = url.lastIndexOf('=');\n\n";
-	pg += "\tif (pos != -1)\n";
-	pg += "\t\tu = url.substring(0, pos+1);\n\n";
-	pg += "\treturn u;\n}\n}\n";
-	pg += "</script>\n";
-	pg += "</head>\n";
-	// The page body
-	pg += "<body>\n";
-	pg += getPage(aid);
-
-	for (size_t i = 0; i < stPopups.size(); i++)
-	{
-		for (size_t j = 0; j < stPopups[i].onPages.size(); j++)
-		{
-			if (stPopups[i].onPages[j] == aid && stPopups[i].active)
-				pg += getPage(stPopups[i].ID);
-		}
-	}
-
-	pg += "</body>\n</html>\n";
-	// FIXME!
-	return pg;
 }
 
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -271,15 +229,6 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 	busy = false;
 }
 
-String TouchPanel::requestPage(const http::server::Request& req)
-{
-	String uri = req.uri;
-	// FIXME: Find the channel, port and other parameters to send to the
-	// controller.
-	// Return the actual page to the browser.
-	return getStartPage();
-}
-
 int TouchPanel::findPage(const String& name)
 {
 	PROJECT_T pro = getProject();
@@ -314,53 +263,78 @@ int TouchPanel::getActivePage()
 void TouchPanel::readPages()
 {
 	sysl->TRACE(String("TouchPanel::readPages()"));
-	vector<String> pgs = getPageFileNames();
 
-	for (size_t i = 0; i < pgs.size(); i++)
+	if (gotPages)
+		return;
+
+	try
 	{
-		Page *p = new Page(pgs[i]);
-		p->setPaletteFile(getProject().supportFileList.colorFile);
-		p->setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
-		p->setFontClass(getFontList());
-		pages.push_back(*p);
+		vector<String> pgs = getPageFileNames();
 
-		if (p->getType() == PAGE)
+		for (size_t i = 0; i < pgs.size(); i++)
 		{
-			ST_PAGE pg;
-			pg.ID = p->getPageID();
+			Page p(pgs[i]);
+			p.setPaletteFile(getProject().supportFileList.colorFile);
+			p.setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
+			p.setFontClass(getFontList());
 
-			if (p->getPageName().compare(getProject().panelSetup.powerUpPage) == 0)
-				pg.active = true;
-			else
-				pg.active = false;
-
-			stPages.push_back(pg);
-		}
-		else
-		{
-			ST_POPUP pop;
-			pop.ID = p->getPageID();
-			pop.group = p->getGroupName();
-			pop.active = false;
-
-			for (size_t j = 0; j < getProject().panelSetup.powerUpPopup.size(); j++)
+			if (!p.parsePage())
 			{
-				if (p->getPageName().compare(getProject().panelSetup.powerUpPopup[i]) == 0)
-				{
-					pop.active = true;
-					int aid = findPage(getProject().panelSetup.powerUpPage);
-
-					if (aid > 0)
-						pop.onPages.push_back(aid);
-
-					break;
-				}
+				sysl->warnlog(String("TouchPanel::readPages: Page ")+p.getPageName()+" had an error! Page will be ignored.");
+				continue;
 			}
 
-			stPopups.push_back(pop);
-		}
+			if (p.getType() == PAGE)
+			{
+				ST_PAGE pg;
+				pg.ID = p.getPageID();
+				pg.name = p.getPageName();
+				pg.file = p.getFileName();
+				pg.styles = p.getStyleCode();
+				pg.webcode = p.getWebCode();
+				scrBuffer += p.getScriptCode();
 
-		delete p;
+				if (pg.name.compare(getProject().panelSetup.powerUpPage) == 0)
+					pg.active = true;
+				else
+					pg.active = false;
+
+				stPages.push_back(pg);
+			}
+			else
+			{
+				ST_POPUP pop;
+				pop.ID = p.getPageID();
+				pop.name = p.getPageName();
+				pop.file = p.getFileName();
+				pop.group = p.getGroupName();
+				pop.styles = p.getStyleCode();
+				pop.webcode = p.getWebCode();
+				pop.active = false;
+				scrBuffer += p.getScriptCode();
+
+				for (size_t j = 0; j < getProject().panelSetup.powerUpPopup.size(); j++)
+				{
+					if (pop.name.compare(getProject().panelSetup.powerUpPopup[j]) == 0)
+					{
+						pop.active = true;
+						int aid = findPage(getProject().panelSetup.powerUpPage);
+
+						if (aid > 0)
+							pop.onPages.push_back(aid);
+
+						break;
+					}
+				}
+
+				stPopups.push_back(pop);
+			}
+		}
+	}
+	catch (exception& e)
+	{
+		sysl->errlog(String("TouchPanel::readPages: ")+e.what());
+		exit(1);
 	}
 }
 
@@ -390,7 +364,7 @@ bool TouchPanel::parsePages()
 	pgFile << "<!DOCTYPE html>\n";
 	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
-
+	pgFile << "<style>\n";
 	// Font faces
 	pgFile << getFontList()->getFontStyles();
 	// The styles
@@ -401,6 +375,7 @@ bool TouchPanel::parsePages()
 	for (size_t i = 0; i < stPages.size(); i++)
 		pgFile << getPageStyle(stPages[i].ID);
 
+	pgFile << "</style>\n";
 	// Scripts
 	pgFile << "<script>\n";
 	pgFile << "\"use strict\";\n";
@@ -415,7 +390,7 @@ bool TouchPanel::parsePages()
 	// findPageNumber
 	pgFile << "function findPageNumber(name)\n{\n";
 	pgFile << "\tvar i;\n\n";
-	pgFile << "for (i in Popups.pages)\n\t{\n";
+	pgFile << "\tfor (i in Popups.pages)\n\t{\n";
 	pgFile << "\t\tif (Popups.pages[i].name == name)\n";
 	pgFile << "\t\t\treturn Popups.pages[i].ID;\n";
 	pgFile << "\t}\n\n\treturn -1;\n}\n";
@@ -463,7 +438,7 @@ bool TouchPanel::parsePages()
 	pgFile << "\t\tdocument.getElementById(name2).style.display = \"none\";\n";
 	pgFile << "\t\tbname = pageName+\":button_\"+bid;\n";
 	pgFile << "\t\twriteText(\"PUSH:\"+bname+\":0;\");\n";
-	pgFile << "\t}\n";
+	pgFile << "\t}\n}\n";
 	// connect()
 	pgFile << "function connect()\n{\n";
 	pgFile << "\ttry\n\t{\n";
@@ -473,17 +448,19 @@ bool TouchPanel::parsePages()
 	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
 	pgFile << "\t\twsocket.onclose = function() { console.log('WebSocket is closed!'); }\n";
 	pgFile << "\t}\n\tcatch (exception)\n";
-	pgFile << "\t{\n\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
+	pgFile << "\t{\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
 	// writeText()
 	pgFile << "function writeText(msg)\n{\n";
 	pgFile << "\tif (wsocket.readyState != WebSocket.OPEN)\n\t{\n";
 	pgFile << "\t\talert(\"Socket not ready!\");\n\t\treturn;\n\t}\n";
 	pgFile << "\twsocket.send(msg);\n}\n";
 	// Check for time scripts
-	pgFile << "function checkTime(i) {\n";
+	pgFile << "function checkTime(i)\n{\n";
 	pgFile << "\tif (i < 10) {i = \"0\" + i};\n";
 	pgFile << "\treturn i;\n";
 	pgFile << "}\n";
+	// Add some special script functions
+	pgFile << scrBuffer << "\n";
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	int aid = findPage(prg.panelSetup.powerUpPage);
@@ -498,103 +475,82 @@ bool TouchPanel::parsePages()
 	pgFile << "<body onload=\"connect();\">\n";
 	pgFile << getPage(aid);
 
-	for (size_t i = 0; i < pages.size(); i++)
+	for (size_t i = 0; i < stPages.size(); i++)
 	{
-		if (pages[i].getType() != PAGE)
-			continue;
-
-		pgFile << pages[i].getWebCode();
+		pgFile << stPages[i].webcode;
 		writeAllPopups(pgFile);
 		pgFile << "</div>\n";
 	}
 
 	pgFile << "</body>\n</html>\n";
+	return true;
 }
 
 void TouchPanel::writeGroups (fstream& pgFile)
 {
-	sysl->TRACE("TouchPanel::writeGroups (fstream& pgFile)");
+	sysl->TRACE(std::string("TouchPanel::writeGroups (fstream& pgFile)"));
 	std::vector<strings::String> grName;
-	strings::String actGroup;
-	bool repeat = true;
-	bool found = false;
 	pgFile << "var pageGroups = '{";
 
-	while (repeat)
+	// Find all unique group names
+	for (size_t i = 0; i < stPopups.size(); i++)
 	{
+		bool have = false;
+
+		for (size_t j = 0; j < grName.size(); j++)
+		{
+			if (grName[j].compare(stPopups[i].group) == 0)
+			{
+				have = true;
+				break;
+			}
+		}
+
+		if (have)
+			continue;
+
+		grName.push_back(stPopups[i].group);
+	}
+
+	// Go through group names and order pages together
+	for (size_t i = 0; i < grName.size(); i++)
+	{
+		if (i > 0)
+			pgFile << ",";
+
+		pgFile << "\"" << grName[i] << "\":[";
 		bool komma = false;
 
-		if (found)
-			komma = true;
-
-		found = false;
-
-		for (size_t i = 0; i < pages.size(); i++)
+		for (size_t j = 0; j < stPopups.size(); j++)
 		{
-			String gn = pages[i].getGroupName();
-
-			if (pages[i].getType() != SUBPAGE || gn.empty())
-				continue;
-
-			// Make sure we don't have the page already put to any group
-			bool have = false;
-
-			for (size_t j = 0; j < grName.size(); j++)
+			if (grName[i].compare(stPopups[j].group) == 0)
 			{
-				if (grName[j].compare(gn) == 0)
-				{
-					have = true;
-					break;
-				}
-			}
-
-			if (have && actGroup.compare(gn) != 0)
-			{
-				have = false;
-				continue;
-			}
-
-			if (!have)
-			{
-				grName.push_back(gn);
-				actGroup = gn;
-
 				if (komma)
 					pgFile << ",";
 
-				pgFile << "\"" << actGroup << "\":[";
+				pgFile << "\"" << stPopups[j].name << "\"";
+				komma = true;
 			}
-			else
-				pgFile << ",";
-
-			pgFile << "\"" << pages[i].getPageName() << "\"";
-			found = true;
 		}
 
-		if (found)
-			pgFile << "]";
-		else
-			repeat = false;
+		pgFile << "]";
 	}
 
-	pgFile << "}';\n\n";
+	pgFile << "};\n\n";
 }
 
 void TouchPanel::writePopups (fstream& pgFile)
 {
-	sysl->TRACE("TouchPanel::writePopups (fstream& pgFile)");
+	sysl->TRACE(std::string("TouchPanel::writePopups (fstream& pgFile)"));
 	bool first = true;
-	pgFile << "var pageNames = \"'{\"pages\":[";
+	pgFile << "var pageNames = '{\"pages\":[";
 
-	for (size_t i = 0; i < pages.size(); i++)
+	for (size_t i = 0; i < stPopups.size(); i++)
 	{
-		if (pages[i].getType() == PAGE)
-			continue;
-
 		if (!first)
 			pgFile << ",";
 
-		pgFile << "{\"name\":\"" << pages[i].getPageName() << "\",\"ID\":" << pages[i].getPageID() << ",\"group\":\"" << pages[i].getGroupName() << "\"}";
+		pgFile << "{\"name\":\"" << stPopups[i].name << "\",\"ID\":" << stPopups[i].ID << ",\"group\":\"" << stPopups[i].group << "\"}";
 		first = false;
 	}
 
@@ -603,13 +559,30 @@ void TouchPanel::writePopups (fstream& pgFile)
 
 void TouchPanel::writeAllPopups (fstream& pgFile)
 {
-	sysl->TRACE("TouchPanel::writeAllPopups (fstream& pgFile)");
+	sysl->TRACE(std::string("TouchPanel::writeAllPopups (fstream& pgFile)"));
 
-	for (size_t i = 0; i < pages.size(); i++)
+	for (size_t i = 0; i < stPopups.size(); i++)
+		pgFile << stPopups[i].webcode;
+}
+
+void TouchPanel::writeStyles(std::fstream& pgFile)
+{
+	sysl->TRACE(String("TouchPanel::writeStyles(std::fstream& pgFile)"));
+	vector<String> pgs = getPageFileNames();
+
+	for (size_t i = 0; i < pgs.size(); i++)
 	{
-		if (pages[i].getType != SUBPAGE)
-			continue;
+		Page pg(pgs[i]);
+		pg.setPaletteFile(getProject().supportFileList.colorFile);
+		pg.setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
+		pg.setFontClass(getFontList());
 
-		pgFile << pages[i].getWebCode();
+		if (!pg.isOk())
+		{
+			sysl->warnlog(String("TouchPanel::writeStyles: Page ")+pg.getPageName()+" had an error! No styles will be written.");
+			continue;
+		}
+
+		pgFile << pg.getStyleCode();
 	}
 }

@@ -17,6 +17,7 @@
 #include <string>
 #include <ios>
 #include <iomanip>
+#include <iconv.h>
 #include "syslog.h"
 #include "nameformat.h"
 
@@ -43,7 +44,7 @@ String NameFormat::toValidName(String& str)
 	{
 		char c = str.at(i);
 
-		if ((c < '0' || c > '9') && (c < 'a' || c > 'z') && (c < 'A' && c > 'Z'))
+		if (!(c >= '0' && c <= '9') && !(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z'))
 			c = '_';
 
 		ret.append(c);
@@ -117,11 +118,13 @@ String NameFormat::toURL(String& str)
 	{
 		char c = str.at(i);
 
-		if ((c < '0' || c > '9') && (c < 'a' || c > 'z') && (c < 'A' && c > 'Z'))
+		if (!(c >= '0' && c <= '9') && !(c >= 'a' && c <= 'z') &&
+			!(c >= 'A' && c <= 'Z') && c != '_' && c != '.' &&
+			c != '-' && c != '/')
 		{
 			ret.append("%");
 			std::stringstream stream;
-			stream << std::setfill ('0') << std::setw(2) << std::hex << c;
+			stream << std::setfill ('0') << std::setw(2) << std::hex << (int)c;
 			ret.append(stream.str());
 		}
 		else
@@ -129,4 +132,40 @@ String NameFormat::toURL(String& str)
 	}
 
 	return ret;
+}
+
+char *NameFormat::EncodeTo(char* buf, size_t *len, const String& str, const String& from, const String& to)
+{
+	if (!buf || str.empty())
+		return 0;
+
+	iconv_t cd = iconv_open(from.data(), to.data());
+
+	if (cd == (iconv_t) -1)
+	{
+		sysl->errlog(String("NameFormat::EncodeTo: iconv_open failed!"));
+		return 0;
+	}
+
+	char *in_buf = (char *)str.data();
+	size_t in_left = str.length() - 1;
+
+	char *out_buf = buf;
+	size_t out_left = *len - 1;
+	size_t new_len;
+
+	do
+	{
+		if ((new_len = iconv(cd, &in_buf, &in_left, &out_buf, &out_left)) == (size_t) -1)
+		{
+			sysl->errlog(String("NameFormat::EncodeTo: iconv failed: ")+strerror(errno));
+			return 0;
+		}
+	}
+	while (in_left > 0 && out_left > 0);
+
+	*out_buf = 0;
+	iconv_close(cd);
+	*len = out_buf - buf;
+	return buf;
 }

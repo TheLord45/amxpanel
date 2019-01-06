@@ -82,11 +82,9 @@ void amx::Panel::readProject()
 	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::readProject()"));
 
 	String name, lastName, attr;
-	bool bPageEntry = false;
-	bool bResource = false;
-	bool bFeature = false;
-	bool bPalette = false;
 	int depth = 0;
+	bool endElement = false;		// end of XML element detected
+	bool addElement = false;		// a new structure should be added
 	status = true;
 
 	enum PART
@@ -102,198 +100,264 @@ void amx::Panel::readProject()
 		ePaletteList
 	};
 
-    PART Part;
-    String uri = "file://";
-    uri.append(Configuration->getHTTProot());
-    uri.append("/panel/main.xma");
-    
-    try
-    {
-        TextReader reader(uri.toString());
+	PART Part;
+	String uri; // = "file://";
+	uri.append(Configuration->getHTTProot());
+	uri.append("/prj.xma");
+	sysl->TRACE(String("Panel::readProject: Reading from file: ")+uri);
 
-        while(reader.read())
-        {
-            name = reader.get_name();
-            
-            if (reader.get_depth() < depth)
-            {
-                bPageEntry = false;
-                bResource = false;
-                bFeature = false;
-                bPalette = false;
-                Part = eNone;
-            }
+	try
+	{
+		TextReader reader(uri.toString());
+		sysl->TRACE(String("Panel::readProject: XML file was parsed ..."));
 
-            depth = reader.get_depth();
+		while(reader.read())
+		{
+			name = reader.get_name();
 
-            if(reader.has_value())
-            {
-                String value = string(reader.get_value());
-                value.trim();
+			if (name.at(0) == '#')
+				name = lastName;
 
-                if (value.size() > 0)
-                {
-                    switch(Part)
-                    {
-                        case eVersionInfo:      setVersionInfo(name, value); break;
-                        case eProjectInfo:      setProjectInfo(name, value, string(reader.get_attribute(0))); break;
-                        case eSupportFileList:  setSupportFileList(name, value); break;
-                        case ePanelSetup:       setPanelSetup(name, value); break;
+			sysl->TRACE(String("Panel::readProject: name=")+name+", depth="+reader.get_depth()+" ("+depth+")");
+			endElement = (reader.get_depth() < depth);
 
-                        case ePageList:
-                            if (!bPageEntry)
-                            {
-                                PAGE_LIST_T pageList;
-                                pageList.type = attr;
-                                PAGE_ENTRY_T pe;
-                                pe.clear();
-                                pageList.pageList.push_back(pe);
-                                Project.pageLists.push_back(pageList);
-                            }
-                            else
-                                setPageList(name, value);
-                        break;
+			if (endElement)
+				addElement = false;
 
-                        case eResourceList:
-                            if (!bResource)
-                            {
-                                RESOURCE_LIST_T resource;
-                                resource.type = attr;
-                                RESOURCE_T rs;
-                                rs.clear();
-                                resource.ressource.push_back(rs);
-                                Project.resourceLists.push_back(resource);
-                            }
-                            else
-                            {
-                                if (reader.has_attributes())
-                                    attr = reader.get_attribute(0);
-                                else
-                                    attr.clear();
+			if (reader.get_depth() <= 1 && depth > 1)
+				Part = eNone;
 
-                                setResourceList(name, value, attr);
-                            }
-                        break;
+			if (name.caseCompare("pageList") == 0 && depth == 1)
+			{
+				Part = ePageList;
 
-                        case eFwFeatureList:
-                            if (!bFeature)
-                            {
-                                FEATURE_T fw;
-                                Project.fwFeatureList.push_back(fw);
-                            }
-                            else
-                                setFwFeatureList(name, value);
-                        break;
+				if (reader.has_attributes())
+					attr = reader.get_attribute(0);
+				else
+					attr.clear();
 
-                        case ePaletteList:
-                            if (!bPalette)
-                            {
-                                PALETTE_T pa;
-                                Project.paletteList.push_back(pa);
-                            }
-                            else
-                                setPaletteList(name, value);
-                        break;
-                    }
+				if (!endElement && !attr.empty())
+				{
+					PAGE_LIST_T pageList;
+					pageList.type = attr;
+					Project.pageLists.push_back(pageList);
+					attr.clear();
+					sysl->TRACE(String("Panel::readProject: Added a PAGE_LIST_T entry!"));
+				}
+			}
+			else if (Part == ePageList && name.caseCompare("pageEntry") == 0 && reader.get_depth() > depth)
+			{
+				if (!endElement)
+				{
+					if (Project.pageLists.size() > 0)
+					{
+						PAGE_LIST_T& pageList = Project.pageLists.back();
+						PAGE_ENTRY_T pageEntry;
+						pageEntry.clear();
+						pageList.pageList.push_back(pageEntry);
+						sysl->TRACE(String("Panel::readProject: Added a PAGE_ENTRY_T entry to ")+pageList.type+"!");
+					}
+				}
+			}
+			else if (name.caseCompare("resourceList") == 0 && depth == 1)
+			{
+				Part = eResourceList;
 
-                    if (name.caseCompare("versionInfo") == 0)
-                        Part = eVersionInfo;
+				if (reader.has_attributes())
+					attr = reader.get_attribute(0);
+				else
+					attr.clear();
 
-                    if (name.caseCompare("projectInfo") == 0)
-                        Part = eProjectInfo;
+				if (!endElement && !attr.empty())
+				{
+					RESOURCE_LIST_T rl;
+					rl.type = attr;
+					Project.resourceLists.push_back(rl);
+					attr.clear();
+					sysl->TRACE(String("Panel::readProject: Added a RESOURCE_LIST_T entry!"));
+				}
+			}
+			else if (Part == eResourceList && name.caseCompare("resource") == 0 && reader.get_depth() > depth)
+			{
+				if (!endElement)
+				{
+					if (Project.resourceLists.size() > 0)
+					{
+						RESOURCE_LIST_T& rl = Project.resourceLists.back();
+						RESOURCE_T res;
+						res.clear();
+						rl.ressource.push_back(res);
+						sysl->TRACE(String("Panel::readProject: Added a RESOURCE_T entry to ")+rl.type+"!");
+					}
+				}
+			}
+			else if (Part == eFwFeatureList && name.caseCompare("feature") == 0 && reader.get_depth() > depth)
+			{
+				if (!endElement)
+				{
+					FEATURE_T fwl;
+					Project.fwFeatureList.push_back(fwl);
+					sysl->TRACE(String("Panel::readProject: Added a FEATURE_T entry!"));
+				}
+			}
+			else if (Part == ePaletteList && name.caseCompare("palette") == 0 && reader.get_depth() > depth)
+			{
+				if (!endElement)
+				{
+					PALETTE_T pal;
+					Project.paletteList.push_back(pal);
+					sysl->TRACE(String("Panel::readProject: Added a PALETTE_T entry!"));
+				}
+			}
 
-                    if (name.caseCompare("supportFileList") == 0)
-                        Part = eSupportFileList;
+			depth = reader.get_depth();
 
-                    if (name.caseCompare("panelSetup") == 0)
-                        Part = ePanelSetup;
+			if(!endElement && (reader.has_value() || reader.has_attributes()))
+			{
+				String value;
 
-                    if (name.caseCompare("pageList") == 0)
-                    {
-                        Part = ePageList;
+				if (reader.has_value())
+				{
+					value = string(reader.get_value());
+					value.trim();
+					value.replace("\n", "");
+					value.replace("\r", "");
+				}
 
-                        if (reader.has_attributes())
-                            attr = reader.get_attribute(0);
-                        else
-                            attr.clear();
-                    }
+				if (reader.has_attributes())
+				{
+					attr = reader.get_attribute(0);
+					attr.trim();
+				}
 
-                    if (name.caseCompare("resourceList") == 0)
-                    {
-                        Part = eResourceList;
+				sysl->TRACE(String("Panel::readProject: name=")+name+", value="+value+", attr="+attr+", Part="+Part+", addElement="+addElement);
 
-                        if (reader.has_attributes())
-                            attr = reader.get_attribute(0);
-                        else
-                            attr.clear();
-                    }
+				if (!value.empty() || !attr.empty())
+				{
+					switch(Part)
+					{
+						case eVersionInfo:      setVersionInfo(name, value); attr.clear(); break;
+						case eProjectInfo:      setProjectInfo(name, value, attr); attr.clear(); break;
+						case eSupportFileList:  setSupportFileList(name, value); attr.clear(); break;
+						case ePanelSetup:       setPanelSetup(name, value); attr.clear(); break;
+						case ePageList:			setPageList(name, value); break;
+						case eResourceList:		setResourceList(name, value, attr); break;
+						case eFwFeatureList:	setFwFeatureList(name, value); break;
+						case ePaletteList:		setPaletteList(name, value); break;
+					}
+				}
+			}
+			else if (!endElement)
+			{
+				if (name.caseCompare("versionInfo") == 0)
+					Part = eVersionInfo;
+				else if (name.caseCompare("projectInfo") == 0)
+					Part = eProjectInfo;
+				else if (name.caseCompare("supportFileList") == 0)
+					Part = eSupportFileList;
+				else if (name.caseCompare("panelSetup") == 0)
+					Part = ePanelSetup;
+				else if (name.caseCompare("fwFeatureList") == 0)
+					Part = eFwFeatureList;
+				else if (name.caseCompare("paletteList") == 0)
+					Part = ePaletteList;
 
-                    if (name.caseCompare("fwFeatureList") == 0)
-                        Part = eFwFeatureList;
+				sysl->TRACE(String("Panel::readProject: *name=")+name+", Part="+Part+", addElement="+addElement);
+			}
 
-                    if (name.caseCompare("paletteList") == 0)
-                        Part = ePaletteList;
+			lastName = name;
+		}
 
-                    if (Part == ePageList && name.caseCompare("pageEntry") == 0)
-                        bPageEntry = true;
+		reader.close();
+	}
+	catch (xmlpp::internal_error& e)
+	{
+		sysl->errlog(string("Panel::readProject: ")+e.what());
+		status = false;
+	}
 
-                    if (Part == eResourceList && name.caseCompare("resource") == 0)
-                        bResource = true;
+	if (Configuration->getDebug())
+	{
+		sysl->TRACE(String("Panel::readProject: pageLists: ")+Project.pageLists.size());
 
-                    if (Part == eFwFeatureList && name.caseCompare("feature") == 0)
-                        bFeature = true;
+		for (size_t i = 0; i < Project.pageLists.size(); i++)
+		{
+			PAGE_LIST_T pl = Project.pageLists[i];
+			sysl->TRACE(String("Panel::readProject: pageList type: ")+pl.type+" has "+pl.pageList.size()+" entries.");
 
-                    if (Part == ePageList && name.caseCompare("palette") == 0)
-                        bPalette = true;
+			for (size_t j = 0; j < pl.pageList.size(); j++)
+			{
+				PAGE_ENTRY_T pe = pl.pageList[j];
+				sysl->TRACE(String("Panel::readProject: name=")+pe.name+", ID="+pe.pageID);
+			}
+		}
 
-                    lastName = name;
-                }
-            }
-        }
-        
-        reader.close();
-    }
-    catch (xmlpp::internal_error& e)
-    {
-        sysl->errlog(string("Panel::readProject")+e.what());
-        status = false;
-    }
+		sysl->TRACE(String("Panel::readProject: resourceLists: ")+Project.resourceLists.size());
 
-    // Read the color palette
-    if (!pPalettes)
-        pPalettes = new Palette(Project.supportFileList.colorFile);
-    
-    // Read the icon slot table
-    if (!pIcons)
-        pIcons = new Icon(Project.supportFileList.iconFile);
-    
-    // Read the font map list
-    if (!pFontLists)
-        pFontLists = new FontList(Project.supportFileList.fontFile);
-    
-    if (!pPalettes->isOk() || !pIcons->isOk() || !pFontLists->isOk())
-        status = false;
+		for (size_t i = 0; i < Project.resourceLists.size(); i++)
+		{
+			RESOURCE_LIST_T rl = Project.resourceLists[i];
+			sysl->TRACE(String("Panel::readProject: resourceLists type: ")+rl.type+" has "+rl.ressource.size()+" entries.");
+
+			for (size_t j = 0; j < rl.ressource.size(); j++)
+			{
+				RESOURCE_T res = rl.ressource[j];
+				sysl->TRACE(String("Panel::readProject: name=")+res.name+", File="+res.file);
+			}
+		}
+
+		sysl->TRACE(String("Panel::readProject: fwFeatureList: ")+Project.fwFeatureList.size());
+
+		for (size_t i = 0; i < Project.fwFeatureList.size(); i++)
+			sysl->TRACE(String("Panel::readProject: ID=")+Project.fwFeatureList[i].featureID+", count="+Project.fwFeatureList[i].usageCount);
+
+		sysl->TRACE(String("Panel::readProject: paletteList: ")+Project.paletteList.size());
+
+		for (size_t i = 0; i < Project.paletteList.size(); i++)
+			sysl->TRACE(String("Panel::readProject: ID=")+Project.paletteList[i].paletteID+", name="+Project.paletteList[i].name+", file="+Project.paletteList[i].file);
+	}
+
+	// Read the color palette
+	if (!pPalettes)
+		pPalettes = new Palette(Project.supportFileList.colorFile);
+
+	// Read the icon slot table
+	if (!pIcons)
+		pIcons = new Icon(Project.supportFileList.iconFile);
+
+	// Read the font map list
+	if (!pFontLists)
+		pFontLists = new FontList(Project.supportFileList.fontFile);
+
+	if (!pPalettes->isOk() || !pIcons->isOk() || !pFontLists->isOk())
+	{
+		sysl->warnlog(String("Panel::readProject: Reading the project failed!"));
+		status = false;
+	}
 }
 
 vector<String> Panel::getPageFileNames()
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::getPageFileNames()"));
-    vector<String> pgFnLst;
-    
-    for (size_t i = 0; i < Project.pageLists.size(); i++)
-    {
-        PAGE_LIST_T pl = Project.pageLists[i];
+	vector<String> pgFnLst;
 
-        for (size_t j = 0; j < pl.pageList.size(); j++)
-        {
-            PAGE_ENTRY_T pe = pl.pageList[i];
+	sysl->TRACE(String("Panel::getPageFileNames: Number of pages: ")+Project.pageLists.size());
 
-            if (pe.file.length() > 0)
-                pgFnLst.push_back(pe.file);
-        }
-    }
-    
-    return pgFnLst;
+	for (size_t i = 0; i < Project.pageLists.size(); i++)
+	{
+		PAGE_LIST_T pl = Project.pageLists[i];
+		sysl->TRACE(String("Panel::getPageFileNames: Number of pages in pages: ")+pl.pageList.size());
+
+		for (size_t j = 0; j < pl.pageList.size(); j++)
+		{
+			PAGE_ENTRY_T pe = pl.pageList[j];
+
+			if (pe.file.length() > 0)
+				pgFnLst.push_back(pe.file);
+		}
+	}
+
+	return pgFnLst;
 }
 
 void amx::Panel::setVersionInfo(const strings::String& name, const strings::String& value)
@@ -302,13 +366,13 @@ void amx::Panel::setVersionInfo(const strings::String& name, const strings::Stri
 
     if (name.caseCompare("formatVersion") == 0)
         Project.version.formatVersion = atoi(value.data());
-    
+
     if (name.caseCompare("graphicsVersion") == 0)
         Project.version.graphicsVersion = atoi(value.data());
-    
+
     if (name.caseCompare("fileVersion") == 0)
         Project.version.fileVersion = atoi(value.data());
-    
+
     if (name.caseCompare("designVersion") == 0)
         Project.version.designVersion = atoi(value.data());
 }
@@ -380,17 +444,17 @@ void amx::Panel::setSupportFileList(const strings::String& name, const strings::
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setSupportFileList(const strings::String& name, const strings::String& value)"));
 
-    if (name.caseCompare("mapFile") == 0)
+    if (name.caseCompare("mapFile") == 0 && !value.empty())
         Project.supportFileList.mapFile = value;
-    else if (name.caseCompare("colorFile") == 0)
+	else if (name.caseCompare("colorFile") == 0 && !value.empty())
         Project.supportFileList.colorFile = value;
-    else if (name.caseCompare("fontFile") == 0)
+	else if (name.caseCompare("fontFile") == 0 && !value.empty())
         Project.supportFileList.fontFile = value;
-    else if (name.caseCompare("themeFile") == 0)
+	else if (name.caseCompare("themeFile") == 0 && !value.empty())
         Project.supportFileList.themeFile = value;
-    else if (name.caseCompare("iconFile") == 0)
+	else if (name.caseCompare("iconFile") == 0 && !value.empty())
         Project.supportFileList.iconFile = value;
-    else if (name.caseCompare("externalButtonFile") == 0)
+	else if (name.caseCompare("externalButtonFile") == 0 && !value.empty())
         Project.supportFileList.externalButtonFile = value;
 }
 
@@ -502,71 +566,91 @@ void amx::Panel::setPageList(const strings::String& name, const strings::String&
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setPageList(const strings::String& name, const strings::String& value)"));
 
-    PAGE_LIST_T pl = Project.pageLists.back();
-    PAGE_ENTRY_T pe = pl.pageList.back();
+	if (Project.pageLists.size() == 0)
+		return;
 
-    if (name.caseCompare("name") == 0)
-        pe.name = value;
-    else if (name.caseCompare("pageID") == 0)
-        pe.pageID = atoi(value.data());
-    else if (name.caseCompare("file") == 0)
-        pe.file = value;
-    else if (name.caseCompare("isValid") == 0)
-        pe.isValid = atoi(value.data());
-    else if (name.caseCompare("group") == 0)
-        pe.group = value;
-    else if (name.caseCompare("popupType") == 0)
-        pe.popupType = atoi(value.data());
+	PAGE_LIST_T& pl = Project.pageLists.back();
+
+	if (pl.pageList.size() == 0)
+		return;
+
+	PAGE_ENTRY_T& pe = pl.pageList.back();
+
+	if (name.caseCompare("name") == 0 && !value.empty())
+		pe.name = value;
+	else if (name.caseCompare("pageID") == 0 && !value.empty())
+		pe.pageID = atoi(value.data());
+	else if (name.caseCompare("file") == 0 && !value.empty())
+		pe.file = value;
+	else if (name.caseCompare("isValid") == 0 && !value.empty())
+		pe.isValid = atoi(value.data());
+	else if (name.caseCompare("group") == 0 && !value.empty())
+		pe.group = value;
+	else if (name.caseCompare("popupType") == 0 && !value.empty())
+		pe.popupType = atoi(value.data());
 }
 
 void amx::Panel::setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr)
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr)"));
 
-    RESOURCE_LIST_T rl = Project.resourceLists.back();
-    RESOURCE_T rs = rl.ressource.back();
-    
-    if (name.caseCompare("name") == 0)
-        rs.name = value;
-    else if (name.caseCompare("protocol") == 0)
-        rs.protocol = value;
-    else if (name.caseCompare("user") == 0)
-        rs.user = value;
-    else if (name.caseCompare("password") == 0)
-    {
-        rs.password = value;
+	if (Project.resourceLists.size() == 0)
+		return;
 
-        if (attr.length() > 0 && attr.isNumeric())
-            rs.encrypted = atoi(attr.data());
-    }
-    else if (name.caseCompare("host") == 0)
-        rs.host = value;
-    else if (name.caseCompare("path") == 0)
-        rs.path = value;
-    else if (name.caseCompare("file") == 0)
-        rs.file = value;
-    else if (name.caseCompare("refresh") == 0)
-        rs.refresh = atoi(value.data());
+	RESOURCE_LIST_T& rl = Project.resourceLists.back();
+
+	if (rl.ressource.size() == 0)
+		return;
+
+	RESOURCE_T& rs = rl.ressource.back();
+
+	if (name.caseCompare("name") == 0)
+		rs.name = value;
+	else if (name.caseCompare("protocol") == 0)
+		rs.protocol = value;
+	else if (name.caseCompare("user") == 0)
+		rs.user = value;
+	else if (name.caseCompare("password") == 0)
+	{
+		rs.password = value;
+
+		if (attr.length() > 0 && attr.isNumeric())
+			rs.encrypted = atoi(attr.data());
+	}
+	else if (name.caseCompare("host") == 0)
+		rs.host = value;
+	else if (name.caseCompare("path") == 0)
+		rs.path = value;
+	else if (name.caseCompare("file") == 0)
+		rs.file = value;
+	else if (name.caseCompare("refresh") == 0)
+		rs.refresh = atoi(value.data());
 }
 
 void amx::Panel::setFwFeatureList(const strings::String& name, const strings::String& value)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setFwFeatureList(const strings::String& name, const strings::String& value)"));
+	sysl->TRACE(std::string("Panel::setFwFeatureList(const strings::String& name, const strings::String& value)"));
 
-    FEATURE_T fw = Project.fwFeatureList.back();
-    
-    if (name.caseCompare("featureID") == 0)
-        fw.featureID = value;
-    else if (name.caseCompare("usageCount") == 0)
-        fw.usageCount = atoi(value.data());
+	if (Project.fwFeatureList.size() == 0)
+		return;
+
+	FEATURE_T& fw = Project.fwFeatureList.back();
+
+	if (name.caseCompare("featureID") == 0)
+		fw.featureID = value;
+	else if (name.caseCompare("usageCount") == 0)
+		fw.usageCount = atoi(value.data());
 }
 
 void amx::Panel::setPaletteList(const strings::String& name, const strings::String& value)
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setPaletteList(const strings::String& name, const strings::String& value)"));
 
-    PALETTE_T pa = Project.paletteList.back();
-    
+	if (Project.paletteList.size() == 0)
+		return;
+
+    PALETTE_T& pa = Project.paletteList.back();
+
     if (name.caseCompare("name") == 0)
         pa.name = value;
     else if (name.caseCompare("file") == 0)
@@ -582,51 +666,52 @@ DateTime& amx::Panel::getDate(const strings::String& dat, DateTime& dt)
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::getDate(const strings::String& dat, DateTime& dt)"));
 
-    int day, month, year, hour, min, sec;
-    std::vector<String> teile = dat.split(' ');
-    
-    if (teile.size() < 5)
-        return dt;
+	int day, month, year, hour, min, sec;
+	std::vector<String> teile = dat.split(' ');
 
-    if (teile[1].caseCompare("Jan") == 0)
-        month = 1;
-    else if (teile[1].caseCompare("Feb") == 0)
-        month = 2;
-    else if (teile[1].caseCompare("Mar") == 0)
-        month = 3;
-    else if (teile[1].caseCompare("Apr") == 0)
-        month = 4;
-    else if (teile[1].caseCompare("Mai") == 0)
-        month = 5;
-    else if (teile[1].caseCompare("Jun") == 0)
-        month = 6;
-    else if (teile[1].caseCompare("Jul") == 0)
-        month = 7;
-    else if (teile[1].caseCompare("Aug") == 0)
-        month = 8;
-    else if (teile[1].caseCompare("Sep") == 0)
-        month = 9;
-    else if (teile[1].caseCompare("Oct") == 0)
-        month = 10;
-    else if (teile[1].caseCompare("Nov") == 0)
-        month = 11;
-    else
-        month = 12;
-    
-    day = atoi(teile[2].data());
-    std::vector<String> tim = teile[3].split(':');
-    
-    if (tim.size() == 3)
-    {
-        hour = atoi(tim[0].data());
-        min = atoi(tim[1].data());
-        sec = atoi(tim[2].data());
-    }
-    else
-        hour = min = sec = 0;
+	if (teile.size() < 5)
+		return dt;
 
-    year = atoi(teile[4].data());
+	if (teile[1].caseCompare("Jan") == 0)
+		month = 1;
+	else if (teile[1].caseCompare("Feb") == 0)
+		month = 2;
+	else if (teile[1].caseCompare("Mar") == 0)
+		month = 3;
+	else if (teile[1].caseCompare("Apr") == 0)
+		month = 4;
+	else if (teile[1].caseCompare("Mai") == 0)
+		month = 5;
+	else if (teile[1].caseCompare("Jun") == 0)
+		month = 6;
+	else if (teile[1].caseCompare("Jul") == 0)
+		month = 7;
+	else if (teile[1].caseCompare("Aug") == 0)
+		month = 8;
+	else if (teile[1].caseCompare("Sep") == 0)
+		month = 9;
+	else if (teile[1].caseCompare("Oct") == 0)
+		month = 10;
+	else if (teile[1].caseCompare("Nov") == 0)
+		month = 11;
+	else
+		month = 12;
 
-    dt.setTimestamp(year, month, day, hour, min, sec);
-    return dt;
+	day = atoi(teile[2].data());
+	std::vector<String> tim = teile[3].split(':');
+
+	if (tim.size() == 3)
+	{
+		hour = atoi(tim[0].data());
+		min = atoi(tim[1].data());
+		sec = atoi(tim[2].data());
+	}
+	else
+		hour = min = sec = 0;
+
+	year = atoi(teile[4].data());
+
+	dt.setTimestamp(year, month, day, hour, min, sec);
+	sysl->TRACE(String("Panel::getDate: ")+dt.toString());
+	return dt;
 }
