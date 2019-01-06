@@ -153,7 +153,8 @@ void Daemonize::changeToUser(const std::string &usr, const std::string &grp)
 		if (setgid(gr_gid) == -1)
 		{
 			sysl->errlog("cannot setgid of user "+usr+": "+std::string(strerror(errno)));
-			exit(EXIT_FAILURE);
+			return;
+//			exit(EXIT_FAILURE);
 		}
 
 #ifdef _BSD_SOURCE
@@ -168,7 +169,8 @@ void Daemonize::changeToUser(const std::string &usr, const std::string &grp)
 		if (setuid(userpwd->pw_uid) == -1)
 		{
 			sysl->errlog("cannot change to uid of user "+usr+": "+std::string(strerror(errno)));
-			exit(EXIT_FAILURE);
+			return;
+//			exit(EXIT_FAILURE);
 		}
 
 		if (userpwd->pw_dir)

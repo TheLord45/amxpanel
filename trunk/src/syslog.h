@@ -111,6 +111,8 @@ class Syslog
 
 	private:
 		void writeToFile(const std::string& str);
+		void appendToFile(Level l, const std::string& str);
+		void appendToFile(Level l, const std::string& str) const;
 		void close();
 		void cclose() const;
 

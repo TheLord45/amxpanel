@@ -218,6 +218,7 @@ namespace amx
     typedef struct SR
     {
         int number;
+		strings::String _do;
         strings::String bs;     // Frame type (circle, ...)
         strings::String mi;     // Chameleon image
         strings::String cb;     // Border color
@@ -237,6 +238,7 @@ namespace amx
         int tx;                 // Text X position
         int ty;                 // Text Y position
         int ww;                 // line break when 1
+        int et;
     }SR_T;
 
     enum BUTTONTYPE

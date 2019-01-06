@@ -52,6 +52,7 @@ namespace amx
 
 			std::vector<FONT_T> fontList;
 			std::vector<strings::String> fontFaces;
+			FONT_T emptyFont;
 			bool status;
 	};
 }

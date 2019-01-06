@@ -55,6 +55,8 @@ void Syslog::log(Level l, const std::string& str)
 		writeToFile(str);
 		return;
 	}
+	else
+		appendToFile(l, str);
 
 	if (!fflag)
 	{
@@ -71,6 +73,7 @@ void Syslog::errlog(const std::string& str) const
 	if (!fflag)
 		openlog(pname.c_str(), option, priority);
 
+	appendToFile(ERR, str);
 	syslog(LOG_ERR, "%s", str.c_str());
 	cclose();
 }
@@ -80,6 +83,7 @@ void Syslog::warnlog(const std::string& str) const
 	if (!fflag)
 		openlog(pname.c_str(), option, priority);
 
+	appendToFile(WARNING, str);
 	syslog(LOG_WARNING, "%s", str.c_str());
 	cclose();
 }
@@ -92,6 +96,7 @@ void Syslog::log_serial(Level l, const std::string& str)
 		fflag = true;
 	}
 
+	appendToFile(l, str);
 	syslog(l, "%s", str.c_str());
 }
 
@@ -129,6 +134,46 @@ void Syslog::writeToFile(const std::string& str)
 		std::string err = e.what();
 		errlog("Syslog::writeToFile: "+err);
 	}
+}
+
+void Syslog::appendToFile(Level l, const std::string& str)
+{
+	if (!debug || LogFile.empty() || str.empty())
+		return;
+
+	DateTime dt;
+	std::fstream file;
+	std::string lvl;
+
+	switch (l)
+	{
+		case EMERG:		lvl = "Emergency"; break;
+		case ALERT:		lvl = "Alert"; break;
+		case CRIT:		lvl = "Critical"; break;
+		case ERR:		lvl = "Error"; break;
+		case WARNING:	lvl = "Warning"; break;
+		case NOTICE:	lvl = "Notice"; break;
+		case INFO:		lvl = "Info"; break;
+		case IDEBUG:	lvl = "Debug"; break;
+	}
+
+	try
+	{
+		file.open(LogFile, std::ios::out | std::ios::app);
+		file << dt.toString() << ": " << lvl << ": " << str << std::endl;
+		file.close();
+	}
+	catch (std::exception& e)
+	{
+		std::string err = e.what();
+		errlog("Syslog::writeToFile: "+err);
+	}
+}
+
+void Syslog::appendToFile(Level l, const std::string& str) const
+{
+	Syslog *my = const_cast<Syslog *>(this);
+	my->appendToFile(l, str);
 }
 
 void Syslog::TRACE(FUNCTION f, const std::string& msg)

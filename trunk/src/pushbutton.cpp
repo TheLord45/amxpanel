@@ -25,12 +25,13 @@ extern Config *Configuration;
 using namespace amx;
 using namespace strings;
 
-PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)
-		: Palette(pfilename),
-		  button(bt)
+PushButton::PushButton(const BUTTON_T& bt, const std::vector<PDATA_T>& pal)
+		: button(bt),
+		  palette(pal)
 
 {
-	sysl->TRACE(Syslog::ENTRY, std::string("PushButton::PushButton(const BUTTON_T& bt, const String& pfilename)"));
+	sysl->TRACE(Syslog::ENTRY, std::string("PushButton::PushButton(const BUTTON_T& bt, const std::vector<PDATA_T>& pal)"));
+	sysl->TRACE(String("PushButton::PushButton: Button: ")+bt.na+", ID: "+bt.bi);
 	onOff = false;
 	state = 0;
 	fontClass = 0;
@@ -53,18 +54,21 @@ void PushButton::setState(size_t s)
 String PushButton::getStyle()
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("PushButton::getStyle()"));
+	sysl->TRACE(String("PushButton::getStyle: for page ID: ")+pageID);
 
 	String style, bgcolor, fgcolor, fillcolor;
+	Palette pal;
+	pal.setPalette(palette);
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
 		// Name: .button<number>-<name>
-		style += String(".button")+String(i)+"-"+btName+" {\n";
-		style += "  position: absolut;";
-		style += String("  left: ")+String(button.lt)+";\n";
-		style += String("  top: ")+String(button.tp)+";\n";
-		style += String("  width: ")+String(button.wt)+";\n";
-		style += String("  height: ")+String(button.ht)+";\n";
+		style += String(".Page")+pageID+"_b"+i+"_"+btName+" {\n";
+		style += "  position: absolut;\n";
+		style += String("  left: ")+String(button.lt)+"px;\n";
+		style += String("  top: ")+String(button.tp)+"px;\n";
+		style += String("  width: ")+String(button.wt)+"px;\n";
+		style += String("  height: ")+String(button.ht)+"px;\n";
 		style += "  border: none;\n";		// FIXME!
 
 		if (button.sr[i].mi.length() && button.sr[i].bm.length())
@@ -77,29 +81,16 @@ String PushButton::getStyle()
 			style += String("  background-image: url(images/")+button.sr[i].bm+");\n";
 
 		style += "  background-repeat: no-repeat;\n";
-		style += "  display: ";
-
-		if (button.type == GENERAL && i == 0)
-			style += (onOff) ? "none;\n" : "inline;\n";
-		else if (button.type == MULTISTATE_GENERAL || button.type == MULTISTATE_BARGRAPH)
-		{
-			if ((int)i == state)
-				style += "inline;\n";
-			else
-				style += "none;\n";
-		}
-		else	// FIXME!
-			style += "inline;\n";
-
-		style += String("  background-color: ")+colorToString(getColor(button.sr[i].cf))+";\n";
-		style += String("  color: ")+colorToString(getColor(button.sr[i].ct))+";\n";
+		style += "  display: inline;\n";
+		style += String("  background-color: ")+pal.colorToString(pal.getColor(button.sr[i].cf))+";\n";
+		style += String("  color: ")+pal.colorToString(pal.getColor(button.sr[i].ct))+";\n";
 		style += "}\n";
 
 		FONT_T font = fontClass->findFont(button.sr[i].fi);
 
 		if (font.number == button.sr[i].fi)
 		{
-			style += String(".button")+String(i)+"-"+btName+"_font {\n";
+			style += String(".Page")+pageID+"_b"+i+"_"+btName+"_font {\n";
 			style += "  position: absolute;\n";
 			style += "  border: none;\n";
 			style += String("  font-family: ")+NameFormat::toValidName(font.name)+";\n";
@@ -124,24 +115,29 @@ String PushButton::getStyle()
 
 String PushButton::getWebCode()
 {
+	sysl->TRACE(String("PushButton::getWebCode()"));
 	String code, names;
+
+	sysl->TRACE(String("PushButton::getWebCode: for page ID: ")+pageID);
 
 	if (button.type == GENERAL && button.sr.size() >= 2)
 	{
-		names = String("'button1-")+btName+"','";
-		names += String("'button2-")+btName+"'";
+		names = String("'Page")+pageID+"_b0_"+btName+"',";
+		names += String("'Page")+pageID+"_b1_"+btName+"'";
 	}
 
-	code = String("<a href=\"")+Configuration->getHTTProot()+"/button_1?pg="+pageID+"&bt="+button.bi+"&press=\"> id=\"button_"+button.bi+"\">\n";
+	code = String("   <a href=\"#\" id=\"Page")+pageID+btName+"\">\n";
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		String nm = String("button")+i+"-"+btName;
-		code += String("<div id=\"")+nm+"\" class=\""+nm+"\"";
+		// FIXME: Die unterschiedlichen button status berücksichtigen
+		String nm = String("Page")+pageID+"_b"+i+"_"+btName;
+		code += String("      <div id=\"")+nm+"\" class=\""+nm+"\"";
 
 		if (!button.pfName.empty() && !button.pfType.empty())
 		{
-			int pid = parentPage.findPage(button.pfName);
+			int pid = findPage(button.pfName);
+			sysl->TRACE(String("PushButton::getWebCode: Button ")+button.na+" show/hide popup page "+button.pfName+". This is page ID "+pid+".");
 
 			if (button.pfType.caseCompare("sShow") == 0)		// show popup
 				code += String(" onclick=\"document.getElementById('Page_")+pid+"').style.display = 'inline';\"";
@@ -157,18 +153,29 @@ String PushButton::getWebCode()
 
 		code += ">\n";
 
-		if (button.sr[i].ct.length() > 0)
+		if (button.sr[i].te.length() > 0)
 		{
-			code += String("   <div class=\"")+nm+"_font\">";
-			code += button.sr[i].ct+"</div>\n";
+			code += String("         <div class=\"")+nm+"_font\">";
+			code += button.sr[i].te+"</div>\n";
 		}
 
-		code += "</div>\n";
+		code += "      </div>\n";
 	}
 
-	code += "</a>\n";
+	code += "   </a>\n";
 
 	return code;
+}
+
+int amx::PushButton::findPage(const strings::String& name)
+{
+	for (size_t i = 0; i < pageList.size(); i++)
+	{
+		if (pageList[i].name.compare(name) == 0)
+			return pageList[i].pageID;
+	}
+
+	return 0;
 }
 
 String PushButton::getScriptCode()
@@ -186,7 +193,7 @@ String PushButton::getScriptCode()
 		code += "\th = checkTime(h);\n";
 		code += "\tm = checkTime(m);\n";
 		code += "\ts = checkTime(s);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = h + \":\" + m + \":\" + s;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = h + \":\" + m + \":\" + s;\n";
 		code += "\tvar t = setTimeout(startTimeStandard, 500);\n";
 		code += "}\n";
 		hScript = true;
@@ -203,10 +210,10 @@ String PushButton::getScriptCode()
 		code += "\tvar s = \"AM\"\n";
 		code += "\tif (h > 12) {\n";
 		code += "\t\th = h - 12;\n";
-		code += "\t\ts = \"PM\";\n\t}\n
+		code += "\t\ts = \"PM\";\n\t}\n";
 		code += "\th = checkTime(h);\n";
 		code += "\tm = checkTime(m);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = h + \":\" + m + \" \" + s;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = h + \":\" + m + \" \" + s;\n";
 		code += "\tvar t = setTimeout(startTimeAMPM, 500);\n";
 		code += "}\n";
 		hScript = true;
@@ -222,7 +229,7 @@ String PushButton::getScriptCode()
 		code += "\tvar m = today.getMinutes();\n";
 		code += "\th = checkTime(h);\n";
 		code += "\tm = checkTime(m);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = h + \":\" + m;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = h + \":\" + m;\n";
 		code += "\tvar t = setTimeout(startTime24, 500);\n";
 		code += "}\n";
 		hScript = true;
@@ -244,7 +251,7 @@ String PushButton::getScriptCode()
 		code += "\t\tcase 5: return 'Friday'; break;\n";
 		code += "\t\tcase 6: return 'Saturday'; break;\n";
 		code += "\t}\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = mon + '/' + day;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = mon + '/' + day;\n";
 		code += "\tvar t = setTimeout(startDate_151, 1000);\n";
 		code += "}\n";
 		hScript = true;
@@ -260,7 +267,7 @@ String PushButton::getScriptCode()
 		code += "\tvar day = today.getDate();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = mon + '/' + day;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = mon + '/' + day;\n";
 		code += "\tvar t = setTimeout(startDate_152, 1000);\n";
 		code += "}\n";
 		hScript = true;
@@ -276,7 +283,7 @@ String PushButton::getScriptCode()
 		code += "\tvar day = today.getDate();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = day + '/' + mon;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = day + '/' + mon;\n";
 		code += "\tvar t = setTimeout(startDate_153, 1000);\n";
 		code += "}\n";
 		hScript = true;
@@ -293,7 +300,7 @@ String PushButton::getScriptCode()
 		code += "\tvar year = today.getFullYear();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = mon + '/' + day + '/' + year;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = mon + '/' + day + '/' + year;\n";
 		code += "\tvar t = setTimeout(startDate_154, 1000);\n";
 		code += "}\n";
 		hScript = true;
@@ -310,7 +317,7 @@ String PushButton::getScriptCode()
 		code += "\tvar year = today.getFullYear();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = day + '/' + mon + '/' + year;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = day + '/' + mon + '/' + year;\n";
 		code += "\tvar t = setTimeout(startDate_155, 1000);\n";
 		code += "}\n";
 		hScript = true;
@@ -340,7 +347,7 @@ String PushButton::getScriptCode()
 		code += "\t\tcase 11: mon = 'December'; break;\n";
 		code += "\t}\n";
 		code += "\tday = checkTime(day);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = mon + ' ' + day + ', ' + year;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = mon + ' ' + day + ', ' + year;\n";
 		code += "\tvar t = setTimeout(startDate_156, 1000);\n";
 		code += "}\n";
 		hScript = true;
@@ -370,7 +377,7 @@ String PushButton::getScriptCode()
 		code += "\t\tcase 11: mon = 'December'; break;\n";
 		code += "\t}\n";
 		code += "\tday = checkTime(day);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = day + ' ' + mon + ', ' + year;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = day + ' ' + mon + ', ' + year;\n";
 		code += "\tvar t = setTimeout(startDate_157, 1000);\n";
 		code += "}\n";
 		hScript = true;
@@ -387,7 +394,7 @@ String PushButton::getScriptCode()
 		code += "\tvar year = today.getFullYear();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += "\tdocument.getElementById('"+btName+"').innerHTML = year + '-' + mon + '-' + day;\n";
+		code += String("\tdocument.getElementById('")+btName+"').innerHTML = year + '-' + mon + '-' + day;\n";
 		code += "\tvar t = setTimeout(startDate_158, 1000);\n";
 		code += "}\n";
 		hScript = true;

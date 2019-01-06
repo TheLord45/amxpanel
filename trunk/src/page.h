@@ -27,9 +27,13 @@ namespace amx
 	class Page
 	{
 		public:
+			Page();
 			Page(const strings::String& file);
 			~Page();
 
+			void setFileName(const strings::String& f) { pageFile = f; }
+			strings::String getFileName() { return pageFile; }
+			bool parsePage();
 			bool isOk() { return status; }
 			strings::String& getStyleCode();
 			strings::String& getWebCode();
@@ -37,7 +41,7 @@ namespace amx
 			strings::String& getPageName() { return page.name; }
 			PAGETYPE getType() { return page.type; }
 			strings::String& getGroupName() { return page.group; }
-			std::vector<PushButton>& getButtonList() { return buttons; }
+			strings::String& getScriptCode() { return scriptCode; }
 
 			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
 			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }
@@ -49,17 +53,24 @@ namespace amx
 		private:
 			void clear();
 			void generateButtons();
+			strings::String isoToUTF(const strings::String& str);
 
 			PAGE_T page;
 			std::vector<PAGE_T> pgList;
-			std::vector<PushButton> buttons;
 			bool status;
+			bool buttonsDone;
+			bool styleDone;
+			bool webDone;
 			strings::String webBuffer;
+			std::vector<strings::String> btWebBuffer;
 			strings::String styleBuffer;
+			strings::String scriptCode;
 			strings::String paletteFile;
+			strings::String pageFile;
 			int totalWidth;
 			int totalHeight;
             FontList *fontClass;
+			Palette *paletteClass;
 
 	};
 }

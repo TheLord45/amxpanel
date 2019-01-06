@@ -56,7 +56,7 @@ Mapping::Mapping()
 
     String uri = "file://";
     uri.append(Configuration->getHTTProot());
-    uri.append("/panel/map.xma");
+    uri.append("/map.xma");
     xmlpp::TextReader reader(uri.toString());
 
     while(reader.read())
@@ -66,25 +66,25 @@ Mapping::Mapping()
         if (depth > reader.get_depth())
         {
             depth = 0;
-            
+
             if (cm)
             {
                 maps.map_cm.push_back(map);
                 cm = false;
             }
-            
+
             if (am)
             {
                 maps.map_am.push_back(map);
                 am = false;
             }
-            
+
             if (lm)
             {
                 maps.map_lm.push_back(map);
                 lm = false;
             }
-            
+
             if (bm && im)
             {
                 maps.map_bm.push_back(map_bm);

@@ -22,35 +22,42 @@
 
 namespace amx
 {
-    typedef struct PDATA
-    {
-        int index;
-        strings::String name;
-        unsigned long color;
-        
-        void clear()
-        {
-            index = 0;
-            name.clear();
-            color = 0;
-        }
-    }PDATA_T;
+	typedef struct PDATA
+	{
+		int index;
+		strings::String name;
+		unsigned long color;
 
-    class Palette
-    {
-        public:
-            Palette(const strings::String& file);
-            ~Palette();
+		void clear()
+		{
+			index = 0;
+			name.clear();
+			color = 0;
+		}
+	}PDATA_T;
 
-            bool isOk() { return status; }
-            unsigned long getColor(size_t idx);
-            unsigned long getColor(const strings::String& name);
-            strings::String colorToString(unsigned long col);
+	class Palette
+	{
+		public:
+			Palette();
+			Palette(const strings::String& file);
+			~Palette();
 
-        private:
-            std::vector<PDATA_T> palette;
-            bool status;
-    };
+			void setPaletteFile(const strings::String& f) { paletteFile = f; }
+			bool parsePalette();
+			bool parsePalette(const strings::String& f);
+			bool isOk() { return status; }
+			unsigned long getColor(size_t idx);
+			unsigned long getColor(const strings::String& name);
+			strings::String colorToString(unsigned long col);
+			std::vector<PDATA_T>& getPalette() { return palette; }
+			void setPalette(const std::vector<PDATA_T>& pd) { palette = pd; status = true; }
+
+		private:
+			std::vector<PDATA_T> palette;
+			strings::String paletteFile;
+			bool status;
+	};
 }
 
 #endif

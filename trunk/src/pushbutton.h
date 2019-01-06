@@ -21,11 +21,10 @@
 #include "strings.h"
 #include "palette.h"
 #include "fontlist.h"
-#include "page.h"
 
 namespace amx
 {
-	class PushButton : public Palette
+	class PushButton
 	{
 		public:
 			enum SCR_TYPE
@@ -44,20 +43,22 @@ namespace amx
 				SCR_DATE_Y_M_D
 			};
 
-			PushButton(const BUTTON_T& bt, const strings::String& pfilename);
+			PushButton(const BUTTON_T& bt, const std::vector<PDATA_T>& pal);
 			~PushButton();
 
 			void setSwitch(bool s) { onOff = s; }
 			void setState(size_t s);
 			void setFontClass(FontList *fl) { fontClass = fl; }
 			void setPageID(int id) { pageID = id; }
+			void setPalette(const std::vector<PDATA_T>& pal) { palette = pal; }
 			strings::String getStyle();
 			strings::String getWebCode();
 			strings::String getScriptCode();
 			bool haveScript() { return hScript; }
 			SCR_TYPE getScriptType() { return scriptType; }
 
-			void setParentPage(Page *pg) { parentPage = pg; }
+			void setPageList(const std::vector<PAGE_T>& pl) { pageList = pl; }
+			int findPage(const strings::String& name);
 
 		private:
 			BUTTON_T button;
@@ -68,7 +69,8 @@ namespace amx
 			strings::String btName;
 			bool hScript;
 			SCR_TYPE scriptType;
-			Page *parentPage;
+			std::vector<PAGE_T> pageList;
+			std::vector<PDATA_T> palette;
 	};
 }
 

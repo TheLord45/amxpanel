@@ -62,16 +62,24 @@ void Config::init()
 		HOME = 0;
 	}
 
-	if (!access("/etc/hvl.conf", R_OK))
-		sFileName = "/etc/hvl.conf";
-	else if (!access("/etc/hvl/hvl.conf", R_OK))
-		sFileName = "/etc/hvl/hvl.conf";
-	else if (!access("/usr/etc/hvl.conf", R_OK))
-		sFileName = "/usr/etc/hvl.conf";
+	if (!access("/etc/amxpanel.conf", R_OK))
+		sFileName = "/etc/amxpanel.conf";
+	else if (!access("/etc/amxpanel/amxpanel.conf", R_OK))
+		sFileName = "/etc/amxpanel/amxpanel.conf";
+	else if (!access("/usr/etc/amxpanel.conf", R_OK))
+		sFileName = "/usr/etc/amxpanel.conf";
+#ifdef __APPLE__
+	if (!access("/opt/local/etc/amxpanel.conf", R_OK))
+		sFileName = "/opt/local/etc/amxpanel.conf";
+	else if (!access("/opt/local/etc/amxpanel/amxpanel.conf", R_OK))
+		sFileName = "/opt/local/etc/amxpanel/amxpanel.conf";
+	else if (!access("/opt/local/usr/etc/amxpanel.conf", R_OK))
+		sFileName = "/opt/local/usr/etc/amxpanel.conf";
+#endif
 	else if (HOME)
 	{
 		sFileName = HOME;
-		sFileName += "/.hvl.conf";
+		sFileName += "/.amxpanel.conf";
 
 		if (access(sFileName.data(), R_OK))
 		{
@@ -126,6 +134,8 @@ void Config::readConfig(const String &sFile)
 		sysl->errlog(String("Error on file ")+sFile+": "+e.what());
 		throw rConfig;
 	}
+
+	sysl->log(Syslog::INFO,String("Config::readConfig: Reading from: ")+sFile);
 
 	for (std::string line; std::getline(fs, line);)
 	{

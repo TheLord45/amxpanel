@@ -39,43 +39,50 @@ using namespace strings;
 
 amx::Icon::Icon(const strings::String& file)
 {
-    sysl->TRACE(Syslog::ENTRY, std::string("Icon::Icon(const strings::String& file)"));
-    int index = 0;
-    String uri = "file://";
-    uri.append(Configuration->getHTTProot());
-    uri.append("/panel/");
-    uri.append(file);
-    
-    try
-    {
-        xmlpp::TextReader reader(uri.toString());
+	sysl->TRACE(Syslog::ENTRY, std::string("Icon::Icon(const strings::String& file)"));
+	int index = 0;
+	String lastName;
+	String uri = "file://";
+	uri.append(Configuration->getHTTProot());
+	uri.append("/");
+	uri.append(file);
 
-        while(reader.read())
-        {
-            String name = string(reader.get_name());
-            
-            if (name.caseCompare("icon") == 0 && reader.has_attributes())
-                index = atoi(reader.get_attribute(0).c_str());
-            else if (name.caseCompare("file") == 0 && reader.has_value() && index >= 0)
-            {
-                ICON_T ico;
-                ico.index = index;
-                ico.file = reader.get_value();
-                icons.push_back(ico);
-                index = -1;
-            }
-        }
+	try
+	{
+		xmlpp::TextReader reader(uri.toString());
 
-        reader.close();
-    }
-    catch (xmlpp::internal_error& e)
-    {
-        sysl->errlog(string("Icon::Icon: ")+e.what());
-        status = false;
-        return;
-    }
+		while(reader.read())
+		{
+			String name = string(reader.get_name());
 
-    status = true;
+			if (name.at(0) == '#')
+				name = lastName;
+
+			if (name.caseCompare("icon") == 0 && reader.has_attributes())
+				index = atoi(reader.get_attribute(0).c_str());
+			else if (name.caseCompare("file") == 0 && reader.has_value() && index >= 0)
+			{
+				ICON_T ico;
+				ico.index = index;
+				ico.file = reader.get_value();
+				icons.push_back(ico);
+				index = -1;
+				sysl->TRACE(String("Icon::Icon: index=")+ico.index+", file="+ico.file);
+			}
+
+			lastName = name;
+		}
+
+		reader.close();
+	}
+	catch (xmlpp::internal_error& e)
+	{
+		sysl->errlog(string("Icon::Icon: ")+e.what());
+		status = false;
+		return;
+	}
+
+	status = true;
 }
 
 amx::Icon::~Icon()
