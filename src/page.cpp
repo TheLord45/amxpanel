@@ -50,6 +50,7 @@ Page::Page()
 	buttonsDone = false;
 	styleDone = false;
 	webDone = false;
+	Project = 0;
 }
 
 amx::Page::Page(const strings::String& file)
@@ -63,6 +64,7 @@ amx::Page::Page(const strings::String& file)
 	buttonsDone = false;
 	styleDone = false;
 	webDone = false;
+	Project = 0;
 }
 
 bool amx::Page::parsePage()
@@ -189,6 +191,7 @@ bool amx::Page::parsePage()
 			else if (name.caseCompare("button") == 0 && reader.has_attributes())
 			{
 				BUTTON_T button;
+				button.clear();
 				String attr = string(reader.get_attribute(0));
 
 				if (attr.caseCompare("general") == 0)
@@ -287,6 +290,7 @@ bool amx::Page::parsePage()
 			if (inButton && name.caseCompare("sr") == 0 && reader.has_attributes())
 			{
 				SR_T sr;
+				sr.clear();
 				sr.number = atoi(reader.get_attribute(0).c_str());
 				page.buttons.back().sr.push_back(sr);
 				sysl->TRACE(String("Page::Page: Added for button ")+page.buttons.back().na+" sr with ID "+sr.number);
@@ -491,42 +495,61 @@ String& amx::Page::getStyleCode()
 
 	if (page.type == SUBPAGE)
 	{
-		styleBuffer += "  display: block;\n";		// Show the popup
+		if (Project)
+		{
+			bool have = false;
+
+			for (size_t x = 0; x < Project->panelSetup.powerUpPopup.size(); x++)
+			{
+				if (page.name.compare(Project->panelSetup.powerUpPopup[x]) == 0)
+				{
+					styleBuffer += "  display: inline;\n";		// Show the popup
+					have = true;
+					break;
+				}
+			}
+
+			if (!have)
+				styleBuffer += "  display: none;\n";		// Show the popup
+		}
+		else
+			styleBuffer += "  display: none;\n";		// Show the popup
+
 		styleBuffer += "  position: absolut;\n";		// Fixed position, don't move
 		styleBuffer += "  z-index: 1;\n";			// Display on top
 
 		if (page.showEffect && page.showTime)
 		{
-			styleBuffer += String("  animation-name: ani-")+pgName+";\n";
+			styleBuffer += String("  animation-name: ani_")+pgName+";\n";
 			styleBuffer += String("  animation-duration: ")+String((double)page.showTime / 10.0)+"s;\n";
 			styleBuffer += "}\n";
-			styleBuffer += String("@keyframes ani-")+pgName+" {\n";
+			styleBuffer += String("@keyframes ani_")+pgName+" {\n";
 
 			switch (page.showEffect)
 			{
 				case SE_SLIDE_TOP:			// top
 				case SE_SLIDE_TOP_FADE:
-					styleBuffer += String("  from { top: -")+String(page.top)+"px; opacity: 0;\n";
-					styleBuffer += String("  to { top: 0; opacity: 1;\n");
+					styleBuffer += String("  from { top: -")+String(page.top)+"px; opacity: 0; }\n";
+					styleBuffer += String("  to { top: 0; opacity: 1; }\n");
 				break;
 				case SE_SLIDE_LEFT:			// left
 				case SE_SLIDE_LEFT_FADE:
-					styleBuffer += String("  from { left: -")+String(page.left)+"px; opacity: 0;\n";
-					styleBuffer += String("  to { left: 0; opacity: 1;\n");
+					styleBuffer += String("  from { left: -")+String(page.left)+"px; opacity: 0; }\n";
+					styleBuffer += String("  to { left: 0; opacity: 1; }\n");
 				break;
 				case SE_SLIDE_RIGHT:		// rght
 				case SE_SLIDE_RIGHT_FADE:
-					styleBuffer += String("  from { right: -")+String(page.left+page.width)+"px; opacity: 0;\n";
-					styleBuffer += String("  to { right: 0; opacity: 1;\n");
+					styleBuffer += String("  from { right: -")+String(page.left+page.width)+"px; opacity: 0; }\n";
+					styleBuffer += String("  to { right: 0; opacity: 1; }\n");
 				break;
 				case SE_SLIDE_BOTTOM:		// bottom
 				case SE_SLIDE_BOTTOM_FADE:
-					styleBuffer += String("  from { top: ")+String(totalHeight)+"px; opacity: 0;\n";
-					styleBuffer += String("  to { top: ")+String(totalHeight-page.height)+"; opacity: 1;\n";
+					styleBuffer += String("  from { top: ")+String(totalHeight)+"px; opacity: 0; }\n";
+					styleBuffer += String("  to { top: ")+String(totalHeight-page.height)+"; opacity: 1; }\n";
 				break;
 				case SE_FADE:
-					styleBuffer += String("  from { bottom: ")+String(totalHeight)+"px; opacity: 0;\n";
-					styleBuffer += String("  to { bottom: ")+String(totalHeight-page.height)+"; opacity: 1;\n";
+					styleBuffer += String("  from { bottom: ")+String(totalHeight)+"px; opacity: 0; }\n";
+					styleBuffer += String("  to { bottom: ")+String(totalHeight-page.height)+"; opacity: 1; }\n";
 				break;
 			}
 		}
@@ -535,6 +558,16 @@ String& amx::Page::getStyleCode()
 	}
 	else if (page.type == PAGE)
 	{
+		if (Project)
+		{
+			if (page.name.compare(Project->panelSetup.powerUpPage) == 0)
+				styleBuffer += "  display: inline;\n";		// Show the popup
+			else
+				styleBuffer += "  display: none;\n";		// Show the popup
+		}
+		else
+			styleBuffer += "  display: none;\n";		// Show the popup
+
 		styleBuffer += "  left: 0;\n";
 		styleBuffer += "  top: 0;\n";
 		styleBuffer += "  position: absolut;\n";		// Fixed position, don't move
@@ -565,7 +598,7 @@ String& amx::Page::getWebCode()
 	for (size_t i = 0; i < btWebBuffer.size(); i++)
 		webBuffer += btWebBuffer[i];
 
-	if (page.type != SUBPAGE)
+//	if (page.type != SUBPAGE)
 		webBuffer += "</div>\n";
 
 	webDone = true;

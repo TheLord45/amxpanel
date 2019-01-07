@@ -47,6 +47,7 @@ namespace amx
 			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }
 			void setFontClass(FontList *fl) { fontClass = fl; }
 			void setPageList(const std::vector<PAGE_T>& p) { pgList = p; }
+			void setProject(PROJECT_T *prj) { Project = prj; }
 
 			int findPage(const strings::String& name);
 
@@ -69,9 +70,9 @@ namespace amx
 			strings::String pageFile;
 			int totalWidth;
 			int totalHeight;
-            FontList *fontClass;
+			FontList *fontClass;
 			Palette *paletteClass;
-
+			PROJECT_T *Project;
 	};
 }
 

@@ -273,10 +273,12 @@ void TouchPanel::readPages()
 
 		for (size_t i = 0; i < pgs.size(); i++)
 		{
+			sysl->TRACE(String("TouchPanel::readPages: Parsing page ")+pgs[i]);
 			Page p(pgs[i]);
 			p.setPaletteFile(getProject().supportFileList.colorFile);
 			p.setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
 			p.setFontClass(getFontList());
+			p.setProject(&getProject());
 
 			if (!p.parsePage())
 			{
@@ -405,11 +407,15 @@ bool TouchPanel::parsePages()
 	pgFile << "function hideGroup(name)\n{\n";
 	pgFile << "\tvar nm;\n\tvar group;\n\tvar i;\n";
 	pgFile << "\tgroup = popupGroups[name];\n\n";
+	pgFile << "\tif (name == \"\")\n\t\treturn;\n\n";
 	pgFile << "\tfor (i in group)\n\t{\n";
 	pgFile << "\t\tvar pg;\n";
 	pgFile << "\t\tpg = findPageNumber(group[i]);\n";
-	pgFile << "\t\tnm = 'Page_'+pg;\n";
-	pgFile << "\t\tdocument.getElementById(nm).style.display = 'none';\n";
+	pgFile << "\t\tnm = 'Page_'+pg;\n\n";
+	pgFile << "\t\ttry\n\t\t{\n";
+	pgFile << "\t\t\tdocument.getElementById(nm).style.display = 'none';\n";
+	pgFile << "\t\t}\n\t\tcatch(e)\n\t\t{\n";
+	pgFile << "\t\t\tconsole.log('hideGroup: Error on name <'+name+'> and page '+nm+': '+e);\n\t\t}\n";
 	pgFile << "\t}\n}\n";
 	// showPopup
 	pgFile << "function showPopup(name)\n{\n";
@@ -417,14 +423,40 @@ bool TouchPanel::parsePages()
 	pgFile << "\tpID = findPageNumber(name);\n";
 	pgFile << "\tgroup = findPageGroup(name);\n";
 	pgFile << "\tpname = \"Page_\"+pID;\n";
-	pgFile << "\thideGroup(group);\n";
-	pgFile << "\tdocument.getElementById(pname).style.display = 'inline';\n}\n";
+	pgFile << "\thideGroup(group);\n\n";
+	pgFile << "\ttry\n\t{\n";
+	pgFile << "\t\tdocument.getElementById(pname).style.display = 'inline';\n\t}\n";
+	pgFile << "\tcatch(e)\n\t{\n";
+	pgFile << "\t\tconsole.log('showPopup: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
 	// hidePopup
 	pgFile << "function hidePopup(name)\n{\n";
 	pgFile << "\tvar pname;\n\tvar pID;\n\n";
 	pgFile << "\tpID = findPageNumber(name);\n";
-	pgFile << "\tpname = \"Page_\"+pID;\n";
-	pgFile << "\tdocument.getElementById(pname).style.display = 'none';\n}\n";
+	pgFile << "\tpname = \"Page_\"+pID;\n\n";
+	pgFile << "\ttry\n{\n";
+	pgFile << "\t\tdocument.getElementById(pname).style.display = 'none';\n\t}\n";
+	pgFile << "\tcatch(e)\n\t{\n";
+	pgFile << "\t\tconsole.log('hidePopup: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
+	// showPage
+	pgFile << "function showPage(name)\n{\n";
+	pgFile << "\tvar pname;\n\tvar pID;\n\n";
+	pgFile << "\tpID = findPageNumber(name);\n\n";
+	pgFile << "\tif (pID >= 0)\n\t\tpname = \"Page_\"+pID;\n";
+	pgFile << "\telse\n\t\tpname = name;\n\n";
+	pgFile << "\ttry\n\t{\n";
+	pgFile << "\t\tdocument.getElementById(pname).style.display = 'inline';\n\t}\n";
+	pgFile << "\tcatch(e)\n\t{\n";
+	pgFile << "\t\tconsole.log('showPage: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
+	// hidePage
+	pgFile << "function hidePage(name)\n{\n";
+	pgFile << "\tvar pname;\n\tvar pID;\n\n";
+	pgFile << "\tpID = findPageNumber(name);\n\n";
+	pgFile << "\tif (pID >= 0)\n\t\tpname = \"Page_\"+pID;\n";
+	pgFile << "\telse\n\t\tpname = name;\n\n";
+	pgFile << "\ttry\n\t{\n";
+	pgFile << "\t\tdocument.getElementById(pname).style.display = 'none';\n\t}\n";
+	pgFile << "\tcatch(e)\n\t{\n";
+	pgFile << "\t\tconsole.log('hidePage: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
 	// switchDisplay
 	pgFile << "function switchDisplay(name1, name2, dStat, bid)\n{\n";
 	pgFile << "\tvar bname;\n\tvar url;\n";
@@ -473,7 +505,7 @@ bool TouchPanel::parsePages()
 	pgFile << "</head>\n";
 	// The page body
 	pgFile << "<body onload=\"connect();\">\n";
-	pgFile << getPage(aid);
+//	pgFile << getPage(aid);
 
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
@@ -536,7 +568,7 @@ void TouchPanel::writeGroups (fstream& pgFile)
 		pgFile << "]";
 	}
 
-	pgFile << "};\n\n";
+	pgFile << "}';\n\n";
 }
 
 void TouchPanel::writePopups (fstream& pgFile)

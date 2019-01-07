@@ -115,7 +115,7 @@ void amx::Panel::readProject()
 		{
 			name = reader.get_name();
 
-			if (name.at(0) == '#')
+			if (name.compare("#text") == 0)
 				name = lastName;
 
 			sysl->TRACE(String("Panel::readProject: name=")+name+", depth="+reader.get_depth()+" ("+depth+")");
@@ -127,7 +127,7 @@ void amx::Panel::readProject()
 			if (reader.get_depth() <= 1 && depth > 1)
 				Part = eNone;
 
-			if (name.caseCompare("pageList") == 0 && depth == 1)
+			if (!endElement && name.caseCompare("pageList") == 0 && depth == 1)
 			{
 				Part = ePageList;
 
@@ -136,7 +136,7 @@ void amx::Panel::readProject()
 				else
 					attr.clear();
 
-				if (!endElement && !attr.empty())
+				if (!attr.empty())
 				{
 					PAGE_LIST_T pageList;
 					pageList.type = attr;
@@ -145,21 +145,18 @@ void amx::Panel::readProject()
 					sysl->TRACE(String("Panel::readProject: Added a PAGE_LIST_T entry!"));
 				}
 			}
-			else if (Part == ePageList && name.caseCompare("pageEntry") == 0 && reader.get_depth() > depth)
+			else if (!endElement && Part == ePageList && name.caseCompare("pageEntry") == 0 && reader.get_depth() >= depth)
 			{
-				if (!endElement)
+				if (Project.pageLists.size() > 0)
 				{
-					if (Project.pageLists.size() > 0)
-					{
-						PAGE_LIST_T& pageList = Project.pageLists.back();
-						PAGE_ENTRY_T pageEntry;
-						pageEntry.clear();
-						pageList.pageList.push_back(pageEntry);
-						sysl->TRACE(String("Panel::readProject: Added a PAGE_ENTRY_T entry to ")+pageList.type+"!");
-					}
+					PAGE_LIST_T& pageList = Project.pageLists.back();
+					PAGE_ENTRY_T pageEntry;
+					pageEntry.clear();
+					pageList.pageList.push_back(pageEntry);
+					sysl->TRACE(String("Panel::readProject: Added a PAGE_ENTRY_T entry to ")+pageList.type+"!");
 				}
 			}
-			else if (name.caseCompare("resourceList") == 0 && depth == 1)
+			else if (!endElement && name.caseCompare("resourceList") == 0 && depth == 1)
 			{
 				Part = eResourceList;
 
@@ -168,7 +165,7 @@ void amx::Panel::readProject()
 				else
 					attr.clear();
 
-				if (!endElement && !attr.empty())
+				if (!attr.empty())
 				{
 					RESOURCE_LIST_T rl;
 					rl.type = attr;
@@ -177,37 +174,28 @@ void amx::Panel::readProject()
 					sysl->TRACE(String("Panel::readProject: Added a RESOURCE_LIST_T entry!"));
 				}
 			}
-			else if (Part == eResourceList && name.caseCompare("resource") == 0 && reader.get_depth() > depth)
+			else if (!endElement && Part == eResourceList && name.caseCompare("resource") == 0 && reader.get_depth() > depth)
 			{
-				if (!endElement)
+				if (Project.resourceLists.size() > 0)
 				{
-					if (Project.resourceLists.size() > 0)
-					{
-						RESOURCE_LIST_T& rl = Project.resourceLists.back();
-						RESOURCE_T res;
-						res.clear();
-						rl.ressource.push_back(res);
-						sysl->TRACE(String("Panel::readProject: Added a RESOURCE_T entry to ")+rl.type+"!");
-					}
+					RESOURCE_LIST_T& rl = Project.resourceLists.back();
+					RESOURCE_T res;
+					res.clear();
+					rl.ressource.push_back(res);
+					sysl->TRACE(String("Panel::readProject: Added a RESOURCE_T entry to ")+rl.type+"!");
 				}
 			}
-			else if (Part == eFwFeatureList && name.caseCompare("feature") == 0 && reader.get_depth() > depth)
+			else if (!endElement && Part == eFwFeatureList && name.caseCompare("feature") == 0 && reader.get_depth() > depth)
 			{
-				if (!endElement)
-				{
-					FEATURE_T fwl;
-					Project.fwFeatureList.push_back(fwl);
-					sysl->TRACE(String("Panel::readProject: Added a FEATURE_T entry!"));
-				}
+				FEATURE_T fwl;
+				Project.fwFeatureList.push_back(fwl);
+				sysl->TRACE(String("Panel::readProject: Added a FEATURE_T entry!"));
 			}
-			else if (Part == ePaletteList && name.caseCompare("palette") == 0 && reader.get_depth() > depth)
+			else if (!endElement && Part == ePaletteList && name.caseCompare("palette") == 0 && reader.get_depth() > depth)
 			{
-				if (!endElement)
-				{
-					PALETTE_T pal;
-					Project.paletteList.push_back(pal);
-					sysl->TRACE(String("Panel::readProject: Added a PALETTE_T entry!"));
-				}
+				PALETTE_T pal;
+				Project.paletteList.push_back(pal);
+				sysl->TRACE(String("Panel::readProject: Added a PALETTE_T entry!"));
 			}
 
 			depth = reader.get_depth();
@@ -220,8 +208,8 @@ void amx::Panel::readProject()
 				{
 					value = string(reader.get_value());
 					value.trim();
-					value.replace("\n", "");
-					value.replace("\r", "");
+//					value.replace("\n", "");
+//					value.replace("\r", "");
 				}
 
 				if (reader.has_attributes())
