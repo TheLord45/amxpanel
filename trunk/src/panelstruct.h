@@ -215,31 +215,57 @@ namespace amx
         std::vector<PALETTE_T> paletteList;
     }PROJECT_T;
 
-    typedef struct SR
-    {
-        int number;
+	typedef struct SR
+	{
+		int number;
 		strings::String _do;
-        strings::String bs;     // Frame type (circle, ...)
-        strings::String mi;     // Chameleon image
-        strings::String cb;     // Border color
-        strings::String cf;     // Fill color
-        strings::String ct;     // Text Color
-        strings::String ec;     // Text effect color
-        strings::String bm;     // bitmap file name
-        bool dynamic;
-        int sb;
-        int ji;
-        int jb;
-        int ix;                 // bitmap X position
-        int iy;                 // bitmap Y position
-        int fi;                 // Font index?
-        strings::String te;     // Text
-        int jt;
-        int tx;                 // Text X position
-        int ty;                 // Text Y position
-        int ww;                 // line break when 1
-        int et;
-    }SR_T;
+		strings::String bs;     // Frame type (circle, ...)
+		strings::String mi;     // Chameleon image
+		strings::String cb;     // Border color
+		strings::String cf;     // Fill color
+		strings::String ct;     // Text Color
+		strings::String ec;     // Text effect color
+		strings::String bm;     // bitmap file name
+		bool dynamic;
+		int sb;
+		int ji;
+		int jb;
+		int ix;                 // bitmap X position
+		int iy;                 // bitmap Y position
+		int fi;                 // Font index?
+		strings::String te;     // Text
+		int jt;
+		int tx;                 // Text X position
+		int ty;                 // Text Y position
+		int ww;                 // line break when 1
+		int et;
+		
+		void clear()
+		{
+			number = 0;
+			_do.clear();
+			bs.clear();
+			mi.clear();
+			cb.clear();
+			cf.clear();
+			ct.clear();
+			ec.clear();
+			bm.clear();
+			dynamic = false;
+			sb = 0;
+			ji = 0;
+			jb = 0;
+			ix = 0;
+			iy = 0;
+			fi = 0;
+			te.clear();
+			jt = 0;
+			tx = 0;
+			ty = 0;
+			ww = 0;
+			et = 0;
+		}
+	}SR_T;
 
     enum BUTTONTYPE
     {
@@ -290,6 +316,32 @@ namespace amx
 		strings::String pfType;	// command to execute when button was pushed
 		strings::String pfName;	// Name of popup
 		std::vector<SR_T> sr;
+
+		void clear()
+		{
+			bi = 0;
+			na.clear();
+			lt = 0;
+			tp = 0;
+			wt = 0;
+			ht = 0;
+			zo = 0;
+			hs.clear();
+			bs.clear();
+			fb = FB_NONE;
+			ap = 0;
+			ad = 0;
+			ch = 0;
+			cp = 0;
+			lp = 0;
+			va = 0;
+			rv = 0;
+			rl = 0;
+			rh = 0;
+			pfType.clear();
+			pfName.clear();
+			sr.clear();
+		}
 	}BUTTON_T;
 
     enum PAGETYPE
