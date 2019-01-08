@@ -169,10 +169,15 @@ unsigned long amx::Palette::getColor(const strings::String& name)
 
 String Palette::colorToString(unsigned long col)
 {
-    sysl->TRACE(Syslog::MESSAGE, std::string("Palette::colorToString(unsigned long col)"));
+	sysl->TRACE(Syslog::MESSAGE, std::string("Palette::colorToString(unsigned long col)"));
 
-    std::stringstream stream;
-    stream << "#" << std::setfill('0') << std::setw(8) << std::hex << col;
-    String sCol(stream.str());
-    return sCol;
+	int red, green, blue, alpha;
+	String color = "rgba(";
+
+	red = (col >> 24) & 0x000000ff;
+	green = (col >> 16) & 0x000000ff;
+	blue = (col >> 8) & 0x000000ff;
+	alpha = (int)(1.0 / 255.0 * (double)(col & 0x000000ff));
+	color += String(red)+", "+green+", "+blue+", "+alpha+")";
+	return color;
 }
