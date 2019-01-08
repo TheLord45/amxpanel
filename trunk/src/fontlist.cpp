@@ -137,7 +137,7 @@ strings::String amx::FontList::getFontStyles()
 			fontFaces.push_back(name);
 			styles += "@font-face {\n";
 			styles += String("  font-family: ")+NameFormat::toValidName(fontList[i].name)+";\n";
-			styles += String("  src: url(")+NameFormat::toURL(fontList[i].file)+");\n";
+			styles += String("  src: url(fonts/")+NameFormat::toURL(fontList[i].file)+");\n";
 			styles += String("  font-style: ")+getFontStyle(fontList[i].subfamilyName)+";\n";
 			styles += String("  font-weight: ")+getFontWeight(fontList[i].subfamilyName)+";\n";
 			styles += "}\n";
