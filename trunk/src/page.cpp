@@ -503,20 +503,20 @@ String& amx::Page::getStyleCode()
 			{
 				if (page.name.compare(Project->panelSetup.powerUpPopup[x]) == 0)
 				{
-					styleBuffer += "  display: inline;\n";		// Show the popup
+					styleBuffer += "  display: inline-block;\n";	// Show the popup
 					have = true;
 					break;
 				}
 			}
 
 			if (!have)
-				styleBuffer += "  display: none;\n";		// Show the popup
+				styleBuffer += "  display: none;\n";	// Hide the popup
 		}
 		else
-			styleBuffer += "  display: none;\n";		// Show the popup
+			styleBuffer += "  display: none;\n";		// Hide the popup
 
-		styleBuffer += "  position: absolut;\n";		// Fixed position, don't move
-		styleBuffer += "  z-index: 1;\n";			// Display on top
+		styleBuffer += "  position: absolute;\n";		// Fixed position, don't move
+		styleBuffer += "  z-index: 1;\n";				// Display on top
 
 		if (page.showEffect && page.showTime)
 		{
@@ -561,17 +561,15 @@ String& amx::Page::getStyleCode()
 		if (Project)
 		{
 			if (page.name.compare(Project->panelSetup.powerUpPage) == 0)
-				styleBuffer += "  display: inline;\n";		// Show the popup
+				styleBuffer += "  display: static;\n";		// Show the page
 			else
-				styleBuffer += "  display: none;\n";		// Show the popup
+				styleBuffer += "  display: none;\n";		// Hide the page
 		}
 		else
-			styleBuffer += "  display: none;\n";		// Show the popup
+			styleBuffer += "  display: none;\n";			// Hide the page
 
-		styleBuffer += "  left: 0;\n";
-		styleBuffer += "  top: 0;\n";
-		styleBuffer += "  position: absolut;\n";		// Fixed position, don't move
-		styleBuffer += "  overflow: hidden;\n";		// Enable scroll if needed
+		styleBuffer += "  position: absolute;\n";			// Fixed position, don't move
+		styleBuffer += "  overflow: hidden;\n";				// Enable scroll if needed
 		styleBuffer += "}\n";
 	}
 

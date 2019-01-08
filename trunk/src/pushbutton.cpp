@@ -64,7 +64,7 @@ String PushButton::getStyle()
 	{
 		// Name: .button<number>-<name>
 		style += String(".Page")+pageID+"_b"+i+"_"+btName+" {\n";
-		style += "  position: absolut;\n";
+		style += "  position: absolute;\n";
 		style += String("  left: ")+String(button.lt)+"px;\n";
 		style += String("  top: ")+String(button.tp)+"px;\n";
 		style += String("  width: ")+String(button.wt)+"px;\n";
@@ -73,15 +73,21 @@ String PushButton::getStyle()
 
 		if (button.sr[i].mi.length() && button.sr[i].bm.length())
 		{
-			style += String("  background-image: url(images/")+button.sr[i].mi+"), ";
-			style += String("url(images/")+button.sr[i].bm+");\n";
+			style += String("  background-image: url(images/")+NameFormat::toURL(button.sr[i].mi)+"), ";
+			style += String("url(images/")+NameFormat::toURL(button.sr[i].bm)+");\n";
 			style += "  background-blend-mode: screen;\n";
 		}
 		else if (button.sr[i].bm.length())
-			style += String("  background-image: url(images/")+button.sr[i].bm+");\n";
+			style += String("  background-image: url(images/")+NameFormat::toURL(button.sr[i].bm)+");\n";
 
 		style += "  background-repeat: no-repeat;\n";
-		style += "  display: inline;\n";
+
+		if ((button.fb == FB_MOMENTARY && i == 0) || (button.fb == FB_ALWAYS_ON && i == 1) ||
+				(button.fb == FB_INV_CHANNEL && i == 1) || (button.fb == FB_CHANNEL && i == 0) || i == 0)
+			style += "  display: inline;\n";
+		else
+			style += "  display: none;\n";
+
 		style += String("  background-color: ")+pal.colorToString(pal.getColor(button.sr[i].cf))+";\n";
 		style += String("  color: ")+pal.colorToString(pal.getColor(button.sr[i].ct))+";\n";
 		style += "}\n";
@@ -100,8 +106,8 @@ String PushButton::getStyle()
 
 			if (button.sr[i].jt == 0)
 			{
-				style += String("  left: ")+String(button.sr[i].tx)+"pt;\n";
-				style += String("  top: ")+String(button.sr[i].ty)+"pt;\n";
+				style += String("  left: ")+String(button.sr[i].tx)+"px;\n";
+				style += String("  top: ")+String(button.sr[i].ty)+"px;\n";
 			}
 			else
 				style += "  text-align: center;\n";		// FIXME!
@@ -155,8 +161,8 @@ String PushButton::getWebCode()
 
 		if (button.sr[i].te.length() > 0)
 		{
-			code += String("         <div class=\"")+nm+"_font\">";
-			code += button.sr[i].te+"</div>\n";
+			code += String("         <span class=\"")+nm+"_font\">";
+			code += button.sr[i].te+"</span>\n";
 		}
 
 		code += "      </div>\n";

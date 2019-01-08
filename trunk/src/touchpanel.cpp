@@ -370,12 +370,12 @@ bool TouchPanel::parsePages()
 	// Font faces
 	pgFile << getFontList()->getFontStyles();
 	// The styles
-	// write the styles of all popups
-	for (size_t i = 0; i < stPopups.size(); i++)
-		pgFile << getPageStyle(stPopups[i].ID);
 	// Write the main pages
 	for (size_t i = 0; i < stPages.size(); i++)
 		pgFile << getPageStyle(stPages[i].ID);
+	// write the styles of all popups
+	for (size_t i = 0; i < stPopups.size(); i++)
+		pgFile << getPageStyle(stPopups[i].ID);
 
 	pgFile << "</style>\n";
 	// Scripts
@@ -425,7 +425,7 @@ bool TouchPanel::parsePages()
 	pgFile << "\tpname = \"Page_\"+pID;\n";
 	pgFile << "\thideGroup(group);\n\n";
 	pgFile << "\ttry\n\t{\n";
-	pgFile << "\t\tdocument.getElementById(pname).style.display = 'inline';\n\t}\n";
+	pgFile << "\t\tdocument.getElementById(pname).style.display = 'inline-block';\n\t}\n";
 	pgFile << "\tcatch(e)\n\t{\n";
 	pgFile << "\t\tconsole.log('showPopup: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
 	// hidePopup
@@ -444,7 +444,7 @@ bool TouchPanel::parsePages()
 	pgFile << "\tif (pID >= 0)\n\t\tpname = \"Page_\"+pID;\n";
 	pgFile << "\telse\n\t\tpname = name;\n\n";
 	pgFile << "\ttry\n\t{\n";
-	pgFile << "\t\tdocument.getElementById(pname).style.display = 'inline';\n\t}\n";
+	pgFile << "\t\tdocument.getElementById(pname).style.display = 'block';\n\t}\n";
 	pgFile << "\tcatch(e)\n\t{\n";
 	pgFile << "\t\tconsole.log('showPage: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
 	// hidePage
@@ -496,15 +496,17 @@ bool TouchPanel::parsePages()
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	int aid = findPage(prg.panelSetup.powerUpPage);
-	pgFile << "showPage('Page_"<< aid << "');\n";
+	pgFile << "function main()\n{\n";
+	pgFile << "\tshowPage('Page_"<< aid << "');\n";
 
 	for (size_t i = 0; i < prg.panelSetup.powerUpPopup.size(); i++)
-		pgFile << "showPopup('" << prg.panelSetup.powerUpPopup[i] << "');\n";
+		pgFile << "\tshowPopup('" << prg.panelSetup.powerUpPopup[i] << "');\n";
 
+	pgFile << "}\n";
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
-	pgFile << "<body onload=\"connect();\">\n";
+	pgFile << "<body onload=\"main(); connect();\">\n";
 //	pgFile << getPage(aid);
 
 	for (size_t i = 0; i < stPages.size(); i++)
