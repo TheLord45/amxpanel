@@ -237,6 +237,8 @@ bool amx::Page::parsePage()
 					page.buttons.back().ht = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("zo") == 0 && reader.has_value())
 					page.buttons.back().zo = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("hs") == 0 && reader.has_value())
+					page.buttons.back().hs = reader.get_value();
 				else if (name.caseCompare("bs") == 0 && reader.has_value())
 					page.buttons.back().bs = reader.get_value();
 				else if (name.caseCompare("fb") == 0 && reader.has_value())
@@ -259,6 +261,8 @@ bool amx::Page::parsePage()
 				}
 				else if (name.caseCompare("ap") == 0 && reader.has_value())
 					page.buttons.back().ap = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("ad") == 0 && reader.has_value())
+					page.buttons.back().ad = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("cp") == 0 && reader.has_value())
 					page.buttons.back().cp = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ch") == 0 && reader.has_value())
@@ -302,6 +306,8 @@ bool amx::Page::parsePage()
 					page.buttons.back().sr.back()._do = reader.get_value();
 				else if (name.caseCompare("bs") == 0 && reader.has_value())
 					page.buttons.back().sr.back().bs = reader.get_value();
+				else if (name.caseCompare("mi") == 0 && reader.has_value())
+					page.buttons.back().sr.back().mi = reader.get_value();
 				else if (name.caseCompare("cb") == 0 && reader.has_value())
 					page.buttons.back().sr.back().cb = reader.get_value();
 				else if (name.caseCompare("cf") == 0 && reader.has_value())
@@ -322,8 +328,12 @@ bool amx::Page::parsePage()
 							page.buttons.back().sr.back().dynamic = true;
 					}
 				}
+				else if (name.caseCompare("sb") == 0 && reader.has_value())
+					page.buttons.back().sr.back().sb = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ji") == 0 && reader.has_value())
 					page.buttons.back().sr.back().ji = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("jb") == 0 && reader.has_value())
+					page.buttons.back().sr.back().jb = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ix") == 0 && reader.has_value())
 					page.buttons.back().sr.back().ix = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("iy") == 0 && reader.has_value())
@@ -340,6 +350,8 @@ bool amx::Page::parsePage()
 					page.buttons.back().sr.back().te = reader.get_value();
 				else if (name.caseCompare("et") == 0 && reader.has_value())
 					page.buttons.back().sr.back().et = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("ww") == 0 && reader.has_value())
+					page.buttons.back().sr.back().ww = atoi(reader.get_value().c_str());
 			}
 
 			if (!inButton && name.caseCompare("sr") == 0 && reader.has_attributes())
@@ -415,10 +427,10 @@ bool amx::Page::parsePage()
 
 amx::Page::~Page()
 {
-    sysl->TRACE(Syslog::EXIT, std::string("Page::Page(...)"));
+	sysl->TRACE(Syslog::EXIT, std::string("Page::Page(...)"));
 
-	if (paletteClass)
-		delete paletteClass;
+//	if (paletteClass)
+//		delete paletteClass;
 }
 
 void amx::Page::generateButtons()
@@ -433,7 +445,12 @@ void amx::Page::generateButtons()
 	try
 	{
 		if (!paletteClass)
-			paletteClass = new Palette(paletteFile);
+		{
+			buttonsDone = false;
+			sysl->errlog(String("Page::generateButtons: Missing palette initialization!"));
+//			paletteClass = new Palette(paletteFile);
+			return;
+		}
 
 		for (size_t i = 0; i < page.buttons.size(); i++)
 		{
@@ -472,11 +489,11 @@ String& amx::Page::getStyleCode()
 {
 	sysl->TRACE(String("Page::getStyleCode()"));
 
-	if (!status || styleDone)
+	if (!status || styleDone || !paletteClass)
 		return styleBuffer;
 
-	if (!paletteClass)
-		paletteClass = new Palette(paletteFile);
+//	if (!paletteClass)
+//		paletteClass = new Palette(paletteFile);
 
 	String pgName = String("Page_")+page.pageID;
 	styleBuffer = String(".")+pgName+" {\n";

@@ -19,6 +19,7 @@
 
 #include <vector>
 #include "strings.h"
+#include "panelstruct.h"
 
 namespace amx
 {
@@ -41,9 +42,11 @@ namespace amx
 		public:
 			Palette();
 			Palette(const strings::String& file);
+			Palette(const std::vector<PALETTE_T>& pal);
+			Palette(const std::vector<PALETTE_T>& pal, const strings::String& main);
 			~Palette();
 
-			void setPaletteFile(const strings::String& f) { paletteFile = f; }
+			void setPaletteFile(const strings::String& f);
 			bool parsePalette();
 			bool parsePalette(const strings::String& f);
 			bool isOk() { return status; }
@@ -55,7 +58,7 @@ namespace amx
 
 		private:
 			std::vector<PDATA_T> palette;
-			strings::String paletteFile;
+			std::vector<strings::String> paletteFiles;
 			bool status;
 	};
 }

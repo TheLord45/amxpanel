@@ -37,6 +37,7 @@ namespace amx
         protected:
             PROJECT_T& getProject() { return Project; }
             FontList *getFontList() { return pFontLists; }
+            Palette *getPalettes() { return pPalettes; }
 
         private:
             void readProject();

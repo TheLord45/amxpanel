@@ -307,7 +307,7 @@ void amx::Panel::readProject()
 
 	// Read the color palette
 	if (!pPalettes)
-		pPalettes = new Palette(Project.supportFileList.colorFile);
+		pPalettes = new Palette(Project.paletteList, Project.supportFileList.colorFile);
 
 	// Read the icon slot table
 	if (!pIcons)

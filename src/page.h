@@ -43,7 +43,8 @@ namespace amx
 			strings::String& getGroupName() { return page.group; }
 			strings::String& getScriptCode() { return scriptCode; }
 
-			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
+			void setPalette(Palette *pal) { paletteClass = pal; }
+//			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
 			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }
 			void setFontClass(FontList *fl) { fontClass = fl; }
 			void setPageList(const std::vector<PAGE_T>& p) { pgList = p; }
