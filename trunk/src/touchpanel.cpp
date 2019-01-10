@@ -275,7 +275,8 @@ void TouchPanel::readPages()
 		{
 			sysl->TRACE(String("TouchPanel::readPages: Parsing page ")+pgs[i]);
 			Page p(pgs[i]);
-			p.setPaletteFile(getProject().supportFileList.colorFile);
+			p.setPalette(getPalettes());
+//			p.setPaletteFile(getProject().supportFileList.colorFile);
 			p.setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
 			p.setFontClass(getFontList());
 			p.setProject(&getProject());
@@ -343,8 +344,9 @@ void TouchPanel::readPages()
 bool TouchPanel::parsePages()
 {
 	sysl->TRACE(std::string("TouchPanel::parsePages()"));
-	fstream pgFile;
+	fstream pgFile, cssFile;
 	std::string fname = Configuration->getHTTProot().toString()+"/index.html";
+	std::string cssname = Configuration->getHTTProot().toString()+"/amxpanel.css";
 
 	try
 	{
@@ -355,6 +357,15 @@ bool TouchPanel::parsePages()
 			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+fname);
 			return false;
 		}
+
+		cssFile.open(cssname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!cssFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+cssname);
+			pgFile.close();
+			return false;
+		}
 	}
 	catch (const std::fstream::failure e)
 	{
@@ -362,22 +373,23 @@ bool TouchPanel::parsePages()
 		return false;
 	}
 
+	// Font faces
+	cssFile << getFontList()->getFontStyles();
+	// The styles
+	// Write the main pages
+	for (size_t i = 0; i < stPages.size(); i++)
+		cssFile << getPageStyle(stPages[i].ID);
+	// write the styles of all popups
+	for (size_t i = 0; i < stPopups.size(); i++)
+		cssFile << getPageStyle(stPopups[i].ID);
+
+	cssFile.close();
+
 	// Page header
 	pgFile << "<!DOCTYPE html>\n";
 	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
-	pgFile << "<style>\n";
-	// Font faces
-	pgFile << getFontList()->getFontStyles();
-	// The styles
-	// Write the main pages
-	for (size_t i = 0; i < stPages.size(); i++)
-		pgFile << getPageStyle(stPages[i].ID);
-	// write the styles of all popups
-	for (size_t i = 0; i < stPopups.size(); i++)
-		pgFile << getPageStyle(stPopups[i].ID);
-
-	pgFile << "</style>\n";
+	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">\n";
 	// Scripts
 	pgFile << "<script>\n";
 	pgFile << "\"use strict\";\n";
@@ -388,110 +400,11 @@ bool TouchPanel::parsePages()
 	pgFile << "var Popups;\n";
 	pgFile << "var popupGroups;\n\n";
 	pgFile << "Popups = JSON.parse(pageNames);\n";
-	pgFile << "popupGroups = JSON.parse(pageGroups);\n\n";
-	// findPageNumber
-	pgFile << "function findPageNumber(name)\n{\n";
-	pgFile << "\tvar i;\n\n";
-	pgFile << "\tfor (i in Popups.pages)\n\t{\n";
-	pgFile << "\t\tif (Popups.pages[i].name == name)\n";
-	pgFile << "\t\t\treturn Popups.pages[i].ID;\n";
-	pgFile << "\t}\n\n\treturn -1;\n}\n";
-	// findPageGroup
-	pgFile << "function findPageGroup(name)\n{\n";
-	pgFile << "\tvar i;\n\n";
-	pgFile << "\tfor (i in Popups.pages)\n\t{\n";
-	pgFile << "\t\tif (Popups.pages[i].name == name)\n";
-	pgFile << "\t\t\treturn Popups.pages[i].group;\n\t}\n\n";
-	pgFile << "\treturn "";\n}\n";
-	// hideGroup
-	pgFile << "function hideGroup(name)\n{\n";
-	pgFile << "\tvar nm;\n\tvar group;\n\tvar i;\n";
-	pgFile << "\tgroup = popupGroups[name];\n\n";
-	pgFile << "\tif (name == \"\")\n\t\treturn;\n\n";
-	pgFile << "\tfor (i in group)\n\t{\n";
-	pgFile << "\t\tvar pg;\n";
-	pgFile << "\t\tpg = findPageNumber(group[i]);\n";
-	pgFile << "\t\tnm = 'Page_'+pg;\n\n";
-	pgFile << "\t\ttry\n\t\t{\n";
-	pgFile << "\t\t\tdocument.getElementById(nm).style.display = 'none';\n";
-	pgFile << "\t\t}\n\t\tcatch(e)\n\t\t{\n";
-	pgFile << "\t\t\tconsole.log('hideGroup: Error on name <'+name+'> and page '+nm+': '+e);\n\t\t}\n";
-	pgFile << "\t}\n}\n";
-	// showPopup
-	pgFile << "function showPopup(name)\n{\n";
-	pgFile << "\tvar pname;\n\tvar pID;\n\tvar group;\n\n";
-	pgFile << "\tpID = findPageNumber(name);\n";
-	pgFile << "\tgroup = findPageGroup(name);\n";
-	pgFile << "\tpname = \"Page_\"+pID;\n";
-	pgFile << "\thideGroup(group);\n\n";
-	pgFile << "\ttry\n\t{\n";
-	pgFile << "\t\tdocument.getElementById(pname).style.display = 'inline-block';\n\t}\n";
-	pgFile << "\tcatch(e)\n\t{\n";
-	pgFile << "\t\tconsole.log('showPopup: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
-	// hidePopup
-	pgFile << "function hidePopup(name)\n{\n";
-	pgFile << "\tvar pname;\n\tvar pID;\n\n";
-	pgFile << "\tpID = findPageNumber(name);\n";
-	pgFile << "\tpname = \"Page_\"+pID;\n\n";
-	pgFile << "\ttry\n{\n";
-	pgFile << "\t\tdocument.getElementById(pname).style.display = 'none';\n\t}\n";
-	pgFile << "\tcatch(e)\n\t{\n";
-	pgFile << "\t\tconsole.log('hidePopup: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
-	// showPage
-	pgFile << "function showPage(name)\n{\n";
-	pgFile << "\tvar pname;\n\tvar pID;\n\n";
-	pgFile << "\tpID = findPageNumber(name);\n\n";
-	pgFile << "\tif (pID >= 0)\n\t\tpname = \"Page_\"+pID;\n";
-	pgFile << "\telse\n\t\tpname = name;\n\n";
-	pgFile << "\ttry\n\t{\n";
-	pgFile << "\t\tdocument.getElementById(pname).style.display = 'block';\n\t}\n";
-	pgFile << "\tcatch(e)\n\t{\n";
-	pgFile << "\t\tconsole.log('showPage: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
-	// hidePage
-	pgFile << "function hidePage(name)\n{\n";
-	pgFile << "\tvar pname;\n\tvar pID;\n\n";
-	pgFile << "\tpID = findPageNumber(name);\n\n";
-	pgFile << "\tif (pID >= 0)\n\t\tpname = \"Page_\"+pID;\n";
-	pgFile << "\telse\n\t\tpname = name;\n\n";
-	pgFile << "\ttry\n\t{\n";
-	pgFile << "\t\tdocument.getElementById(pname).style.display = 'none';\n\t}\n";
-	pgFile << "\tcatch(e)\n\t{\n";
-	pgFile << "\t\tconsole.log('hidePage: Error on name <'+name+'> and page '+pname+': '+e);\n\t}\n}\n";
-	// switchDisplay
-	pgFile << "function switchDisplay(name1, name2, dStat, bid)\n{\n";
-	pgFile << "\tvar bname;\n\tvar url;\n";
-	pgFile << "\tif (dStat == 1)\n\t{\n";
-	pgFile << "\t\tdocument.getElementById(name1).style.display = \"none\";\n";
-	pgFile << "\t\tdocument.getElementById(name2).style.display = \"inline\";\n";
-	pgFile << "\t\tbname = pageName+\":button_\"+bid;\n";
-	pgFile << "\t\twriteText(\"PUSH:\"+bname+\":1;\");\n";
-	pgFile << "\t}\n\telse\n\t{\n";
-	pgFile << "\t\tdocument.getElementById(name1).style.display = \"inline\";\n";
-	pgFile << "\t\tdocument.getElementById(name2).style.display = \"none\";\n";
-	pgFile << "\t\tbname = pageName+\":button_\"+bid;\n";
-	pgFile << "\t\twriteText(\"PUSH:\"+bname+\":0;\");\n";
-	pgFile << "\t}\n}\n";
-	// connect()
-	pgFile << "function connect()\n{\n";
-	pgFile << "\ttry\n\t{\n";
-	pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
-	pgFile << "\t\twsocket.onopen = function() { wsocket.send('READY;'); }\n";
-	pgFile << "\t\twsocket.onerror = function(error) { console.log(`WebSocket error: ${error}`); }\n";
-	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
-	pgFile << "\t\twsocket.onclose = function() { console.log('WebSocket is closed!'); }\n";
-	pgFile << "\t}\n\tcatch (exception)\n";
-	pgFile << "\t{\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
-	// writeText()
-	pgFile << "function writeText(msg)\n{\n";
-	pgFile << "\tif (wsocket.readyState != WebSocket.OPEN)\n\t{\n";
-	pgFile << "\t\talert(\"Socket not ready!\");\n\t\treturn;\n\t}\n";
-	pgFile << "\twsocket.send(msg);\n}\n";
-	// Check for time scripts
-	pgFile << "function checkTime(i)\n{\n";
-	pgFile << "\tif (i < 10) {i = \"0\" + i};\n";
-	pgFile << "\treturn i;\n";
-	pgFile << "}\n";
+	pgFile << "popupGroups = JSON.parse(pageGroups);\n";
+	pgFile << "</script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"amxpanel.js\"></script>\n";
 	// Add some special script functions
+	pgFile << "<script>\n";
 	pgFile << scrBuffer << "\n";
 	// This is the "main" program
 	PROJECT_T prg = getProject();
@@ -607,7 +520,7 @@ void TouchPanel::writeStyles(std::fstream& pgFile)
 	for (size_t i = 0; i < pgs.size(); i++)
 	{
 		Page pg(pgs[i]);
-		pg.setPaletteFile(getProject().supportFileList.colorFile);
+		pg.setPalette(getPalettes());
 		pg.setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
 		pg.setFontClass(getFontList());
 

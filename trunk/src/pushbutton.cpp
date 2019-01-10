@@ -69,6 +69,10 @@ String PushButton::getStyle()
 		style += String("  top: ")+String(button.tp)+"px;\n";
 		style += String("  width: ")+String(button.wt)+"px;\n";
 		style += String("  height: ")+String(button.ht)+"px;\n";
+
+		if (button.zo > 0)
+			style += String("   z-index: ")+button.zo+";\n";
+
 		style += "  border: none;\n";		// FIXME!
 
 		if (button.sr[i].mi.length() && button.sr[i].bm.length())
@@ -83,7 +87,8 @@ String PushButton::getStyle()
 		style += "  background-repeat: no-repeat;\n";
 
 		if ((button.fb == FB_MOMENTARY && i == 0) || (button.fb == FB_ALWAYS_ON && i == 1) ||
-				(button.fb == FB_INV_CHANNEL && i == 1) || (button.fb == FB_CHANNEL && i == 0) || i == 0)
+				(button.fb == FB_INV_CHANNEL && i == 1) || (button.fb == FB_CHANNEL && i == 0) ||
+				(button.fb == FB_NONE && i == 0))
 			style += "  display: inline;\n";
 		else
 			style += "  display: none;\n";
@@ -136,7 +141,7 @@ String PushButton::getWebCode()
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		// FIXME: Die unterschiedlichen button status berücksichtigen
+		// FIXME: Die unterschiedlichen button status berÃ¼cksichtigen
 		String nm = String("Page")+pageID+"_b"+i+"_"+btName;
 		code += String("      <div id=\"")+nm+"\" class=\""+nm+"\"";
 

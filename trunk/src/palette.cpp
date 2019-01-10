@@ -47,26 +47,96 @@ Palette::Palette()
 Palette::Palette(const strings::String& file)
 {
 	sysl->TRACE(Syslog::ENTRY, String("Palette::Palette(const strings::String& file)"));
-	paletteFile = file;
-	parsePalette();
+	bool hasFile = false;
+
+	for (size_t i = 0; i < paletteFiles.size(); i++)
+	{
+		if (paletteFiles[i].compare(file) == 0)
+		{
+			hasFile = true;
+			break;
+		}
+	}
+
+	if (!hasFile)
+		paletteFiles.push_back(file);
+
+	for (size_t i = 0; i < paletteFiles.size(); i++)
+		parsePalette(paletteFiles[i]);
 }
 
-bool amx::Palette::parsePalette(const strings::String& f)
+amx::Palette::Palette(const std::vector<PALETTE_T>& pal)
 {
-	sysl->TRACE(String("Palette::parsePalette(const strings::String& f)"));
-	paletteFile = f;
-	return parsePalette();
+	sysl->TRACE(Syslog::ENTRY, String("Palette::Palette(const std::vector<PALETTE_T>& pal)"));
+	paletteFiles.clear();
+
+	for (size_t i = 0; i < pal.size(); i++)
+	{
+		paletteFiles.push_back(pal[i].file);
+		parsePalette(pal[i].file);
+	}
+}
+
+amx::Palette::Palette(const std::vector<PALETTE_T>& pal, const strings::String& main)
+{
+	sysl->TRACE(Syslog::ENTRY, String("Palette::Palette(const std::vector<PALETTE_T>& pal, const strings::String& main)"));
+	paletteFiles.clear();
+
+	sysl->TRACE(String("Palette::Palette: Have ")+pal.size()+" palettes.");
+
+	for (size_t i = 0; i < pal.size(); i++)
+		paletteFiles.push_back(pal[i].file);
+
+	parsePalette(main);		// First parse the main palette
+
+	for (size_t i = 0; i < paletteFiles.size(); i++)
+	{
+		if (paletteFiles[i].compare(main) != 0)
+			parsePalette(paletteFiles[i]);
+	}
+}
+
+void amx::Palette::setPaletteFile(const strings::String& f)
+{
+	sysl->TRACE(String("Palette::setPaletteFile(const strings::String& f)"));
+
+	bool hasFile = false;
+
+	for (size_t i = 0; i < paletteFiles.size(); i++)
+	{
+		if (paletteFiles[i].compare(f) == 0)
+		{
+			hasFile = true;
+			break;
+		}
+	}
+
+	if (!hasFile)
+		paletteFiles.push_back(f);
 }
 
 bool amx::Palette::parsePalette()
 {
 	sysl->TRACE(String("Palette::parsePalette()"));
+
+	for (size_t i = 0; i < paletteFiles.size(); i++)
+	{
+		if (!parsePalette(paletteFiles[i]))
+			return false;
+	}
+
+	return true;
+}
+
+bool amx::Palette::parsePalette(const strings::String& f)
+{
+	sysl->TRACE(String("Palette::parsePalette(const strings::String& f)"));
 	String lastName, at_index, at_name, value;
 	status = false;
 	String uri = "file://";
 	uri.append(Configuration->getHTTProot());
 	uri.append("/");
-	uri.append(paletteFile);
+	uri.append(f);
 	sysl->TRACE(String("Palette file: ")+uri);
 
 	try
@@ -105,7 +175,22 @@ bool amx::Palette::parsePalette()
 				sCol = reader.get_value();
 				sCol = String("0x")+sCol.substring(1);
 				color.color = strtoul(sCol.data(), 0, 16);
-				palette.push_back(color);
+				// Add only if we've not already in table
+				bool has = false;
+
+				for (size_t i = 0; i < palette.size(); i++)
+				{
+					if ((!palette[i].name.empty() && palette[i].name.compare(at_name) == 0) ||
+						(palette[i].name.empty() && palette[i].color == color.color))
+					{
+						has = true;
+						break;
+					}
+				}
+
+				if (!has)
+					palette.push_back(color);
+
 				at_index.clear();
 				at_name.clear();
 			}
