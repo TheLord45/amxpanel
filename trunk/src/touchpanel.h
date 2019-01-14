@@ -76,6 +76,7 @@ namespace amx
 		private:
 			void writeStyles(std::fstream& pgFile);
 			void readPages();
+            void writePages(std::fstream& pgFile);
 			void writeGroups(std::fstream& pgFile);
 			void writePopups(std::fstream& pgFile);
 			void writeAllPopups(std::fstream& pgFile);

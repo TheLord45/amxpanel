@@ -1,4 +1,4 @@
-function findPageNumber(name)
+function findPopupNumber(name)
 {
 	var i;
 
@@ -6,6 +6,18 @@ function findPageNumber(name)
 	{
 		if (Popups.pages[i].name == name)
 			return Popups.pages[i].ID;
+	}
+
+	return -1;
+}
+function findPageNumber(name)
+{
+	var i;
+
+	for (i in basePages.pages)
+	{
+		if (basePages.pages[i].name == name)
+			return basePages.pages[i].ID;
 	}
 
 	return -1;
@@ -35,7 +47,7 @@ function hideGroup(name)
 	for (i in group)
 	{
 		var pg;
-		pg = findPageNumber(group[i]);
+		pg = findPopupNumber(group[i]);
 		nm = 'Page_'+pg;
 
 		try
@@ -54,7 +66,7 @@ function showPopup(name)
 	var pID;
 	var group;
 
-	pID = findPageNumber(name);
+	pID = findPopupNumber(name);
 	group = findPageGroup(name);
 	pname = "Page_"+pID;
 	hideGroup(group);
@@ -73,7 +85,7 @@ function hidePopup(name)
 	var pname;
 	var pID;
 
-	pID = findPageNumber(name);
+	pID = findPopupNumber(name);
 	pname = "Page_"+pID;
 
 	try
@@ -99,7 +111,21 @@ function showPage(name)
 
 	try
 	{
+		var ID;
+		ID = getActivePage();
+
+		if (ID > 0)
+			document.getElementById("Page_"+ID).style.display = 'none';
+
 		document.getElementById(pname).style.display = 'block';
+		
+		for (i in pageNames)
+		{
+			if (pageNames.pages[i].active && pageNames.pages[i].lnpage != name)
+				document.getElementById("Page_"+pageNames.pages[i].ID).style.display = 'none';
+			else if (pageNames.pages[i].active)
+				document.getElementById("Page_"+pageNames.pages[i].ID).style.display = 'inline-block';
+		}
 	}
 	catch(e)
 	{
@@ -127,23 +153,151 @@ function hidePage(name)
 		console.log('hidePage: Error on name <'+name+'> and page '+pname+': '+e);
 	}
 }
-function switchDisplay(name1, name2, dStat, bid)
+function getPopupStatus(name)	// return true if popup is shown
 {
-	var bname;
-	var url;
+	var pID;
+	var pname;
+	var stat;
+
+	pID = findPopupNumber(name);
+
+	if (pID > 0)
+		pname = "Page_"+pID;
+
+	try
+	{
+		stat = document.getElementById(pname).style.display;
+		
+		if (stat == "none")
+			return false;
+		else
+			return true;
+	}
+	catch(e)
+	{
+		console.log('getPopupStatus: Error on name <'+name+'> and page '+pname+': '+e);
+	}
+}
+function getPageStatus(name)	// return true if popup is shown
+{
+	var pID;
+	var pname;
+	var stat;
+
+	pID = findPageNumber(name);
+
+	if (pID > 0)
+		pname = "Page_"+pID;
+
+	try
+	{
+		stat = document.getElementById(pname).style.display;
+		
+		if (stat == "none")
+			return false;
+		else
+			return true;
+	}
+	catch(e)
+	{
+		console.log('getPopupStatus: Error on name <'+name+'> and page '+pname+': '+e);
+	}
+}
+function getActivePage()
+{
+	var name;
+
+	for (i in basePages)
+	{
+		name = "Page_"+basePages.pages[i].ID;
+
+		if (document.getElementById(name).style.display != 'none')
+			return basePages.pages[i].ID;
+	}
+
+	return 0;
+}
+function switchDisplay(name1, name2, dStat, cport, cnum)
+{
 	if (dStat == 1)
 	{
 		document.getElementById(name1).style.display = "none";
 		document.getElementById(name2).style.display = "inline";
-		bname = pageName+":button_"+bid;
-		writeText("PUSH:"+bname+":1;");
+		writeText("PUSH:"+cport+":"+cnum+":1;");
 	}
 	else
 	{
 		document.getElementById(name1).style.display = "inline";
 		document.getElementById(name2).style.display = "none";
-		bname = pageName+":button_"+bid;
-		writeText("PUSH:"+bname+":0;");
+		writeText("PUSH:"+cport+":"+cnum+":0;");
+	}
+}
+function parseMessage(msg)
+{
+	var name;
+	var pos;
+
+	if (msg.startsWidth("@PPN-"))		// Popup on
+	{
+		pos = msg.indexOf(";");			// Do we have a page name?
+										// FIXME: Page names are not supported currently!
+		if (pos < 0)
+			pos = msg.length;
+
+		name = msg.substr(5, pos);		// Extract the popup name
+		showPopup(name);
+	}
+	else if (msg.startsWidth("@PPF-"))	// Popup off
+	{
+		pos = msg.indexOf(";");			// Do we have a page name?
+										// FIXME: Page names are not supported currently!
+		if (pos < 0)
+			pos = msg.length;
+
+		name = msg.substr(5, pos);		// Extract the popup name
+		hidePopup(name);
+	}
+	else if (msg.startsWidth("@PPG-"))	// Toggle a popup
+	{
+		pos = msg.indexOf(";");			// Do we have a page name?
+										// FIXME: Page names are not supported currently!
+		if (pos < 0)
+			pos = msg.length;
+
+		name = msg.substr(5, pos);		// Extract the popup name
+
+		if (getPopupStatus(name))		// Is popup visible?
+			hidePopup(name);
+		else
+			showPopup(name);
+	}
+	else if (msg.startsWidth("@PPK-"))	// Close popup on all pages
+	{
+		var group;
+
+		name = msg.substr(5);			// Extract the popup name
+		group = findPageGroup(name);
+
+		if (group.length > 0)
+			hideGroup(group);
+		else
+			hidePopup(name);
+	}
+	else if (msg == "@PPX")				// close all popups on all pages
+	{
+		var ID;
+
+		for (i in Popups.pages)
+		{
+			ID = Popups.pages[i].ID;
+			name = "Page_"+ID;
+			hidePopup(name);
+		}
+	}
+	else if (msg.startsWidth("PAGE-"))	// Flip to page
+	{
+		name = msg.substr(5);
+		showPage(name);
 	}
 }
 function connect()

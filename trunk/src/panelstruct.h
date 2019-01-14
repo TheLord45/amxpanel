@@ -320,8 +320,8 @@ namespace amx
 		FEEDBACK fb;			// momentary, ...
 		int ap;					// Address port
 		int ad;					// Address channel
-		int ch;					// Channel
-		int cp;					// Port
+		int ch;					// Channel number
+		int cp;					// Channel port
 		int lp;					// Level port
 		int va;
 		int rv;
