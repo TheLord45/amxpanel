@@ -215,6 +215,20 @@ namespace amx
         std::vector<PALETTE_T> paletteList;
     }PROJECT_T;
 
+	enum TEXT_ORIENTATION
+	{
+		ORI_ABSOLUT,
+		ORI_TOP_LEFT,
+		ORI_TOP_MIDDLE,
+		ORI_TOP_RIGHT,
+		ORI_CENTER_LEFT,
+		ORI_CENTER_MIDDLE,		// default
+		ORI_CENTER_RIGHT,
+		ORI_BOTTOM_LEFT,
+		ORI_BOTTOM_MIDDLE,
+		ORI_BOTTOM_RIGHT
+	};
+
 	typedef struct SR
 	{
 		int number;
@@ -234,12 +248,12 @@ namespace amx
 		int iy;                 // bitmap Y position
 		int fi;                 // Font index?
 		strings::String te;     // Text
-		int jt;
+		TEXT_ORIENTATION jt;	// Text orientation
 		int tx;                 // Text X position
 		int ty;                 // Text Y position
 		int ww;                 // line break when 1
 		int et;
-		
+
 		void clear()
 		{
 			number = 0;
@@ -259,7 +273,7 @@ namespace amx
 			iy = 0;
 			fi = 0;
 			te.clear();
-			jt = 0;
+			jt = ORI_CENTER_MIDDLE;
 			tx = 0;
 			ty = 0;
 			ww = 0;

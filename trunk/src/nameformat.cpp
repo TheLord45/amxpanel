@@ -169,3 +169,50 @@ char *NameFormat::EncodeTo(char* buf, size_t *len, const String& str, const Stri
 	*len = out_buf - buf;
 	return buf;
 }
+
+String NameFormat::textToWeb(const String& txt)
+{
+	String out;
+
+	if (txt.empty())
+		return out;
+
+	for (size_t i = 0; i < txt.length(); i++)
+	{
+		unsigned char c = txt.at(i);
+
+		if (c == '\r')
+			continue;
+
+		if (c == '\n')
+			out += "<br>";
+		else if (c == '&')
+			out += "&amp;";
+		else if (c == ';')
+			out += "&semi;";
+		else if (c == '<')
+			out += "&lt;";
+		else if (c == '>')
+			out += "&gt;";
+		else if (c == '\t')
+			out += "&tab;";
+		else if (c == '!')
+			out += "&excl;";
+		else if (c == '"')
+			out += "&quot;";
+		else if (c == '#')
+			out += "&num;";
+		else if (c == '\'')
+			out += "&apos;";
+		else if (c == '=')
+			out += "&equals;";
+		else if (c == '-')
+			out += "&dash;";
+		else if (c == '~')
+			out += "&tilde;";
+		else
+			out += (char)c;
+	}
+
+	return out;
+}

@@ -339,7 +339,7 @@ bool amx::Page::parsePage()
 				else if (name.caseCompare("iy") == 0 && reader.has_value())
 					page.buttons.back().sr.back().iy = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("jt") == 0 && reader.has_value())
-					page.buttons.back().sr.back().jt = atoi(reader.get_value().c_str());
+					page.buttons.back().sr.back().jt = iToTo(atoi(reader.get_value().c_str()));
 				else if (name.caseCompare("tx") == 0 && reader.has_value())
 					page.buttons.back().sr.back().tx = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ty") == 0 && reader.has_value())
@@ -393,7 +393,7 @@ bool amx::Page::parsePage()
 				else if (name.caseCompare("iy") == 0 && reader.has_value())
 					page.sr.back().iy = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("jt") == 0 && reader.has_value())
-					page.sr.back().jt = atoi(reader.get_value().c_str());
+					page.sr.back().jt = iToTo(atoi(reader.get_value().c_str()));
 				else if (name.caseCompare("tx") == 0 && reader.has_value())
 					page.sr.back().tx = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ty") == 0 && reader.has_value())
@@ -462,6 +462,7 @@ void amx::Page::generateButtons()
 			String buf = pbt.getWebCode();
 			btWebBuffer.push_back(buf);
 			scriptCode += pbt.getScriptCode();
+			scrStart += pbt.getScriptCodeStart();
 		}
 	}
 	catch (exception& e)
@@ -659,4 +660,22 @@ String amx::Page::isoToUTF(const String& str)
 	}
 
 	return strOut;
+}
+
+TEXT_ORIENTATION amx::Page::iToTo(int t)
+{
+	switch(t)
+	{
+		case 0: return ORI_ABSOLUT;
+		case 1: return ORI_TOP_LEFT;
+		case 2: return ORI_TOP_MIDDLE;
+		case 3: return ORI_TOP_RIGHT;
+		case 4: return ORI_CENTER_LEFT;
+		case 5: return ORI_CENTER_MIDDLE;
+		case 6: return ORI_CENTER_RIGHT;
+		case 7: return ORI_BOTTOM_LEFT;
+		case 8: return ORI_BOTTOM_MIDDLE;
+		case 9: return ORI_BOTTOM_RIGHT;
+		default: return ORI_CENTER_MIDDLE;
+	}
 }

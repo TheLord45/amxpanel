@@ -35,7 +35,12 @@ PushButton::PushButton(const BUTTON_T& bt, const std::vector<PDATA_T>& pal)
 	onOff = false;
 	state = 0;
 	fontClass = 0;
-	btName = String("Button_")+bt.bi;
+
+	if (button.ap == 0 && isSystemReserved(button.ad))
+		btName = getButtonName(button.ad);
+	else
+		btName = String("Button_")+bt.bi;
+
 	hScript = false;
 	scriptType = SCR_NONE;
 }
@@ -62,8 +67,11 @@ String PushButton::getStyle()
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		// Name: .button<number>-<name>
-		style += String(".Page")+pageID+"_b"+i+"_"+btName+" {\n";
+		if (button.ap == 0 && isSystemReserved(button.ad))
+			style += String(".")+btName+i+" {\n";
+		else	// Name: .button<number>_b<id>_<name>
+			style += String(".Page")+pageID+"_b"+i+"_"+btName+" {\n";
+
 		style += "  position: absolute;\n";
 		style += String("  left: ")+String(button.lt)+"px;\n";
 		style += String("  top: ")+String(button.tp)+"px;\n";
@@ -71,9 +79,15 @@ String PushButton::getStyle()
 		style += String("  height: ")+String(button.ht)+"px;\n";
 
 		if (button.zo > 0)
-			style += String("   z-index: ")+button.zo+";\n";
+			style += String("  z-index: ")+button.zo+";\n";
 
-		style += "  border: none;\n";		// FIXME!
+		if (!button.sr[i].bs.empty())
+		{
+			style += getBorderStyle(button.sr[i].bs);
+			style += String("  border-color: ")+pal.colorToString(pal.getColor(button.sr[i].cb))+";\n";
+		}
+		else
+			style += "  border: none;\n";
 
 		if (button.sr[i].mi.length() && button.sr[i].bm.length())
 		{
@@ -101,21 +115,38 @@ String PushButton::getStyle()
 
 		if (font.number == button.sr[i].fi)
 		{
-			style += String(".Page")+pageID+"_b"+i+"_"+btName+"_font {\n";
-			style += "  position: absolute;\n";
+			if (button.ap == 0 && isSystemReserved(button.ad))
+				style += String(".")+btName+i+"_font {\n";
+			else
+				style += String(".Page")+pageID+"_b"+i+"_"+btName+"_font {\n";
+
 			style += "  border: none;\n";
+			style += "  position: absolute;\n";
+			style += String("  left: 5%;\n");
+			style += String("  width: 90%;\n");
+			style += String("  height: 100%;\n");
 			style += String("  font-family: ")+NameFormat::toValidName(font.name)+";\n";
 			style += String("  font-size: ")+String(font.size)+"pt;\n";
 			style += String("  font-style: ")+fontClass->getFontStyle(font.subfamilyName)+";\n";
 			style += String("  font-weight: ")+fontClass->getFontWeight(font.subfamilyName)+";\n";
 
-			if (button.sr[i].jt == 0)
+			switch(button.sr[i].jt)
 			{
-				style += String("  left: ")+String(button.sr[i].tx)+"px;\n";
-				style += String("  top: ")+String(button.sr[i].ty)+"px;\n";
+				case ORI_ABSOLUT:
+					style += String("  left: ")+button.sr[i].tx+"px;\n";
+					style += String("  top: ")+button.sr[i].ty+"px;\n";
+				break;
+
+				case ORI_TOP_LEFT:		style += "  text-align: left;\n  vertical-align: top;\n"; break;
+				case ORI_TOP_MIDDLE:	style += "  text-align: center;\n  vertical-align: top;\n"; break;
+				case ORI_TOP_RIGHT:		style += "  text-align: right;\n  vertical-align: top;\n"; break;
+				case ORI_CENTER_LEFT:	style += "  text-align: left;\n  vertical-align: middle;\n"; break;
+				case ORI_CENTER_MIDDLE:	style += "  text-align: center;\n  vertical-align: middle;\n"; break;
+				case ORI_CENTER_RIGHT:	style += "  text-align: right;\n  vertical-align: middle;\n"; break;
+				case ORI_BOTTOM_LEFT:	style += "  text-align: left;\n  vertical-align: bottom;\n"; break;
+				case ORI_BOTTOM_MIDDLE:	style += "  text-align: center;\n  vertical-align: bottom;\n"; break;
+				case ORI_BOTTOM_RIGHT:	style += "  text-align: right;\n  vertical-align: bottom;\n"; break;
 			}
-			else
-				style += "  text-align: center;\n";		// FIXME!
 
 			style += "}\n";
 		}
@@ -133,16 +164,33 @@ String PushButton::getWebCode()
 
 	if (button.type == GENERAL && button.sr.size() >= 2)
 	{
-		names = String("'Page")+pageID+"_b0_"+btName+"',";
-		names += String("'Page")+pageID+"_b1_"+btName+"'";
+		if (button.ap == 0 && isSystemReserved(button.ad))
+		{
+			names = btName+"0',";
+			names += btName+"1'";
+		}
+		else
+		{
+			names = String("'Page")+pageID+"_b0_"+btName+"',";
+			names += String("'Page")+pageID+"_b1_"+btName+"'";
+		}
 	}
 
-	code = String("   <a href=\"#\" id=\"Page")+pageID+btName+"\">\n";
+	if (button.ap == 0 && isSystemReserved(button.ad))
+		code = String("   <a href=\"#\" id=\"")+btName+"\">\n";
+	else
+		code = String("   <a href=\"#\" id=\"Page")+pageID+btName+"\">\n";
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		// FIXME: Die unterschiedlichen button status berÃ¼cksichtigen
-		String nm = String("Page")+pageID+"_b"+i+"_"+btName;
+		// FIXME: Die unterschiedlichen button status berücksichtigen
+		String nm;
+
+		if (button.ap == 0 && isSystemReserved(button.ad))
+			nm = btName+i;
+		else
+			nm = String("Page")+pageID+"_b"+i+"_"+btName;
+
 		code += String("      <div id=\"")+nm+"\" class=\""+nm+"\"";
 
 		if (!button.pfName.empty() && !button.pfType.empty())
@@ -166,9 +214,11 @@ String PushButton::getWebCode()
 
 		if (button.sr[i].te.length() > 0)
 		{
-			code += String("         <span class=\"")+nm+"_font\">";
-			code += button.sr[i].te+"</span>\n";
+			code += String("         <span id=\"")+nm+"_font\" class=\""+nm+"_font\">";
+			code += NameFormat::textToWeb(button.sr[i].te)+"</span>\n";
 		}
+		else if (button.ad > 0 && button.ap > 0)	// A ^TXT command could send text to this field
+			code += String("         <span id=\"")+nm+"_font\" class=\""+nm+"_font\"></span>\n";
 
 		code += "      </div>\n";
 	}
@@ -180,6 +230,8 @@ String PushButton::getWebCode()
 
 int amx::PushButton::findPage(const strings::String& name)
 {
+	sysl->TRACE(String("PushButton::findPage(const strings::String& name)"));
+
 	for (size_t i = 0; i < pageList.size(); i++)
 	{
 		if (pageList[i].name.compare(name) == 0)
@@ -191,12 +243,17 @@ int amx::PushButton::findPage(const strings::String& name)
 
 String PushButton::getScriptCode()
 {
+	sysl->TRACE(String("PushButton::getScriptCode()"));
+
+	if (button.ap != 0)
+		return "";
+
 	String code;
 
 	// This is for displaying the time
-	if (button.ap == 0 && button.ad == 141)		// System time standard
+	if (button.ad == 141)		// System time standard
 	{
-		code += "function startTimeStandard() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar h = today.getHours();\n";
 		code += "\tvar m = today.getMinutes();\n";
@@ -204,17 +261,21 @@ String PushButton::getScriptCode()
 		code += "\th = checkTime(h);\n";
 		code += "\tm = checkTime(m);\n";
 		code += "\ts = checkTime(s);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = h + \":\" + m + \":\" + s;\n";
-		code += "\tvar t = setTimeout(startTimeStandard, 500);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = h + \":\" + m + \":\" + s;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 500);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_TIME_STANDARD;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
-	if (button.ap == 0 && button.ad == 142)		// System time AM/PM
+	if (button.ad == 142)		// System time AM/PM
 	{
-		code += "function startTimeAMPM() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar h = today.getHours();\n";
 		code += "\tvar m = today.getMinutes();\n";
@@ -224,34 +285,42 @@ String PushButton::getScriptCode()
 		code += "\t\ts = \"PM\";\n\t}\n";
 		code += "\th = checkTime(h);\n";
 		code += "\tm = checkTime(m);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = h + \":\" + m + \" \" + s;\n";
-		code += "\tvar t = setTimeout(startTimeAMPM, 500);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = h + \":\" + m + \" \" + s;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 500);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_TIME_AMPM;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
-	if (button.ap == 0 && button.ad == 143)		// System time 24 hour
+	if (button.ad == 143)		// System time 24 hour
 	{
-		code += "function startTime24() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar h = today.getHours();\n";
 		code += "\tvar m = today.getMinutes();\n";
 		code += "\th = checkTime(h);\n";
 		code += "\tm = checkTime(m);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = h + \":\" + m;\n";
-		code += "\tvar t = setTimeout(startTime24, 500);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = h + \":\" + m;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 500);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_TIME_24;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
 	// This is for displaying the date
-	if (button.ap == 0 && button.ad == 151)		// System date: weekday
+	if (button.ad == 151)		// System date: weekday
 	{
-		code += "function startDate_151() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tswitch(today.getDay()) {\n";
 		code += "\t\tcase 0: return 'Sunday'; break;\n";
@@ -262,83 +331,103 @@ String PushButton::getScriptCode()
 		code += "\t\tcase 5: return 'Friday'; break;\n";
 		code += "\t\tcase 6: return 'Saturday'; break;\n";
 		code += "\t}\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = mon + '/' + day;\n";
-		code += "\tvar t = setTimeout(startDate_151, 1000);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = mon + '/' + day;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_DATE_WEEKDAY;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
-	if (button.ap == 0 && button.ad == 152)		// System date: mm/dd
+	if (button.ad == 152)		// System date: mm/dd
 	{
-		code += "function startDate_152() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar mon = today.getMonth() + 1;\n";
 		code += "\tvar day = today.getDate();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = mon + '/' + day;\n";
-		code += "\tvar t = setTimeout(startDate_152, 1000);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = mon + '/' + day;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_DATE_M_D;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
-	if (button.ap == 0 && button.ad == 153)		// System date: dd/mm
+	if (button.ad == 153)		// System date: dd/mm
 	{
-		code += "function startDate_153() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar mon = today.getMonth() + 1;\n";
 		code += "\tvar day = today.getDate();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = day + '/' + mon;\n";
-		code += "\tvar t = setTimeout(startDate_153, 1000);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = day + '/' + mon;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_DATE_D_M;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
-	if (button.ap == 0 && button.ad == 154)		// System date: mm/dd/yyyy
+	if (button.ad == 154)		// System date: mm/dd/yyyy
 	{
-		code += "function startDate_154() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar mon = today.getMonth() + 1;\n";
 		code += "\tvar day = today.getDate();\n";
 		code += "\tvar year = today.getFullYear();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = mon + '/' + day + '/' + year;\n";
-		code += "\tvar t = setTimeout(startDate_154, 1000);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = mon + '/' + day + '/' + year;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_DATE_M_D_Y;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
-	if (button.ap == 0 && button.ad == 155)		// System date: dd/mm/yyyy
+	if (button.ad == 155)		// System date: dd/mm/yyyy
 	{
-		code += "function startDate_155() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar mon = today.getMonth() + 1;\n";
 		code += "\tvar day = today.getDate();\n";
 		code += "\tvar year = today.getFullYear();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = day + '/' + mon + '/' + year;\n";
-		code += "\tvar t = setTimeout(startDate_155, 1000);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = day + '/' + mon + '/' + year;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_DATE_D_M_Y;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
-	if (button.ap == 0 && button.ad == 156)		// System date: month dd, yyyy
+	if (button.ad == 156)		// System date: month dd, yyyy
 	{
-		code += "function startDate_156() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar mon = today.getMonth();\n";
 		code += "\tvar day = today.getDate();\n";
@@ -358,17 +447,21 @@ String PushButton::getScriptCode()
 		code += "\t\tcase 11: mon = 'December'; break;\n";
 		code += "\t}\n";
 		code += "\tday = checkTime(day);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = mon + ' ' + day + ', ' + year;\n";
-		code += "\tvar t = setTimeout(startDate_156, 1000);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = mon + ' ' + day + ', ' + year;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_DATE_MONTH_D_Y;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
-	if (button.ap == 0 && button.ad == 157)		// System date: dd month, yyyy
+	if (button.ad == 157)		// System date: dd month, yyyy
 	{
-		code += "function startDate_157() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar mon = today.getMonth();\n";
 		code += "\tvar day = today.getDate();\n";
@@ -388,28 +481,36 @@ String PushButton::getScriptCode()
 		code += "\t\tcase 11: mon = 'December'; break;\n";
 		code += "\t}\n";
 		code += "\tday = checkTime(day);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = day + ' ' + mon + ', ' + year;\n";
-		code += "\tvar t = setTimeout(startDate_157, 1000);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = day + ' ' + mon + ', ' + year;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_DATE_D_MONTH_Y;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 
-	if (button.ap == 0 && button.ad == 158)		// System date: yyyy-mm-dd
+	if (button.ad == 158)		// System date: yyyy-mm-dd
 	{
-		code += "function startDate_158() {\n";
+		code += String("function ")+getFuncName(button.ad)+"() {\n";
 		code += "\tvar today = new Date();\n";
 		code += "\tvar mon = today.getMonth() + 1;\n";
 		code += "\tvar day = today.getDate();\n";
 		code += "\tvar year = today.getFullYear();\n";
 		code += "\tmon = checkTime(mon);\n";
 		code += "\tday = checkTime(day);\n";
-		code += String("\tdocument.getElementById('")+btName+"').innerHTML = year + '-' + mon + '-' + day;\n";
-		code += "\tvar t = setTimeout(startDate_158, 1000);\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+			code += String("\tdocument.getElementById('")+getBorderStyle(button.ad)+i+"_font').innerHTML = year + '-' + mon + '-' + day;\n";
+
+		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
 		hScript = true;
 		scriptType = SCR_DATE_Y_M_D;
+		scrStart = getFuncName(button.ad)+"();";
 		return code;
 	}
 

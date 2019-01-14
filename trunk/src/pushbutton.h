@@ -21,10 +21,11 @@
 #include "strings.h"
 #include "palette.h"
 #include "fontlist.h"
+#include "systemreserved.h"
 
 namespace amx
 {
-	class PushButton
+	class PushButton : public SystemReserved
 	{
 		public:
 			enum SCR_TYPE
@@ -56,6 +57,7 @@ namespace amx
 			strings::String getScriptCode();
 			bool haveScript() { return hScript; }
 			SCR_TYPE getScriptType() { return scriptType; }
+			strings::String getScriptCodeStart() { return scrStart; }
 
 			void setPageList(const std::vector<PAGE_T>& pl) { pageList = pl; }
 			int findPage(const strings::String& name);
@@ -67,6 +69,7 @@ namespace amx
 			FontList *fontClass;
 			int pageID;
 			strings::String btName;
+			strings::String scrStart;
 			bool hScript;
 			SCR_TYPE scriptType;
 			std::vector<PAGE_T> pageList;
