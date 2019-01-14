@@ -81,6 +81,7 @@ namespace amx
 			void writeAllPopups(std::fstream& pgFile);
 
 			strings::String scrBuffer;
+			strings::String scrStart;
 			bool gotPages;
 			int openPage;		// The index number of the currently open page
 			std::vector<int> openPopups;	// The currently open popups connected

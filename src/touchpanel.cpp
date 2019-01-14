@@ -296,6 +296,7 @@ void TouchPanel::readPages()
 				pg.styles = p.getStyleCode();
 				pg.webcode = p.getWebCode();
 				scrBuffer += p.getScriptCode();
+				scrStart += p.getScriptStart();
 
 				if (pg.name.compare(getProject().panelSetup.powerUpPage) == 0)
 					pg.active = true;
@@ -315,6 +316,7 @@ void TouchPanel::readPages()
 				pop.webcode = p.getWebCode();
 				pop.active = false;
 				scrBuffer += p.getScriptCode();
+				scrStart += p.getScriptStart();
 
 				for (size_t j = 0; j < getProject().panelSetup.powerUpPopup.size(); j++)
 				{
@@ -415,6 +417,7 @@ bool TouchPanel::parsePages()
 	for (size_t i = 0; i < prg.panelSetup.powerUpPopup.size(); i++)
 		pgFile << "\tshowPopup('" << prg.panelSetup.powerUpPopup[i] << "');\n";
 
+	pgFile << String("\t")+scrStart+"\n";
 	pgFile << "}\n";
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";

@@ -305,21 +305,29 @@ void amx::Panel::readProject()
 			sysl->TRACE(String("Panel::readProject: ID=")+Project.paletteList[i].paletteID+", name="+Project.paletteList[i].name+", file="+Project.paletteList[i].file);
 	}
 
-	// Read the color palette
-	if (!pPalettes)
-		pPalettes = new Palette(Project.paletteList, Project.supportFileList.colorFile);
-
-	// Read the icon slot table
-	if (!pIcons)
-		pIcons = new Icon(Project.supportFileList.iconFile);
-
-	// Read the font map list
-	if (!pFontLists)
-		pFontLists = new FontList(Project.supportFileList.fontFile);
-
-	if (!pPalettes->isOk() || !pIcons->isOk() || !pFontLists->isOk())
+	try
 	{
-		sysl->warnlog(String("Panel::readProject: Reading the project failed!"));
+		// Read the color palette
+		if (!pPalettes)
+			pPalettes = new Palette(Project.paletteList, Project.supportFileList.colorFile);
+
+		// Read the icon slot table
+		if (!pIcons)
+			pIcons = new Icon(Project.supportFileList.iconFile);
+
+		// Read the font map list
+		if (!pFontLists)
+			pFontLists = new FontList(Project.supportFileList.fontFile);
+
+		if (!pPalettes->isOk() || !pIcons->isOk() || !pFontLists->isOk())
+		{
+			sysl->warnlog(String("Panel::readProject: Reading the project failed!"));
+			status = false;
+		}
+	}
+	catch (std::exception& e)
+	{
+		sysl->errlog(String("Panel::readProject: Memory error: ")+e.what());
 		status = false;
 	}
 }

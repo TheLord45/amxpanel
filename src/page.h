@@ -42,6 +42,7 @@ namespace amx
 			PAGETYPE getType() { return page.type; }
 			strings::String& getGroupName() { return page.group; }
 			strings::String& getScriptCode() { return scriptCode; }
+			strings::String& getScriptStart() { return scrStart; }
 
 			void setPalette(Palette *pal) { paletteClass = pal; }
 //			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
@@ -56,6 +57,7 @@ namespace amx
 			void clear();
 			void generateButtons();
 			strings::String isoToUTF(const strings::String& str);
+			TEXT_ORIENTATION iToTo(int t);
 
 			PAGE_T page;
 			std::vector<PAGE_T> pgList;
@@ -67,6 +69,7 @@ namespace amx
 			std::vector<strings::String> btWebBuffer;
 			strings::String styleBuffer;
 			strings::String scriptCode;
+			strings::String scrStart;
 			strings::String paletteFile;
 			strings::String pageFile;
 			int totalWidth;

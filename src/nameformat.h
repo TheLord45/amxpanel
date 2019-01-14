@@ -31,6 +31,7 @@ class NameFormat
 		static strings::String transFontName(strings::String& str);
 		static strings::String toURL(strings::String& str);
 		static char *EncodeTo(char *buf, size_t *len, const strings::String& str, const strings::String& from, const strings::String& to);
+		static strings::String textToWeb(const strings::String& txt);
 };
 
 #endif

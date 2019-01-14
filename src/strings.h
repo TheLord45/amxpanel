@@ -74,15 +74,17 @@
  */
 namespace strings
 {
-    #define MEM_BLOCK   8192        // Size of one memory block
-    #define MAX_BLOCK   131072      // 128 Kib max.
+	#define MEM_BLOCK   8192        // Size of one memory block
+//	#define MAX_BLOCK   131072      // 128 Kib max.
+	#define MAX_BLOCK   819200      // 800 Kib max.
 
-    #define STHROW(msg) throw std::invalid_argument(msg)
-    #define SCATCH(err) const std::exception& err
+	#define STHROW(msg) throw std::invalid_argument(msg)
+	#define SCATCH(err) const std::exception& err
 
-    #define ERR_OUT_OF_BOUNDS   "Index is out of bound"
-    #define ERR_INVALID_INDEX   "Index is invalid"
-    #define ERR_OUT_OF_MEMORY   "Can't allocate more than 131072 bytes of memory!"
+	#define ERR_OUT_OF_BOUNDS   "Index is out of bound"
+	#define ERR_INVALID_INDEX   "Index is invalid"
+//	#define ERR_OUT_OF_MEMORY   "Can't allocate more than 131072 bytes of memory!"
+	#define ERR_OUT_OF_MEMORY   "Can't allocate more than 819200 bytes of memory!"
 
 #ifdef ENVIRONMENT32
     typedef long long           LONG;
