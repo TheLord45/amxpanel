@@ -276,7 +276,6 @@ void TouchPanel::readPages()
 			sysl->TRACE(String("TouchPanel::readPages: Parsing page ")+pgs[i]);
 			Page p(pgs[i]);
 			p.setPalette(getPalettes());
-//			p.setPaletteFile(getProject().supportFileList.colorFile);
 			p.setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
 			p.setFontClass(getFontList());
 			p.setProject(&getProject());
@@ -489,6 +488,24 @@ void TouchPanel::writeGroups (fstream& pgFile)
 	pgFile << "}';\n\n";
 }
 
+void TouchPanel::writePages(std::fstream& pgFile)
+{
+	sysl->TRACE(String("TouchPanel::writePages(std::fstream& pgFile)"));
+	bool first = false;
+	pgFile << "var basePages = '{\"pages\":[";
+    
+	for (size_t i = 0; i < stPages.size(); i++)
+	{
+		if (!first)
+			pgFile << ",";
+
+		pgFile << "{\"name\":\"" << stPages[i].name << "\",\"ID\":" << stPages[i].ID << "}";
+		first = false;
+	}
+
+	pgFile << "]}';\n";
+}
+
 void TouchPanel::writePopups (fstream& pgFile)
 {
 	sysl->TRACE(std::string("TouchPanel::writePopups (fstream& pgFile)"));
@@ -500,7 +517,7 @@ void TouchPanel::writePopups (fstream& pgFile)
 		if (!first)
 			pgFile << ",";
 
-		pgFile << "{\"name\":\"" << stPopups[i].name << "\",\"ID\":" << stPopups[i].ID << ",\"group\":\"" << stPopups[i].group << "\"}";
+		pgFile << "{\"name\":\"" << stPopups[i].name << "\",\"ID\":" << stPopups[i].ID << ",\"group\":\"" << stPopups[i].group << "\",\"active\":false,\"lnpage\":\"\"}";
 		first = false;
 	}
 

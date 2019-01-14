@@ -206,8 +206,8 @@ String PushButton::getWebCode()
 
 		if (button.type == GENERAL && button.fb == FB_MOMENTARY && (i == 0 || i == 1))
 		{
-			code += String(" onmousedown=\"switchDisplay(")+names+",1,"+button.bi+");\"";
-			code += String(" onmouseup=\"switchDisplay(")+names+",0,"+button.bi+");\"";
+			code += String(" onmousedown=\"switchDisplay(")+names+",1,"+button.cp+","+button.ch+");\"";
+			code += String(" onmouseup=\"switchDisplay(")+names+",0,"+button.cp+","+button.ch+");\"";
 		}
 
 		code += ">\n";
