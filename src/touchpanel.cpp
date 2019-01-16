@@ -396,10 +396,13 @@ bool TouchPanel::parsePages()
 	pgFile << "\"use strict\";\n";
 	pgFile << "var pageName = \"\";\n";
 	pgFile << "var wsocket;\n";
+    writePages(pgFile);
 	writePopups(pgFile);
 	writeGroups(pgFile);
+    pgFile << "var Pages;\n";
 	pgFile << "var Popups;\n";
 	pgFile << "var popupGroups;\n\n";
+    pgFile << "Pages = JSON.parse(basePages);\n";
 	pgFile << "Popups = JSON.parse(pageNames);\n";
 	pgFile << "popupGroups = JSON.parse(pageGroups);\n";
 	pgFile << "</script>\n";
@@ -409,9 +412,8 @@ bool TouchPanel::parsePages()
 	pgFile << scrBuffer << "\n";
 	// This is the "main" program
 	PROJECT_T prg = getProject();
-	int aid = findPage(prg.panelSetup.powerUpPage);
 	pgFile << "function main()\n{\n";
-	pgFile << "\tshowPage('Page_"<< aid << "');\n";
+	pgFile << "\tshowPage('"<< prg.panelSetup.powerUpPage << "');\n";
 
 	for (size_t i = 0; i < prg.panelSetup.powerUpPopup.size(); i++)
 		pgFile << "\tshowPopup('" << prg.panelSetup.powerUpPopup[i] << "');\n";
@@ -491,7 +493,7 @@ void TouchPanel::writeGroups (fstream& pgFile)
 void TouchPanel::writePages(std::fstream& pgFile)
 {
 	sysl->TRACE(String("TouchPanel::writePages(std::fstream& pgFile)"));
-	bool first = false;
+	bool first = true;
 	pgFile << "var basePages = '{\"pages\":[";
     
 	for (size_t i = 0; i < stPages.size(); i++)
@@ -499,7 +501,7 @@ void TouchPanel::writePages(std::fstream& pgFile)
 		if (!first)
 			pgFile << ",";
 
-		pgFile << "{\"name\":\"" << stPages[i].name << "\",\"ID\":" << stPages[i].ID << "}";
+		pgFile << "{\"name\":\"" << stPages[i].name << "\",\"ID\":" << stPages[i].ID << ",\"active\":false}";
 		first = false;
 	}
 
