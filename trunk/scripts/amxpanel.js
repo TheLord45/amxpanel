@@ -14,10 +14,10 @@ function findPageNumber(name)
 {
 	var i;
 
-	for (i in basePages.pages)
+	for (i in Pages.pages)
 	{
-		if (basePages.pages[i].name == name)
-			return basePages.pages[i].ID;
+		if (Pages.pages[i].name == name)
+			return Pages.pages[i].ID;
 	}
 
 	return -1;
@@ -104,7 +104,7 @@ function showPage(name)
 
 	pID = findPageNumber(name);
 
-	if (pID >= 0)
+	if (pID > 0)
 		pname = "Page_"+pID;
 	else
 		pname = name;
@@ -119,11 +119,11 @@ function showPage(name)
 
 		document.getElementById(pname).style.display = 'block';
 		
-		for (i in pageNames)
+		for (i in basePages)
 		{
-			if (pageNames.pages[i].active && pageNames.pages[i].lnpage != name)
+			if (Pages.pages[i].active && Pages.pages[i].lnpage != name)
 				document.getElementById("Page_"+pageNames.pages[i].ID).style.display = 'none';
-			else if (pageNames.pages[i].active)
+			else if (Pages.pages[i].active)
 				document.getElementById("Page_"+pageNames.pages[i].ID).style.display = 'inline-block';
 		}
 	}
@@ -184,24 +184,13 @@ function getPageStatus(name)	// return true if popup is shown
 	var pname;
 	var stat;
 
-	pID = findPageNumber(name);
-
-	if (pID > 0)
-		pname = "Page_"+pID;
-
-	try
+	for (i in basePages)
 	{
-		stat = document.getElementById(pname).style.display;
-		
-		if (stat == "none")
-			return false;
-		else
-			return true;
+		if (Pages.pages[i].name == name)
+			return Pages.pages[i].active;
 	}
-	catch(e)
-	{
-		console.log('getPopupStatus: Error on name <'+name+'> and page '+pname+': '+e);
-	}
+
+	return -1;
 }
 function getActivePage()
 {
@@ -209,10 +198,8 @@ function getActivePage()
 
 	for (i in basePages)
 	{
-		name = "Page_"+basePages.pages[i].ID;
-
-		if (document.getElementById(name).style.display != 'none')
-			return basePages.pages[i].ID;
+		if (Pages.pages[i].active == true)
+			return Pages.pages[i].ID;
 	}
 
 	return 0;
