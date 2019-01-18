@@ -21,6 +21,7 @@
 #include "strings.h"
 #include "palette.h"
 #include "fontlist.h"
+#include "icon.h"
 #include "systemreserved.h"
 
 namespace amx
@@ -50,6 +51,7 @@ namespace amx
 			void setSwitch(bool s) { onOff = s; }
 			void setState(size_t s);
 			void setFontClass(FontList *fl) { fontClass = fl; }
+			void setIconClass(Icon *ic) { iconClass = ic; }
 			void setPageID(int id) { pageID = id; }
 			void setPalette(const std::vector<PDATA_T>& pal) { palette = pal; }
 			strings::String getStyle();
@@ -61,12 +63,15 @@ namespace amx
 
 			void setPageList(const std::vector<PAGE_T>& pl) { pageList = pl; }
 			int findPage(const strings::String& name);
+			bool getImageDimensions(const strings::String fname, int *width, int *height);
+			strings::String createChameleonImage(const strings::String bm1, const strings::String bm2);
 
 		private:
 			BUTTON_T button;
 			bool onOff;
 			int state;
 			FontList *fontClass;
+			Icon *iconClass;
 			int pageID;
 			strings::String btName;
 			strings::String scrStart;

@@ -36,6 +36,7 @@ namespace amx
 
             bool isOk() { return status; }
             strings::String getFileName(size_t idx);
+            strings::String getFileFromID(int id);
 
         private:
             std::vector<ICON_T> icons;

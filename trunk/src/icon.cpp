@@ -100,3 +100,19 @@ strings::String amx::Icon::getFileName(size_t idx)
     return icons.at(idx).file;
 }
 
+strings::String amx::Icon::getFileFromID(int id)
+{
+	sysl->TRACE(String("Icon::getFileFromID(int id)"));
+
+	for (size_t i = 0; i < icons.size(); i++)
+	{
+		if (icons[i].index == id)
+		{
+			sysl->TRACE(String("Icon::getFileFromID: ID ")+id+" with file "+icons[i].file+" found.");
+			return icons[i].file;
+		}
+	}
+
+	sysl->TRACE(String("Icon::getFileFromID: No icon for ID ")+id+" found!");
+	return "";
+}
