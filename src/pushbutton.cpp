@@ -18,6 +18,7 @@
 #include "nameformat.h"
 #include "config.h"
 #include "pushbutton.h"
+#include <gd.h>
 
 extern Syslog *sysl;
 extern Config *Configuration;
@@ -35,6 +36,7 @@ PushButton::PushButton(const BUTTON_T& bt, const std::vector<PDATA_T>& pal)
 	onOff = false;
 	state = 0;
 	fontClass = 0;
+	iconClass = 0;
 
 	if (button.ap == 0 && isSystemReserved(button.ad))
 		btName = getButtonName(button.ad);
@@ -81,6 +83,9 @@ String PushButton::getStyle()
 		if (button.zo > 0)
 			style += String("  z-index: ")+button.zo+";\n";
 
+		if (button.hs.caseCompare("bounding") == 0)
+			style += String("  overflow: hidden;\n");
+
 		if (!button.sr[i].bs.empty())
 		{
 			style += getBorderStyle(button.sr[i].bs);
@@ -89,11 +94,18 @@ String PushButton::getStyle()
 		else
 			style += "  border: none;\n";
 
-		if (button.sr[i].mi.length() && button.sr[i].bm.length())
+		if (button.sr[i].mi.length() && button.sr[i].bm.length())	// Chameleon image?
 		{
-			style += String("  background-image: url(images/")+NameFormat::toURL(button.sr[i].mi)+"), ";
-			style += String("url(images/")+NameFormat::toURL(button.sr[i].bm)+");\n";
-			style += "  background-blend-mode: screen;\n";
+			String fname = createChameleonImage(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, Configuration->getHTTProot()+"/images/"+button.sr[i].bm);
+
+			if (!fname.empty())
+				style += String("  background-image: url(")+fname+");\n";
+			else
+			{
+				style += String("  background-image: url(images/")+NameFormat::toURL(button.sr[i].mi)+"), ";
+				style += String("url(images/")+NameFormat::toURL(button.sr[i].bm)+");\n";
+				style += "  background-blend-mode: screen;\n";
+			}
 		}
 		else if (button.sr[i].bm.length())
 			style += String("  background-image: url(images/")+NameFormat::toURL(button.sr[i].bm)+");\n";
@@ -120,12 +132,19 @@ String PushButton::getStyle()
 			else
 				style += String(".Page")+pageID+"_b"+i+"_"+btName+"_font {\n";
 
-			style += "  border: none;\n";
+			if (!button.sr[i].bs.empty())
+			{
+				style += getBorderStyle(button.sr[i].bs);
+				style += "  border-color: rgba(0, 0, 0, 0);\n";
+			}
+			else
+				style += "  border: none;\n";
+
 			style += "  position: absolute;\n";
-			style += String("  left: 5%;\n");
-			style += String("  width: 90%;\n");
+//			style += String("  left: 5%;\n");
+			style += String("  width: 100%;\n");
 			style += String("  height: 100%;\n");
-			style += String("  font-family: ")+NameFormat::toValidName(font.name)+";\n";
+			style += String("  font-family: \"")+font.name+"\";\n";
 			style += String("  font-size: ")+String(font.size)+"pt;\n";
 			style += String("  font-style: ")+fontClass->getFontStyle(font.subfamilyName)+";\n";
 			style += String("  font-weight: ")+fontClass->getFontWeight(font.subfamilyName)+";\n";
@@ -211,6 +230,56 @@ String PushButton::getWebCode()
 		}
 
 		code += ">\n";
+
+		if (iconClass != 0 && button.sr[i].ii > 0)		// Icon?
+		{
+			int width, height;
+
+			code += String("         <img src=\"images/")+iconClass->getFileFromID(button.sr[i].ii)+"\"";
+
+			if (button.sr[i].ji == 0)
+			{
+				if (getImageDimensions(Configuration->getHTTProot()+"/images/"+button.sr[i].bm, &width, &height))
+				{
+					sysl->TRACE(String("PushButton::getWebCode: width=")+width+", height="+height);
+
+					if ((button.sr[i].ix + width) > button.wt)
+					{
+						button.sr[i].ix = (button.wt - width);
+
+						if (button.sr[i].ix < 0)
+							button.sr[i].ix = 0;
+					}
+
+					if ((button.sr[i].iy + height) > button.ht)
+					{
+						button.sr[i].iy = (button.ht - height);
+
+						if (button.sr[i].iy < 0)
+							button.sr[i].iy = 0;
+					}
+				}
+			}
+
+			switch(button.sr[i].ji)			// Icon justification
+			{
+				case 0:	code += String(" style=\"position: absolute;left: ")+button.sr[i].ix+"px;top: "+button.sr[i].iy+"px;\""; break;
+				case 1:	code += " style=\"align: left;vertical-align: top;\""; break;
+				case 2:	code += " style=\"align: center;vertical-align: top;\""; break;
+				case 3:	code += " style=\"align: right;vertical-align: top;\""; break;
+				case 4:	code += " style=\"align: left;vertical-align: middle;\""; break;
+				case 5:	code += " style=\"align: center;vertical-align: middle;\""; break;
+				case 6:	code += " style=\"align: right;vertical-align: middle;\""; break;
+				case 7:	code += " style=\"align: left;vertical-align: bottom;\""; break;
+				case 8:	code += " style=\"align: center;vertical-align: bottom;\""; break;
+				case 9:	code += " style=\"align: right;vertical-align: bottom;\""; break;
+
+				default:
+					code += String(" style=\"position: absolute;left: 0px;top: 0px;\"");
+			}
+
+			code += ">\n";
+		}
 
 		if (button.sr[i].te.length() > 0)
 		{
@@ -515,4 +584,96 @@ String PushButton::getScriptCode()
 	}
 
 	return "";
+}
+
+bool PushButton::getImageDimensions(const String fname, int* width, int* height)
+{
+	sysl->TRACE(String("PushButton::getImageDimensions(const String fname, int* width, int* height)"));
+
+	gdImagePtr im = gdImageCreateFromFile(fname.data());
+
+	if (im == 0)
+	{
+		sysl->errlog(String("PushButton::getImageDimensions: Error opening image ")+fname);
+		*width = 0;
+		*height = 0;
+		return false;
+	}
+
+	int x, y;
+	gdImageGetClip(im, &x, &y, width, height);
+	gdImageDestroy(im);
+	return true;
+}
+
+String PushButton::createChameleonImage(const String bm1, const String bm2)
+{
+	sysl->TRACE(String("PushButton::createChameleonImage(const String bm1, const String bm2)"));
+
+	if (bm1.empty() || bm2.empty())
+		return "";
+
+	gdImagePtr im1 = gdImageCreateFromFile(bm1.data());
+
+	if (im1 == 0)
+	{
+		sysl->TRACE(String("PushButton::createChameleonImage: Error opening image ")+bm1);
+		return "";
+	}
+
+	gdImagePtr im2 = gdImageCreateFromFile(bm2.data());
+
+	if (im2 == 0)
+	{
+		sysl->errlog(String("PushButton::createChameleonImage: Error opening image ")+bm2);
+		gdImageDestroy(im1);
+		return "";
+	}
+
+	int x1, y1, x2, y2;
+	gdImageGetClip(im1, &x1, &y1, &x2, &y2);
+
+	gdImagePtr imNew = gdImageCreateTrueColor(x2, y2);
+
+	if (imNew == 0)
+	{
+		sysl->errlog(String("PushButton::createChameleonImage: Error creating a true color image!"));
+		gdImageDestroy(im1);
+		gdImageDestroy(im2);
+		return "";
+	}
+
+//	gdImageCopy(imNew, im1, 0, 0, 0, 0, x2, y2);
+	int pixNew = 0, pix1 = 0, pix2 = 0;
+	gdImageAlphaBlending(imNew, gdEffectOverlay);
+
+	for (int y = 0; y < y2; y++)
+	{
+		for (int x = 0; x < x2; x++)
+		{
+			pix1 = gdImageGetTrueColorPixel(im1, x, y);
+			pix2 = gdImageGetTrueColorPixel(im2, x, y);
+			pixNew = pix1 ^ pix2;
+//			pixNew = gdLayerOverlay(pix1, pix2);
+//			pixNew = gdAlphaBlend(pixNew, pix1);
+//			pixNew = gdLayerMultiply(pix1, pix2);
+			gdImageSetPixel(imNew, x, y, pixNew);
+		}
+	}
+
+	gdImageDestroy(im1);
+	gdImageDestroy(im2);
+	gdImageSaveAlpha(imNew, 1);
+	String fname = String("ChamImage_")+rand()+".png";
+	String path = Configuration->getHTTProot()+"/"+fname;
+
+	if (gdImageFile(imNew, path.data()) == GD_FALSE)
+	{
+		sysl->errlog(String("PushButton::createChameleonImage: Error writing an image to file ")+path);
+		gdImageDestroy(imNew);
+		return "";
+	}
+
+	gdImageDestroy(imNew);
+	return fname;
 }

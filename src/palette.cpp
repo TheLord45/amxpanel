@@ -256,13 +256,16 @@ String Palette::colorToString(unsigned long col)
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("Palette::colorToString(unsigned long col)"));
 
-	int red, green, blue, alpha;
+	int red, green, blue;
+	double alpha;
+	char calpha[128];
 	String color = "rgba(";
 
 	red = (col >> 24) & 0x000000ff;
 	green = (col >> 16) & 0x000000ff;
 	blue = (col >> 8) & 0x000000ff;
-	alpha = (int)(1.0 / 255.0 * (double)(col & 0x000000ff));
-	color += String(red)+", "+green+", "+blue+", "+alpha+")";
+	alpha = 1.0 / 255.0 * (double)(col & 0x000000ff);
+	snprintf(calpha, sizeof(calpha), "%1.2f", alpha);
+	color += String(red)+", "+green+", "+blue+", "+calpha+")";
 	return color;
 }

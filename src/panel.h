@@ -24,39 +24,40 @@
 
 namespace amx
 {
-    class Panel
-    {
-        public:
-            Panel();
-            Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL);
-            ~Panel();
+	class Panel
+	{
+		public:
+			Panel();
+			Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL);
+			~Panel();
 
-            bool isOk() { return status; }
-            std::vector<strings::String> getPageFileNames();
+			bool isOk() { return status; }
+			std::vector<strings::String> getPageFileNames();
 
-        protected:
-            PROJECT_T& getProject() { return Project; }
-            FontList *getFontList() { return pFontLists; }
-            Palette *getPalettes() { return pPalettes; }
+		protected:
+			PROJECT_T& getProject() { return Project; }
+			FontList *getFontList() { return pFontLists; }
+			Palette *getPalettes() { return pPalettes; }
+			Icon *getIconClass() { return pIcons; }
 
-        private:
-            void readProject();
-            void setVersionInfo(const strings::String& name, const strings::String& value);
-            void setProjectInfo(const strings::String& name, const strings::String& value, const strings::String& attr);
-            void setSupportFileList(const strings::String& name, const strings::String& value);
-            void setPanelSetup(const strings::String& name, const strings::String& value);
-            void setPageList(const strings::String& name, const strings::String& value);
-            void setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr);
-            void setFwFeatureList(const strings::String& name, const strings::String& value);
-            void setPaletteList(const strings::String& name, const strings::String& value);
-            DateTime& getDate(const strings::String& dat, DateTime& dt);
+		private:
+			void readProject();
+			void setVersionInfo(const strings::String& name, const strings::String& value);
+			void setProjectInfo(const strings::String& name, const strings::String& value, const strings::String& attr);
+			void setSupportFileList(const strings::String& name, const strings::String& value);
+			void setPanelSetup(const strings::String& name, const strings::String& value);
+			void setPageList(const strings::String& name, const strings::String& value);
+			void setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr);
+			void setFwFeatureList(const strings::String& name, const strings::String& value);
+			void setPaletteList(const strings::String& name, const strings::String& value);
+			DateTime& getDate(const strings::String& dat, DateTime& dt);
 
-            PROJECT_T Project;
-            Palette *pPalettes;
-            Icon *pIcons;
-            FontList *pFontLists;
-            bool status;
-    };
+			PROJECT_T Project;
+			Palette *pPalettes;
+			Icon *pIcons;
+			FontList *pFontLists;
+			bool status;
+	};
 }
 
 #endif

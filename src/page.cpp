@@ -47,6 +47,7 @@ Page::Page()
 	paletteFile = "pal_001.xma";
 	fontClass = 0;
 	paletteClass = 0;
+	iconClass = 0;
 	buttonsDone = false;
 	styleDone = false;
 	webDone = false;
@@ -61,6 +62,7 @@ amx::Page::Page(const strings::String& file)
 	paletteFile = "pal_001.xma";
 	fontClass = 0;
 	paletteClass = 0;
+	iconClass = 0;
 	buttonsDone = false;
 	styleDone = false;
 	webDone = false;
@@ -328,6 +330,8 @@ bool amx::Page::parsePage()
 							page.buttons.back().sr.back().dynamic = true;
 					}
 				}
+				else if (name.caseCompare("ii") == 0 && reader.has_value())
+					page.buttons.back().sr.back().ii = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("sb") == 0 && reader.has_value())
 					page.buttons.back().sr.back().sb = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ji") == 0 && reader.has_value())
@@ -386,6 +390,8 @@ bool amx::Page::parsePage()
 							page.sr.back().dynamic = true;
 					}
 				}
+				else if (name.caseCompare("ii") == 0 && reader.has_value())
+					page.sr.back().ii = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ji") == 0 && reader.has_value())
 					page.sr.back().ji = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ix") == 0 && reader.has_value())
@@ -457,6 +463,7 @@ void amx::Page::generateButtons()
 			PushButton pbt(page.buttons[i], paletteClass->getPalette());
 			pbt.setFontClass(fontClass);
 			pbt.setPageList(pgList);
+			pbt.setIconClass(iconClass);
 			pbt.setPageID(page.pageID);
 			styleBuffer += pbt.getStyle();
 			String buf = pbt.getWebCode();
@@ -498,13 +505,13 @@ String& amx::Page::getStyleCode()
 
 	String pgName = String("Page_")+page.pageID;
 	styleBuffer = String(".")+pgName+" {\n";
+	styleBuffer += String("  left: ")+String(page.left)+"px;\n";
+	styleBuffer += String("  top: ")+String(page.top)+"px;\n";
 	styleBuffer += String("  width: ")+String(page.width)+"px;\n";
 	styleBuffer += String("  height: ")+String(page.height)+"px;\n";
 
 	if (page.sr.size() > 0 && page.sr[0].bm.length() > 0)
 	{
-		styleBuffer += String("  left: ")+String(page.left)+"px;\n";
-		styleBuffer += String("  top: ")+String(page.top)+"px;\n";
 		styleBuffer += String("  background-color: ")+paletteClass->colorToString(paletteClass->getColor(page.sr[0].cf))+";\n";
 		styleBuffer += String("  color: ")+paletteClass->colorToString(paletteClass->getColor(page.sr[0].ct))+";\n";
 		styleBuffer += String("  background-image: url(images/")+page.sr[0].bm+");\n";

@@ -242,7 +242,8 @@ namespace amx
 		strings::String bm;     // bitmap file name
 		bool dynamic;
 		int sb;
-		int ji;
+		int ii;					// Icon index number
+		int ji;					// Icon style / position like "jt"
 		int jb;
 		int ix;                 // bitmap X position
 		int iy;                 // bitmap Y position
@@ -266,6 +267,7 @@ namespace amx
 			ec.clear();
 			bm.clear();
 			dynamic = false;
+			ii = 0;
 			sb = 0;
 			ji = 0;
 			jb = 0;

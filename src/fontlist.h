@@ -49,6 +49,7 @@ namespace amx
 
 		private:
 			bool exist(const strings::String& ff);
+            void fillSysFonts();
 
 			std::vector<FONT_T> fontList;
 			std::vector<strings::String> fontFaces;

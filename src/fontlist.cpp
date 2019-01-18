@@ -47,6 +47,7 @@ amx::FontList::FontList(const strings::String& file)
 	emptyFont.faceIndex = 0;
 	emptyFont.size = 0;
 	emptyFont.usageCount = 0;
+	fillSysFonts();
 	FONT_T font;
 	String lastName;
 	int fi = 0;
@@ -128,15 +129,41 @@ strings::String amx::FontList::getFontStyles()
 	String styles;
 	fontFaces.clear();
 
+	// Fixed system fonts first
+	styles += "@font-face {\n";
+	styles += String("  font-family: \"Courier New\", Courier, monospace;\n");
+	styles += String("  font-style: normal;\n");
+	styles += String("  font-weight: normal;\n");
+	styles += "}\n";
+	styles += "@font-face {\n";
+	styles += String("  font-family: \"AMX Bold\";\n");
+	styles += String("  src: url(fonts/amxbold_.ttf);\n");
+	styles += String("  font-style: normal;\n");
+	styles += String("  font-weight: bold;\n");
+	styles += "}\n";
+	styles += "@font-face {\n";
+	styles += String("  font-family: Arial, Helvetica, sans-serif;\n");
+	styles += String("  font-style: normal;\n");
+	styles += String("  font-weight: normal;\n");
+	styles += "}\n";
+	styles += "@font-face {\n";
+	styles += String("  font-family: \"Arial Black\", Gadget, sans-serif;\n");
+	styles += String("  font-style: normal;\n");
+	styles += String("  font-weight: bold;\n");
+	styles += "}\n\n";
+
 	for (size_t i = 0; i < fontList.size(); i++)
 	{
+		if (fontList[i].number < 32)
+			continue;
+
 		String name = fontList[i].name+","+fontList[i].subfamilyName;
 
 		if (fontFaces.size() == 0 || !exist(name))
 		{
 			fontFaces.push_back(name);
 			styles += "@font-face {\n";
-			styles += String("  font-family: ")+NameFormat::toValidName(fontList[i].name)+";\n";
+			styles += String("  font-family: \"")+fontList[i].name+"\";\n";
 			styles += String("  src: url(fonts/")+NameFormat::toURL(fontList[i].file)+");\n";
 			styles += String("  font-style: ")+getFontStyle(fontList[i].subfamilyName)+";\n";
 			styles += String("  font-weight: ")+getFontWeight(fontList[i].subfamilyName)+";\n";
@@ -198,4 +225,133 @@ strings::String amx::FontList::getFontWeight(const strings::String& fw)
 		return "bold";
 
 	return "normal";
+}
+
+void amx::FontList::fillSysFonts()
+{
+	FONT_T font;
+
+	font.number = 1;
+	font.faceIndex = 1;
+	font.fullName = "Courier New";
+	font.name = "Courier New";
+	font.size = 9;
+	font.subfamilyName = "normal";
+	font.fileSize = 0;
+	font.usageCount = 0;
+	fontList.push_back(font);
+
+	font.number = 2;
+	font.faceIndex = 2;
+	font.size = 12;
+	fontList.push_back(font);
+
+	font.number = 3;
+	font.faceIndex = 3;
+	font.size = 18;
+	fontList.push_back(font);
+
+	font.number = 4;
+	font.faceIndex = 4;
+	font.size = 26;
+	fontList.push_back(font);
+
+	font.number = 5;
+	font.faceIndex = 5;
+	font.size = 32;
+	fontList.push_back(font);
+
+	font.number = 6;
+	font.faceIndex = 6;
+	font.size = 18;
+	fontList.push_back(font);
+
+	font.number = 7;
+	font.faceIndex = 7;
+	font.size = 26;
+	fontList.push_back(font);
+
+	font.number = 8;
+	font.faceIndex = 8;
+	font.size = 34;
+	fontList.push_back(font);
+
+	font.number = 9;
+	font.faceIndex = 9;
+	font.fullName = "AMX Bold";
+	font.name = "AMX Bold";
+	font.size = 14;
+	font.subfamilyName = "bold";
+	fontList.push_back(font);
+
+	font.number = 10;
+	font.faceIndex = 10;
+	font.size = 20;
+	fontList.push_back(font);
+
+	font.number = 11;
+	font.faceIndex = 11;
+	font.size = 36;
+	fontList.push_back(font);
+
+	font.number = 19;
+	font.faceIndex = 19;
+	font.fullName = "Arial";
+	font.name = "Arial";
+	font.size = 9;
+	font.subfamilyName = "normal";
+	fontList.push_back(font);
+
+	font.number = 20;
+	font.faceIndex = 20;
+	font.size = 10;
+	fontList.push_back(font);
+
+	font.number = 21;
+	font.faceIndex = 21;
+	font.size = 12;
+	fontList.push_back(font);
+
+	font.number = 22;
+	font.faceIndex = 22;
+	font.size = 14;
+	fontList.push_back(font);
+
+	font.number = 23;
+	font.faceIndex = 23;
+	font.size = 16;
+	fontList.push_back(font);
+
+	font.number = 24;
+	font.faceIndex = 24;
+	font.size = 18;
+	fontList.push_back(font);
+
+	font.number = 25;
+	font.faceIndex = 25;
+	font.size = 20;
+	fontList.push_back(font);
+
+	font.number = 26;
+	font.faceIndex = 26;
+	font.size = 24;
+	fontList.push_back(font);
+
+	font.number = 27;
+	font.faceIndex = 27;
+	font.size = 36;
+	fontList.push_back(font);
+
+	font.number = 28;
+	font.faceIndex = 28;
+	font.fullName = "Arial Bold";
+	font.name = "Arial Bold";
+	font.size = 10;
+	font.subfamilyName = "bold";
+	fontList.push_back(font);
+
+	font.number = 29;
+	font.faceIndex = 29;
+	font.size = 8;
+	fontList.push_back(font);
 }

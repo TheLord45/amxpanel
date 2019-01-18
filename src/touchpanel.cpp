@@ -267,6 +267,10 @@ void TouchPanel::readPages()
 	if (gotPages)
 		return;
 
+	// delete all chameleon images
+	String cmd = String("rm ")+Configuration->getHTTProot()+"/ChamImage_*.png";
+	system(cmd.data());
+
 	try
 	{
 		vector<String> pgs = getPageFileNames();
@@ -279,6 +283,7 @@ void TouchPanel::readPages()
 			p.setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
 			p.setFontClass(getFontList());
 			p.setProject(&getProject());
+			p.setIconClass(getIconClass());
 
 			if (!p.parsePage())
 			{

@@ -21,6 +21,7 @@
 #include "strings.h"
 #include "panelstruct.h"
 #include "pushbutton.h"
+#include "icon.h"
 
 namespace amx
 {
@@ -48,6 +49,7 @@ namespace amx
 //			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
 			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }
 			void setFontClass(FontList *fl) { fontClass = fl; }
+			void setIconClass(Icon *ic) { iconClass = ic; }
 			void setPageList(const std::vector<PAGE_T>& p) { pgList = p; }
 			void setProject(PROJECT_T *prj) { Project = prj; }
 
@@ -76,6 +78,7 @@ namespace amx
 			int totalHeight;
 			FontList *fontClass;
 			Palette *paletteClass;
+			Icon *iconClass;
 			PROJECT_T *Project;
 	};
 }
