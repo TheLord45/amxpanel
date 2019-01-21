@@ -19,6 +19,7 @@
 #include "config.h"
 #include "pushbutton.h"
 #include <gd.h>
+#include <iomanip>
 
 extern Syslog *sysl;
 extern Config *Configuration;
@@ -96,7 +97,7 @@ String PushButton::getStyle()
 
 		if (button.sr[i].mi.length() && button.sr[i].bm.length())	// Chameleon image?
 		{
-			String fname = createChameleonImage(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, Configuration->getHTTProot()+"/images/"+button.sr[i].bm);
+			String fname = createChameleonImage(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, Configuration->getHTTProot()+"/images/"+button.sr[i].bm, pal.getColor(button.sr[i].cf));
 
 			if (!fname.empty())
 				style += String("  background-image: url(")+fname+");\n";
@@ -119,7 +120,9 @@ String PushButton::getStyle()
 		else
 			style += "  display: none;\n";
 
-		style += String("  background-color: ")+pal.colorToString(pal.getColor(button.sr[i].cf))+";\n";
+		if (!button.sr[i].mi.length())
+			style += String("  background-color: ")+pal.colorToString(pal.getColor(button.sr[i].cf))+";\n";
+
 		style += String("  color: ")+pal.colorToString(pal.getColor(button.sr[i].ct))+";\n";
 		style += "}\n";
 
@@ -606,13 +609,14 @@ bool PushButton::getImageDimensions(const String fname, int* width, int* height)
 	return true;
 }
 
-String PushButton::createChameleonImage(const String bm1, const String bm2)
+String PushButton::createChameleonImage(const String bm1, const String bm2, unsigned long bgcolor)
 {
 	sysl->TRACE(String("PushButton::createChameleonImage(const String bm1, const String bm2)"));
 
 	if (bm1.empty() || bm2.empty())
 		return "";
 
+	sysl->TRACE(String("PushButton::createChameleonImage: bgcolor: #")+NameFormat::toHex(bgcolor, 8));
 	gdImagePtr im1 = gdImageCreateFromFile(bm1.data());
 
 	if (im1 == 0)
@@ -643,21 +647,52 @@ String PushButton::createChameleonImage(const String bm1, const String bm2)
 		return "";
 	}
 
-//	gdImageCopy(imNew, im1, 0, 0, 0, 0, x2, y2);
-	int pixNew = 0, pix1 = 0, pix2 = 0;
+	int pixNew = 0, pix1 = 0, pix2 = 0, pixBg;
 	gdImageAlphaBlending(imNew, gdEffectOverlay);
 
 	for (int y = 0; y < y2; y++)
 	{
+		String l, r;
+
+		l.clear();
+		r.clear();
+
 		for (int x = 0; x < x2; x++)
 		{
+			int r1, g1, b1, a1, r2, g2, b2, a2;
+			int newR, newG, newB, newA;
+
 			pix1 = gdImageGetTrueColorPixel(im1, x, y);
 			pix2 = gdImageGetTrueColorPixel(im2, x, y);
-			pixNew = pix1 ^ pix2;
-//			pixNew = gdLayerOverlay(pix1, pix2);
-//			pixNew = gdAlphaBlend(pixNew, pix1);
-//			pixNew = gdLayerMultiply(pix1, pix2);
-			gdImageSetPixel(imNew, x, y, pixNew);
+
+			r1 = (bgcolor & 0xff000000) >> 24;
+			g1 = (bgcolor & 0x00ff0000) >> 16;
+			b1 = (bgcolor & 0x0000ff00) >> 8;
+			a1 = (bgcolor & 0x000000ff);
+/*			r1 = gdTrueColorGetRed(pix1);
+			g1 = gdTrueColorGetGreen(pix1);
+			b1 = gdTrueColorGetBlue(pix1);
+			a1 = gdTrueColorGetAlpha(pix1);
+			r2 = gdTrueColorGetRed(pix2);
+			g2 = gdTrueColorGetGreen(pix2);
+			b2 = gdTrueColorGetBlue(pix2); */
+			a2 = gdTrueColorGetAlpha(pix2);
+
+			pixNew = gdLayerOverlay(pix1, pix2);
+			newR = gdTrueColorGetRed(pixNew);
+			newG = gdTrueColorGetGreen(pixNew);
+			newB = gdTrueColorGetBlue(pixNew);
+			newA = a2;
+			pixNew = gdTrueColorAlpha(newR, newG, newB, a2);
+			pixBg = gdTrueColorAlpha(r1, g1, b1, 0);
+
+			if (a2 < 0x7f)
+			{
+				gdImageSetPixel(imNew, x, y, pixBg);
+				gdImageSetPixel(imNew, x, y, gdLayerOverlay(pixBg, pixNew));
+			}
+			else
+				gdImageSetPixel(imNew, x, y, gdTrueColorAlpha(newR, newG, newB, newA));
 		}
 	}
 
@@ -676,4 +711,33 @@ String PushButton::createChameleonImage(const String bm1, const String bm2)
 
 	gdImageDestroy(imNew);
 	return fname;
+}
+
+int PushButton::blend(int p1, int p2, int alpha)
+{
+	if (alpha == 0)
+		return p2;
+	else if (alpha >= 0x7f)
+		return p1;
+	else return (int)(255.0 - 2.0 * (255.0 - (double)p1) * (255.0 - (double)p2) / 255.0);
+}
+
+int PushButton::blendAlpha(int a1, int a2)
+{
+	if (a1 == 0 && a2 == 0x7f)
+		return a2;
+
+	if (a1 >= 0x7f)
+		return a1;
+	else if (a1 == 0 && a2 == 0)
+		return a1;
+	else
+	{
+		if (a1 < a2)
+			return a2;
+		else
+			return (int)(128.0 - 2.0 * (128.0 - (double)a1) * (128.0 - (double)a2) / 128.0);
+	}
+
+	return std::min(a1, a2);
 }

@@ -264,7 +264,7 @@ String Palette::colorToString(unsigned long col)
 	red = (col >> 24) & 0x000000ff;
 	green = (col >> 16) & 0x000000ff;
 	blue = (col >> 8) & 0x000000ff;
-	alpha = 1.0 / 255.0 * (double)(col & 0x000000ff);
+	alpha = 1.0 / 256.0 * (double)(col & 0x000000ff);
 	snprintf(calpha, sizeof(calpha), "%1.2f", alpha);
 	color += String(red)+", "+green+", "+blue+", "+calpha+")";
 	return color;

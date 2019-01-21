@@ -216,3 +216,12 @@ String NameFormat::textToWeb(const String& txt)
 
 	return out;
 }
+
+String NameFormat::toHex(int num, int width)
+{
+	String ret;
+	std::stringstream stream;
+	stream << std::setfill ('0') << std::setw(width) << std::hex << num;
+	ret = stream.str();
+	return ret;
+}

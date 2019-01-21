@@ -64,9 +64,12 @@ namespace amx
 			void setPageList(const std::vector<PAGE_T>& pl) { pageList = pl; }
 			int findPage(const strings::String& name);
 			bool getImageDimensions(const strings::String fname, int *width, int *height);
-			strings::String createChameleonImage(const strings::String bm1, const strings::String bm2);
+			strings::String createChameleonImage(const strings::String bm1, const strings::String bm2, unsigned long bgcolor);
 
 		private:
+			int blend(int p1, int p2, int alpha);
+			int blendAlpha(int a1, int a2);
+
 			BUTTON_T button;
 			bool onOff;
 			int state;
