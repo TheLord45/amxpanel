@@ -609,6 +609,9 @@ bool PushButton::getImageDimensions(const String fname, int* width, int* height)
 	return true;
 }
 
+bool done = false;
+bool doIt = false;
+
 String PushButton::createChameleonImage(const String bm1, const String bm2, unsigned long bgcolor)
 {
 	sysl->TRACE(String("PushButton::createChameleonImage(const String bm1, const String bm2)"));
@@ -616,7 +619,6 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 	if (bm1.empty() || bm2.empty())
 		return "";
 
-	sysl->TRACE(String("PushButton::createChameleonImage: bgcolor: #")+NameFormat::toHex(bgcolor, 8));
 	gdImagePtr im1 = gdImageCreateFromFile(bm1.data());
 
 	if (im1 == 0)
@@ -647,52 +649,33 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 		return "";
 	}
 
-	int pixNew = 0, pix1 = 0, pix2 = 0, pixBg;
+	int pixNew = 0, pix1 = 0, pix2 = 0;
 	gdImageAlphaBlending(imNew, gdEffectOverlay);
 
 	for (int y = 0; y < y2; y++)
 	{
-		String l, r;
-
-		l.clear();
-		r.clear();
-
 		for (int x = 0; x < x2; x++)
 		{
-			int r1, g1, b1, a1, r2, g2, b2, a2;
-			int newR, newG, newB, newA;
-
 			pix1 = gdImageGetTrueColorPixel(im1, x, y);
 			pix2 = gdImageGetTrueColorPixel(im2, x, y);
 
-			r1 = (bgcolor & 0xff000000) >> 24;
-			g1 = (bgcolor & 0x00ff0000) >> 16;
-			b1 = (bgcolor & 0x0000ff00) >> 8;
-			a1 = (bgcolor & 0x000000ff);
-/*			r1 = gdTrueColorGetRed(pix1);
-			g1 = gdTrueColorGetGreen(pix1);
-			b1 = gdTrueColorGetBlue(pix1);
-			a1 = gdTrueColorGetAlpha(pix1);
-			r2 = gdTrueColorGetRed(pix2);
-			g2 = gdTrueColorGetGreen(pix2);
-			b2 = gdTrueColorGetBlue(pix2); */
-			a2 = gdTrueColorGetAlpha(pix2);
-
 			pixNew = gdLayerOverlay(pix1, pix2);
-			newR = gdTrueColorGetRed(pixNew);
-			newG = gdTrueColorGetGreen(pixNew);
-			newB = gdTrueColorGetBlue(pixNew);
-			newA = a2;
-			pixNew = gdTrueColorAlpha(newR, newG, newB, a2);
-			pixBg = gdTrueColorAlpha(r1, g1, b1, 0);
 
-			if (a2 < 0x7f)
+			if (pix1 > 0 || pix2 != 0x7fffffff)
 			{
-				gdImageSetPixel(imNew, x, y, pixBg);
-				gdImageSetPixel(imNew, x, y, gdLayerOverlay(pixBg, pixNew));
+				int r1 = (bgcolor & 0xff000000) >> 24;
+				int g1 = (bgcolor & 0x00ff0000) >> 16;
+				int b1 = (bgcolor & 0x0000ff00) >> 8;
+				int a1 = 0x007f - ((bgcolor & 0x000000ff) / 2);
+				int pix = blend(gdTrueColorAlpha(r1, g1, b1, a1), pixNew);
+//				int pix = gdLayerOverlay(gdTrueColorAlpha(r1, g1, b1, a1), pixNew);
+
+				gdImageAlphaBlending(imNew, gdEffectNormal);	// switch to overwrite
+				gdImageSetPixel(imNew, x, y, pix);				// set pixel
+				gdImageAlphaBlending(imNew, gdEffectOverlay);	// switch back to overlay
 			}
 			else
-				gdImageSetPixel(imNew, x, y, gdTrueColorAlpha(newR, newG, newB, newA));
+				gdImageSetPixel(imNew, x, y, pixNew);			// Keep the background transparent
 		}
 	}
 
@@ -713,31 +696,37 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 	return fname;
 }
 
-int PushButton::blend(int p1, int p2, int alpha)
+int PushButton::blend(int p1, int p2)
 {
-	if (alpha == 0)
-		return p2;
-	else if (alpha >= 0x7f)
-		return p1;
-	else return (int)(255.0 - 2.0 * (255.0 - (double)p1) * (255.0 - (double)p2) / 255.0);
-}
+	int r1, g1, b1, a1, r2, g2, b2, a2;
+	int newR, newG, newB;
 
-int PushButton::blendAlpha(int a1, int a2)
-{
-	if (a1 == 0 && a2 == 0x7f)
-		return a2;
+	r1 = gdTrueColorGetRed(p1);
+	g1 = gdTrueColorGetGreen(p1);
+	b1 = gdTrueColorGetBlue(p1);
+	a1 = gdTrueColorGetAlpha(p1);
 
-	if (a1 >= 0x7f)
-		return a1;
-	else if (a1 == 0 && a2 == 0)
-		return a1;
-	else
-	{
-		if (a1 < a2)
-			return a2;
-		else
-			return (int)(128.0 - 2.0 * (128.0 - (double)a1) * (128.0 - (double)a2) / 128.0);
-	}
+	r2 = gdTrueColorGetRed(p2);
+	g2 = gdTrueColorGetGreen(p2);
+	b2 = gdTrueColorGetBlue(p2);
+	a2 = gdTrueColorGetAlpha(p2);
 
-	return std::min(a1, a2);
+	newR = (int)((double)r1 + (127.0 / 255.0 * (double)r2));
+	newG = (int)((double)g1 + (127.0 / 255.0 * (double)g2));
+	newB = (int)((double)b1 + (127.0 / 255.0 * (double)b2));
+
+	if (newR > 255)
+		newR = 255;
+
+	if (newG > 255)
+		newG = 255;
+
+	if (newB > 255)
+		newB = 255;
+
+//	newR = (r2 * a2) + (r1 * (127 - a2));
+//	newG = (g2 * a2) + (g1 * (127 - a2));
+//	newB = (b2 * a2) + (b1 * (127 - a2));
+
+	return gdTrueColorAlpha(newR, newG, newB, 0);
 }
