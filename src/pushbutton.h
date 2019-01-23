@@ -67,8 +67,7 @@ namespace amx
 			strings::String createChameleonImage(const strings::String bm1, const strings::String bm2, unsigned long bgcolor);
 
 		private:
-			int blend(int p1, int p2, int alpha);
-			int blendAlpha(int a1, int a2);
+			int blend(int p1, int p2);
 
 			BUTTON_T button;
 			bool onOff;
