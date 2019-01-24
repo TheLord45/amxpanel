@@ -97,7 +97,7 @@ String PushButton::getStyle()
 
 		if (button.sr[i].mi.length() && button.sr[i].bm.length())	// Chameleon image?
 		{
-			String fname = createChameleonImage(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, Configuration->getHTTProot()+"/images/"+button.sr[i].bm, pal.getColor(button.sr[i].cf));
+			String fname = createChameleonImage(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, Configuration->getHTTProot()+"/images/"+button.sr[i].bm, pal.getColor(button.sr[i].cf), pal.getColor(button.sr[i].cb));
 
 			if (!fname.empty())
 				style += String("  background-image: url(")+fname+");\n";
@@ -612,7 +612,7 @@ bool PushButton::getImageDimensions(const String fname, int* width, int* height)
 bool done = false;
 bool doIt = false;
 
-String PushButton::createChameleonImage(const String bm1, const String bm2, unsigned long bgcolor)
+String PushButton::createChameleonImage(const String bm1, const String bm2, unsigned long fill, unsigned long border)
 {
 	sysl->TRACE(String("PushButton::createChameleonImage(const String bm1, const String bm2)"));
 
@@ -636,10 +636,10 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 		return "";
 	}
 
-	int x1, y1, x2, y2;
-	gdImageGetClip(im1, &x1, &y1, &x2, &y2);
+	int width = gdImageSX(im1);
+    int height = gdImageSY(im1);
 
-	gdImagePtr imNew = gdImageCreateTrueColor(x2, y2);
+	gdImagePtr imNew = gdImageCreateTrueColor(width, height);
 
 	if (imNew == 0)
 	{
@@ -652,31 +652,47 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 	int pixNew = 0, pix1 = 0, pix2 = 0;
 	gdImageAlphaBlending(imNew, gdEffectOverlay);
 
-	for (int y = 0; y < y2; y++)
+	std::fstream fs;
+
+	if (!done && width < 100)
 	{
-		for (int x = 0; x < x2; x++)
+		String f = Configuration->getHTTProot()+"/piccolors.txt";
+		fs.open(f.data(), std::ios::out | std::ios::trunc);
+
+		if (!fs.is_open())
+			doIt = false;
+		else
+		{
+			doIt = true;
+			fs << "Base image file: " << bm1 << std::endl;
+			fs << "Mask image file: " << bm2 << std::endl;
+			fs << "Dimension: " << width << " x " << height << std::endl << std::endl;
+		}
+	}
+
+	for (int y = 0; y < height; y++)
+	{
+		fs << std::setw(5) << y << ":";
+
+		for (int x = 0; x < width; x++)
 		{
 			pix1 = gdImageGetTrueColorPixel(im1, x, y);
 			pix2 = gdImageGetTrueColorPixel(im2, x, y);
+			int base = getBaseColor(pix1, pix2, webColToGd(fill), webColToGd(border));
 
-			pixNew = gdLayerOverlay(pix1, pix2);
+//			pixNew = gdLayerOverlay(base, pix2);
+			pixNew = blend(base, pix2);
 
-			if (pix1 > 0 || pix2 != 0x7fffffff)
-			{
-				int r1 = (bgcolor & 0xff000000) >> 24;
-				int g1 = (bgcolor & 0x00ff0000) >> 16;
-				int b1 = (bgcolor & 0x0000ff00) >> 8;
-				int a1 = 0x007f - ((bgcolor & 0x000000ff) / 2);
-				int pix = blend(gdTrueColorAlpha(r1, g1, b1, a1), pixNew);
-//				int pix = gdLayerOverlay(gdTrueColorAlpha(r1, g1, b1, a1), pixNew);
+			if (doIt && !done)
+				fs << " " << NameFormat::toHex(pixNew, 8);
 
-				gdImageAlphaBlending(imNew, gdEffectNormal);	// switch to overwrite
-				gdImageSetPixel(imNew, x, y, pix);				// set pixel
-				gdImageAlphaBlending(imNew, gdEffectOverlay);	// switch back to overlay
-			}
-			else
-				gdImageSetPixel(imNew, x, y, pixNew);			// Keep the background transparent
+			gdImageAlphaBlending(imNew, gdEffectReplace);	// switch to overwrite
+			gdImageSetPixel(imNew, x, y, pixNew);			// set pixel
+			gdImageAlphaBlending(imNew, gdEffectOverlay);	// switch back to overlay
 		}
+		
+		if (doIt && !done)
+			fs << std::endl;
 	}
 
 	gdImageDestroy(im1);
@@ -692,14 +708,82 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 		return "";
 	}
 
+	if (doIt && !done)
+	{
+		fs << std::endl << "Wrote to file: " << path << std::endl;
+
+		for (int y = 0; y < height; y++)
+		{
+			fs << std::setw(5) << y << ":";
+
+			for (int x = 0; x < width; x++)
+				fs << " " << NameFormat::toHex(gdImageGetTrueColorPixel(imNew, x, y), 8);
+
+			fs << std::endl;
+		}
+
+		fs.close();
+		done = true;
+		doIt = false;
+	}
+
 	gdImageDestroy(imNew);
 	return fname;
+}
+
+int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
+{
+	int alpha = gdTrueColorGetAlpha(pix1);
+
+	if (alpha == 127)
+		return pix1;
+
+	int red = gdTrueColorGetRed(pix1);
+	int green = gdTrueColorGetGreen(pix1);
+
+	if (red && green)
+	{
+		int r1 = gdTrueColorGetRed(fill);
+		int g1 = gdTrueColorGetGreen(fill);
+		int b1 = gdTrueColorGetBlue(fill);
+		int a1 = gdTrueColorGetAlpha(fill);
+		int r2 = gdTrueColorGetRed(border);
+		int g2 = gdTrueColorGetGreen(border);
+		int b2 = gdTrueColorGetBlue(border);
+		int a2 = gdTrueColorGetAlpha(border);
+		int newR = r1 + r2 - 128;
+		int newG = g1 + g2 - 128;
+		int newB = b1 + b2 - 128;
+		int newA = a1 + a2 - 64;
+		return gdTrueColorAlpha(newR, newG, newB, newA);
+	}
+
+	if (red)
+	{
+		int r1 = gdTrueColorGetRed(fill);
+		int g1 = gdTrueColorGetGreen(fill);
+		int b1 = gdTrueColorGetBlue(fill);
+		int r2 = gdTrueColorGetRed(pix2);
+		int g2 = gdTrueColorGetGreen(pix2);
+		int b2 = gdTrueColorGetBlue(pix2);
+		int newR = softLight(r2, r1);
+		int newG = softLight(g2, g1);
+		int newB = softLight(b2, b1);
+		return gdTrueColorAlpha(newR, newG, newB, 0);
+	}
+
+	if (green)
+	{
+		return border;
+	}
+
+	return gdLayerOverlay(pix1, pix2);
 }
 
 int PushButton::blend(int p1, int p2)
 {
 	int r1, g1, b1, a1, r2, g2, b2, a2;
-	int newR, newG, newB;
+	int newR, newG, newB, newA;
 
 	r1 = gdTrueColorGetRed(p1);
 	g1 = gdTrueColorGetGreen(p1);
@@ -711,9 +795,54 @@ int PushButton::blend(int p1, int p2)
 	b2 = gdTrueColorGetBlue(p2);
 	a2 = gdTrueColorGetAlpha(p2);
 
-	newR = (int)((double)r1 + (127.0 / 255.0 * (double)r2));
-	newG = (int)((double)g1 + (127.0 / 255.0 * (double)g2));
-	newB = (int)((double)b1 + (127.0 / 255.0 * (double)b2));
+//	newR = (int)(255.0 - 2.0 * (255.0 - (double)r1) * (255.0 - (double)r2) / 255.0);
+//	newG = (int)(255.0 - 2.0 * (255.0 - (double)g1) * (255.0 - (double)g2) / 255.0);
+//	newB = (int)(255.0 - 2.0 * (255.0 - (double)b1) * (255.0 - (double)b2) / 255.0);
+//	newA = (int)(127.0 - 2.0 * (127.0 - (double)a1) * (127.0 - (double)a2) / 127.0);
+
+//	newR = (int)((double)r1 + (127.0 / 255.0 * (double)r2));
+//	newG = (int)((double)g1 + (127.0 / 255.0 * (double)g2));
+//	newB = (int)((double)b1 + (127.0 / 255.0 * (double)b2));
+//	newA = (int)((double)a1 + (63.0 / 127.0 * (double)a2));
+
+//	newR = (r2 * a2) + (r1 * (127 - a2));
+//	newG = (g2 * a2) + (g1 * (127 - a2));
+//	newB = (b2 * a2) + (b1 * (127 - a2));
+
+	// Overlay 1
+//	newR = (int)(((double)r1 * ((double)a1 * 2.0) / 255.0) + ((double)r2 * (double)a2 * (255.0 - ((double)a2 * 2)) / (255.0 * 255.0)));
+//	newG = (int)(((double)g1 * ((double)a1 * 2.0) / 255.0) + ((double)g2 * (double)a2 * (255.0 - ((double)a2 * 2)) / (255.0 * 255.0)));
+//	newB = (int)(((double)b1 * ((double)a1 * 2.0) / 255.0) + ((double)b2 * (double)a2 * (255.0 - ((double)a2 * 2)) / (255.0 * 255.0)));
+	newA = (int)((double)a1 + ((double)a2 * (127.0 - (double)a1) / 127.0));
+
+	// Add
+//	newR = r1 + r2;
+//	newG = g1 + g2;
+//	newB = b1 + b2;
+//	newA = a1 + a2;
+
+	// Multiply
+//	newR = r1 * r2 / 255;
+//	newG = g1 * g2 / 255;
+//	newB = b1 * b2 / 255;
+//	newA = a1 * a2 / 127;
+
+	// Screen
+//	newR = 255 - ((255 - r1) * (255 - r2)) / 255;
+//	newG = 255 - ((255 - g1) * (255 - g2)) / 255;
+//	newB = 255 - ((255 - b1) * (255 - b2)) / 255;
+//	newA = 127 - ((127 - a1) * (127 - a2)) / 127;
+
+	// Overlay 2
+	newR = (int)((double)r2 / 255.0 * ((double)r2 + (2.0 * (double)r1) / 255.0 * (255.0 - (double)r2)));
+	newG = (int)((double)g2 / 255.0 * ((double)g2 + (2.0 * (double)g1) / 255.0 * (255.0 - (double)g2)));
+	newB = (int)((double)b2 / 255.0 * ((double)b2 + (2.0 * (double)b1) / 255.0 * (255.0 - (double)b2)));
+//	newA = (int)((double)a2 / 127.0 * ((double)a2 + (2.0 * (double)a1) / 127.0 * (127.0 - (double)a2)));
+
+//	newR = (int)(255.0 - ((256.0 * (255.0 - (double)r2)) / (double)r1 + 1.0));
+//	newG = (int)(255.0 - ((256.0 * (255.0 - (double)g2)) / (double)g1 + 1.0));
+//	newB = (int)(255.0 - ((256.0 * (255.0 - (double)b2)) / (double)b1 + 1.0));
+//	newA = (int)(127.0 - ((128.0 * (127.0 - (double)a2)) / (double)a1 + 1.0));
 
 	if (newR > 255)
 		newR = 255;
@@ -724,9 +853,58 @@ int PushButton::blend(int p1, int p2)
 	if (newB > 255)
 		newB = 255;
 
-//	newR = (r2 * a2) + (r1 * (127 - a2));
-//	newG = (g2 * a2) + (g1 * (127 - a2));
-//	newB = (b2 * a2) + (b1 * (127 - a2));
+	if (newA > 127)
+		newA = 127;
 
-	return gdTrueColorAlpha(newR, newG, newB, 0);
+	if (newA < 127 && (newR > 0 || newG > 0 || newB > 0))
+		newA = 0;
+
+	return gdTrueColorAlpha(newR, newG, newB, newA);
+}
+
+int PushButton::webColToGd(unsigned long col)
+{
+	int r1 = (col & 0xff000000) >> 24;
+	int g1 = (col & 0x00ff0000) >> 16;
+	int b1 = (col & 0x0000ff00) >> 8;
+	int a1 = 0x007f - ((col & 0x000000ff) / 2);
+	return gdTrueColorAlpha(r1, g1, b1, a1);
+}
+
+int PushButton::hardLight(int mask, int img)
+{
+	if (mask > 128)
+	{
+		double p1 = (255.0 - 2.0 * ((double)mask - 128)) * (255.0 - (double)img);
+		return (int)(255.0 - p1 / 256.0);
+	}
+	else
+		return (int)((2.0 * (double)mask * (double)img) / 256.0);
+}
+
+int PushButton::softLight(int mask, int img)
+{
+	double rs = 255.0 - ((255.0 - (double)mask) * (255.0 - (double)img)) / 255.0;
+	int e = (int)((((255.0 - (double)img) * (double)mask + rs) / 255.0) * (double)img);
+
+	if (e > 255)
+		e = 255;
+
+	if (e < 0)
+		e = 0;
+
+	return e;
+}
+
+int PushButton::imgBurn(int mask, int img)
+{
+	int e = (255 - (256 * (255 - img)) / (mask + 1));
+
+	if (e > 255)
+		e = 255;
+
+	if (e < 0)
+		e = 0;
+
+	return e;
 }
