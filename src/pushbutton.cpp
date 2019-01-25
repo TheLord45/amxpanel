@@ -237,12 +237,13 @@ String PushButton::getWebCode()
 		if (iconClass != 0 && button.sr[i].ii > 0)		// Icon?
 		{
 			int width, height;
+			String icoFile = iconClass->getFileFromID(button.sr[i].ii);
 
-			code += String("         <img src=\"images/")+iconClass->getFileFromID(button.sr[i].ii)+"\"";
+			code += String("         <img src=\"images/")+icoFile+"\"";
 
 			if (button.sr[i].ji == 0)
 			{
-				if (getImageDimensions(Configuration->getHTTProot()+"/images/"+button.sr[i].bm, &width, &height))
+				if (getImageDimensions(Configuration->getHTTProot()+"/images/"+icoFile, &width, &height))
 				{
 					sysl->TRACE(String("PushButton::getWebCode: width=")+width+", height="+height);
 
@@ -251,16 +252,30 @@ String PushButton::getWebCode()
 						button.sr[i].ix = (button.wt - width);
 
 						if (button.sr[i].ix < 0)
+						{
 							button.sr[i].ix = 0;
+							code += String(" width=\"")+button.wt+"px\"";
+						}
+						else
+							code += String(" width=\"")+width+"px\"";
 					}
+					else
+						code += String(" width=\"")+width+"px\"";
 
 					if ((button.sr[i].iy + height) > button.ht)
 					{
 						button.sr[i].iy = (button.ht - height);
 
 						if (button.sr[i].iy < 0)
+						{
 							button.sr[i].iy = 0;
+							code += String(" height=\"")+button.ht+"px\"";
+						}
+						else
+							code += String(" height=\"")+height+"px\"";
 					}
+					else
+						code += String(" height=\"")+height+"px\"";
 				}
 			}
 
@@ -603,8 +618,8 @@ bool PushButton::getImageDimensions(const String fname, int* width, int* height)
 		return false;
 	}
 
-	int x, y;
-	gdImageGetClip(im, &x, &y, width, height);
+	*width = gdImageSX(im);
+	*height = gdImageSY(im);
 	gdImageDestroy(im);
 	return true;
 }
@@ -760,16 +775,7 @@ int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 
 	if (red)
 	{
-		int r1 = gdTrueColorGetRed(fill);
-		int g1 = gdTrueColorGetGreen(fill);
-		int b1 = gdTrueColorGetBlue(fill);
-		int r2 = gdTrueColorGetRed(pix2);
-		int g2 = gdTrueColorGetGreen(pix2);
-		int b2 = gdTrueColorGetBlue(pix2);
-		int newR = softLight(r2, r1);
-		int newG = softLight(g2, g1);
-		int newB = softLight(b2, b1);
-		return gdTrueColorAlpha(newR, newG, newB, 0);
+		return fill;
 	}
 
 	if (green)
@@ -795,9 +801,9 @@ int PushButton::blend(int p1, int p2)
 	b2 = gdTrueColorGetBlue(p2);
 	a2 = gdTrueColorGetAlpha(p2);
 
-//	newR = (int)(255.0 - 2.0 * (255.0 - (double)r1) * (255.0 - (double)r2) / 255.0);
-//	newG = (int)(255.0 - 2.0 * (255.0 - (double)g1) * (255.0 - (double)g2) / 255.0);
-//	newB = (int)(255.0 - 2.0 * (255.0 - (double)b1) * (255.0 - (double)b2) / 255.0);
+	newR = (int)(255.0 - 2.0 * (255.0 - (double)r1) * (255.0 - (double)r2) / 255.0);
+	newG = (int)(255.0 - 2.0 * (255.0 - (double)g1) * (255.0 - (double)g2) / 255.0);
+	newB = (int)(255.0 - 2.0 * (255.0 - (double)b1) * (255.0 - (double)b2) / 255.0);
 //	newA = (int)(127.0 - 2.0 * (127.0 - (double)a1) * (127.0 - (double)a2) / 127.0);
 
 //	newR = (int)((double)r1 + (127.0 / 255.0 * (double)r2));
@@ -834,15 +840,19 @@ int PushButton::blend(int p1, int p2)
 //	newA = 127 - ((127 - a1) * (127 - a2)) / 127;
 
 	// Overlay 2
-	newR = (int)((double)r2 / 255.0 * ((double)r2 + (2.0 * (double)r1) / 255.0 * (255.0 - (double)r2)));
-	newG = (int)((double)g2 / 255.0 * ((double)g2 + (2.0 * (double)g1) / 255.0 * (255.0 - (double)g2)));
-	newB = (int)((double)b2 / 255.0 * ((double)b2 + (2.0 * (double)b1) / 255.0 * (255.0 - (double)b2)));
+//	newR = (int)((double)r2 / 255.0 * ((double)r2 + (2.0 * (double)r1) / 255.0 * (255.0 - (double)r2)));
+//	newG = (int)((double)g2 / 255.0 * ((double)g2 + (2.0 * (double)g1) / 255.0 * (255.0 - (double)g2)));
+//	newB = (int)((double)b2 / 255.0 * ((double)b2 + (2.0 * (double)b1) / 255.0 * (255.0 - (double)b2)));
 //	newA = (int)((double)a2 / 127.0 * ((double)a2 + (2.0 * (double)a1) / 127.0 * (127.0 - (double)a2)));
 
 //	newR = (int)(255.0 - ((256.0 * (255.0 - (double)r2)) / (double)r1 + 1.0));
 //	newG = (int)(255.0 - ((256.0 * (255.0 - (double)g2)) / (double)g1 + 1.0));
 //	newB = (int)(255.0 - ((256.0 * (255.0 - (double)b2)) / (double)b1 + 1.0));
 //	newA = (int)(127.0 - ((128.0 * (127.0 - (double)a2)) / (double)a1 + 1.0));
+
+//	newR = softLight(r2, r1);
+//	newG = softLight(g2, g1);
+//	newB = softLight(b2, b1);
 
 	if (newR > 255)
 		newR = 255;
