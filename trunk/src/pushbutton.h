@@ -74,7 +74,7 @@ namespace amx
 			 * Green and Blue), and chameleon images use the button/state's Fill
 			 * and Border color assignments to determine the colors used in the
 			 * image as follows:
-			 * 
+			 *
 			 * <ul>
 			 * <li>The Alpha channel (RGB = 0, 0, 0) defines the overall shape
 			 * mask for the state. This is represented on the screen as black.
@@ -88,19 +88,19 @@ namespace amx
 			 * Color State property).</li>
 			 * <li>The Blue channel is not used.</li>
 			 * </ul>
-			 * 
+			 *
 			 * @param bm1
 			 * Path and name of the file containing the base image.
-			 * 
+			 *
 			 * @param bm2
 			 * Path and name of the file containing the mask image.
-			 * 
+			 *
 			 * @param fill
 			 * The color used for the red channel.
-			 * 
+			 *
 			 * @param border
 			 * The color used for the green channel.
-			 * 
+			 *
 			 * @return
 			 * On success, the function returns the name of the newly created
 			 * PNG image. Otherwise an empty string is returned.
@@ -108,12 +108,14 @@ namespace amx
 			strings::String createChameleonImage(const strings::String bm1, const strings::String bm2, unsigned long fill, unsigned long border);
 
 		private:
-			int blend(int p1, int p2);
+			int blend(int base, int mask);
 			int getBaseColor(int pix1, int pix2, int fill, int border);
 			int webColToGd(unsigned long col);
 			int hardLight(int mask, int img);
 			int softLight(int mask, int img);
 			int imgBurn(int mask, int img);
+			bool isGrey(unsigned long col);
+			bool isGrey(int col);
 
 			BUTTON_T button;
 			bool onOff;
@@ -127,6 +129,7 @@ namespace amx
 			SCR_TYPE scriptType;
 			std::vector<PAGE_T> pageList;
 			std::vector<PDATA_T> palette;
+			std::vector<int> tmpFiles;
 	};
 }
 

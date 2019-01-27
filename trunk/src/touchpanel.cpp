@@ -268,7 +268,7 @@ void TouchPanel::readPages()
 		return;
 
 	// delete all chameleon images
-	String cmd = String("rm ")+Configuration->getHTTProot()+"/ChamImage_*.png";
+	String cmd = String("rm ")+Configuration->getHTTProot()+"/chameleon/ChamImage_*.png";
 	system(cmd.data());
 
 	try
@@ -500,7 +500,7 @@ void TouchPanel::writePages(std::fstream& pgFile)
 	sysl->TRACE(String("TouchPanel::writePages(std::fstream& pgFile)"));
 	bool first = true;
 	pgFile << "var basePages = '{\"pages\":[";
-    
+
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
 		if (!first)

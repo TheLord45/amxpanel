@@ -282,14 +282,19 @@ bool amx::Page::parsePage()
 				else if (name.caseCompare("pf") == 0 && reader.has_value())
 				{
 					page.buttons.back().pfName = reader.get_value().c_str();
-
-					if (reader.has_attributes())
-					{
-						page.buttons.back().pfType = reader.get_attribute(0).c_str();	// FIXME: Find all commands and make an enum.
-						// Known commands:
-						// sShow      show popup
-						// sHide      hide popup
-					}
+					sysl->TRACE(String("Page::parsePage: found push page: ")+page.buttons.back().pfName);
+				}
+			}
+			else if (inButton && reader.get_depth() == 3)	// Attributes
+			{
+				if (name.caseCompare("pf") == 0 && reader.has_attributes())
+				{
+					page.buttons.back().pfType = reader.get_attribute(0).c_str();	// FIXME: Find all commands and make an enum.
+					sysl->TRACE(String("Page::parsePage: found push command: ")+page.buttons.back().pfType);
+					// Known commands:
+					// sShow      show popup
+					// sHide      hide popup
+					// scGroup    hide Group?
 				}
 			}
 
