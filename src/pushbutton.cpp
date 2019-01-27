@@ -70,6 +70,12 @@ String PushButton::getStyle()
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
+		bool hasChameleon = (!button.sr[i].mi.empty() && !button.sr[i].bm.empty() && button.sr[i].bs.empty());
+		bool hasBorder = !button.sr[i].bs.empty();
+
+		if (hasBorder)
+			hasChameleon = false;
+
 		if (button.ap == 0 && isSystemReserved(button.ad))
 			style += String(".")+btName+i+" {\n";
 		else	// Name: .button<number>_b<id>_<name>
@@ -87,7 +93,7 @@ String PushButton::getStyle()
 		if (button.hs.caseCompare("bounding") == 0)
 			style += String("  overflow: hidden;\n");
 
-		if (!button.sr[i].bs.empty())
+		if (hasBorder)
 		{
 			style += getBorderStyle(button.sr[i].bs);
 			style += String("  border-color: ")+pal.colorToString(pal.getColor(button.sr[i].cb))+";\n";
@@ -95,7 +101,7 @@ String PushButton::getStyle()
 		else
 			style += "  border: none;\n";
 
-		if (button.sr[i].mi.length() && button.sr[i].bm.length())	// Chameleon image?
+		if (hasChameleon)	// Chameleon image?
 		{
 			String fname = createChameleonImage(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, Configuration->getHTTProot()+"/images/"+button.sr[i].bm, pal.getColor(button.sr[i].cf), pal.getColor(button.sr[i].cb));
 
@@ -120,7 +126,7 @@ String PushButton::getStyle()
 		else
 			style += "  display: none;\n";
 
-		if (!button.sr[i].mi.length())
+		if (!hasChameleon || hasBorder)
 			style += String("  background-color: ")+pal.colorToString(pal.getColor(button.sr[i].cf))+";\n";
 
 		style += String("  color: ")+pal.colorToString(pal.getColor(button.sr[i].ct))+";\n";
@@ -201,7 +207,23 @@ String PushButton::getWebCode()
 	if (button.ap == 0 && isSystemReserved(button.ad))
 		code = String("   <a href=\"#\" id=\"")+btName+"\">\n";
 	else
-		code = String("   <a href=\"#\" id=\"Page")+pageID+btName+"\">\n";
+	{
+		code = String("   <a href=\"#\" id=\"Page")+pageID+btName+"\"";
+
+		if (!button.pfName.empty() && !button.pfType.empty())
+		{
+			sysl->TRACE(String("PushButton::getWebCode: Button ")+button.na+" show/hide popup page "+button.pfName+".");
+
+			if (button.pfType.caseCompare("sShow") == 0)		// show popup
+				code += String(" onclick=\"showPopup('")+button.pfName+"');\"";
+			else if (button.pfType.caseCompare("sHide") == 0)	// hide popup
+				code += String(" onclick=\"hidePopup('")+button.pfName+"');\"";
+			else if (button.pfType.caseCompare("scGroup") == 0)	// hide group
+				code += String(" onclick=\"hideGroup('")+button.pfName+"');\"";
+		}
+
+		code += ">\n";
+	}
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
@@ -214,17 +236,6 @@ String PushButton::getWebCode()
 			nm = String("Page")+pageID+"_b"+i+"_"+btName;
 
 		code += String("      <div id=\"")+nm+"\" class=\""+nm+"\"";
-
-		if (!button.pfName.empty() && !button.pfType.empty())
-		{
-			int pid = findPage(button.pfName);
-			sysl->TRACE(String("PushButton::getWebCode: Button ")+button.na+" show/hide popup page "+button.pfName+". This is page ID "+pid+".");
-
-			if (button.pfType.caseCompare("sShow") == 0)		// show popup
-				code += String(" onclick=\"document.getElementById('Page_")+pid+"').style.display = 'inline';\"";
-			else if (button.pfType.caseCompare("sHide") == 0)	// hide popup
-				code += String(" onclick=\"document.getElementById('Page_")+pid+"').style.display = 'none';\"";
-		}
 
 		if (button.type == GENERAL && button.fb == FB_MOMENTARY && (i == 0 || i == 1))
 		{
@@ -669,7 +680,7 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 
 	std::fstream fs;
 
-	if (!done && width < 100)
+	if (!done && width < 100 && height < 100 && !isGrey(fill))
 	{
 		String f = Configuration->getHTTProot()+"/piccolors.txt";
 		fs.open(f.data(), std::ios::out | std::ios::trunc);
@@ -681,13 +692,17 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 			doIt = true;
 			fs << "Base image file: " << bm1 << std::endl;
 			fs << "Mask image file: " << bm2 << std::endl;
-			fs << "Dimension: " << width << " x " << height << std::endl << std::endl;
+			fs << "Dimension      : " << width << " x " << height << std::endl;
+            fs << "Fill color     : " << NameFormat::toHex(fill, 8) << " [" << NameFormat::toHex(webColToGd(fill), 8) << "]" << std::endl;
+            fs << "Border color   : " << NameFormat::toHex(border, 8) << " [" << NameFormat::toHex(webColToGd(border), 8) << "]" << std::endl << std::endl;
 		}
 	}
 
 	for (int y = 0; y < height; y++)
 	{
-		fs << std::setw(5) << y << ":";
+        String l, r;
+        l.clear();
+        r.clear();
 
 		for (int x = 0; x < width; x++)
 		{
@@ -699,21 +714,44 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 			pixNew = blend(base, pix2);
 
 			if (doIt && !done)
-				fs << " " << NameFormat::toHex(pixNew, 8);
+            {
+                l += NameFormat::toHex(pix1, 8) + " ";
+                r += NameFormat::toHex(pix2, 8) + " ";
+            }
 
 			gdImageAlphaBlending(imNew, gdEffectReplace);	// switch to overwrite
 			gdImageSetPixel(imNew, x, y, pixNew);			// set pixel
 			gdImageAlphaBlending(imNew, gdEffectOverlay);	// switch back to overlay
 		}
-		
+
 		if (doIt && !done)
-			fs << std::endl;
+            fs << l << " | " << r << std::endl;
 	}
 
 	gdImageDestroy(im1);
 	gdImageDestroy(im2);
 	gdImageSaveAlpha(imNew, 1);
-	String fname = String("ChamImage_")+rand()+".png";
+	int rnd = 0;
+	bool found = false;
+
+	do
+	{
+		rnd = rand();
+		found = false;
+
+		for (size_t idx = 0; idx < tmpFiles.size(); idx++)
+		{
+			if (rnd == tmpFiles[idx])
+			{
+				found = true;
+				break;
+			}
+		}
+	}
+	while(found);
+
+	tmpFiles.push_back(rnd);
+	String fname = String("chameleon/ChamImage_")+rnd+".png";
 	String path = Configuration->getHTTProot()+"/"+fname;
 
 	if (gdImageFile(imNew, path.data()) == GD_FALSE)
@@ -725,17 +763,17 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 
 	if (doIt && !done)
 	{
-		fs << std::endl << "Wrote to file: " << path << std::endl;
+		fs << std::endl << "Wrote to file: " << path << std::endl << std::endl;
 
-		for (int y = 0; y < height; y++)
-		{
-			fs << std::setw(5) << y << ":";
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                fs << NameFormat::toHex(gdImageGetTrueColorPixel(imNew, x, y), 8) << " ";
+            }
 
-			for (int x = 0; x < width; x++)
-				fs << " " << NameFormat::toHex(gdImageGetTrueColorPixel(imNew, x, y), 8);
-
-			fs << std::endl;
-		}
+            fs << std::endl;
+        }
 
 		fs.close();
 		done = true;
@@ -749,12 +787,11 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 {
 	int alpha = gdTrueColorGetAlpha(pix1);
-
-	if (alpha == 127)
-		return pix1;
-
 	int red = gdTrueColorGetRed(pix1);
 	int green = gdTrueColorGetGreen(pix1);
+
+	if (alpha == 127)
+		return pix2;
 
 	if (red && green)
 	{
@@ -766,44 +803,67 @@ int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 		int g2 = gdTrueColorGetGreen(border);
 		int b2 = gdTrueColorGetBlue(border);
 		int a2 = gdTrueColorGetAlpha(border);
-		int newR = r1 + r2 - 128;
-		int newG = g1 + g2 - 128;
-		int newB = b1 + b2 - 128;
-		int newA = a1 + a2 - 64;
+		int newR = ((r1 * red / 255) + (r2 * green / 255)) / 2;
+		int newG = ((g1 * red / 255) + (g2 * green / 255)) / 2;
+		int newB = ((b1 * red / 255) + (b2 * green / 255)) / 2;
+		int newA = (a1 + a2) / 2;
 		return gdTrueColorAlpha(newR, newG, newB, newA);
 	}
 
 	if (red)
 	{
-		return fill;
-	}
+		int r1 = gdTrueColorGetRed(fill);
+		int g1 = gdTrueColorGetGreen(fill);
+		int b1 = gdTrueColorGetBlue(fill);
+		int a1 = gdTrueColorGetAlpha(fill);
+		int newR = r1 * red / 255;
+		int newG = g1 * red / 255;
+		int newB = b1 * red / 255;
+		return gdTrueColorAlpha(newR, newG, newB, a1);
+    }
 
 	if (green)
 	{
-		return border;
+		int r1 = gdTrueColorGetRed(border);
+		int g1 = gdTrueColorGetGreen(border);
+		int b1 = gdTrueColorGetBlue(border);
+		int a1 = gdTrueColorGetAlpha(border);
+		int newR = r1 * green / 255;
+		int newG = g1 * green / 255;
+		int newB = b1 * green / 255;
+		return gdTrueColorAlpha(newR, newG, newB, a1);
 	}
 
-	return gdLayerOverlay(pix1, pix2);
+	return pix2;
 }
 
-int PushButton::blend(int p1, int p2)
+int PushButton::blend(int base, int mask)
 {
 	int r1, g1, b1, a1, r2, g2, b2, a2;
 	int newR, newG, newB, newA;
 
-	r1 = gdTrueColorGetRed(p1);
-	g1 = gdTrueColorGetGreen(p1);
-	b1 = gdTrueColorGetBlue(p1);
-	a1 = gdTrueColorGetAlpha(p1);
+	r1 = gdTrueColorGetRed(base);
+	g1 = gdTrueColorGetGreen(base);
+	b1 = gdTrueColorGetBlue(base);
+	a1 = gdTrueColorGetAlpha(base);
 
-	r2 = gdTrueColorGetRed(p2);
-	g2 = gdTrueColorGetGreen(p2);
-	b2 = gdTrueColorGetBlue(p2);
-	a2 = gdTrueColorGetAlpha(p2);
+	r2 = gdTrueColorGetRed(mask);
+	g2 = gdTrueColorGetGreen(mask);
+	b2 = gdTrueColorGetBlue(mask);
+	a2 = gdTrueColorGetAlpha(mask);
 
-	newR = (int)(255.0 - 2.0 * (255.0 - (double)r1) * (255.0 - (double)r2) / 255.0);
-	newG = (int)(255.0 - 2.0 * (255.0 - (double)g1) * (255.0 - (double)g2) / 255.0);
-	newB = (int)(255.0 - 2.0 * (255.0 - (double)b1) * (255.0 - (double)b2) / 255.0);
+	if (mask == 0x7fffffff)
+		return base;
+
+	if (a1 == 127 && a2 < 127)
+		return mask;
+
+	if (a1 == 127)
+		return base;
+
+//	newR = (int)(255.0 - 2.0 * (255.0 - (double)r1) * (255.0 - (double)r2) / 255.0);
+//	newG = (int)(255.0 - 2.0 * (255.0 - (double)g1) * (255.0 - (double)g2) / 255.0);
+//	newB = (int)(255.0 - 2.0 * (255.0 - (double)b1) * (255.0 - (double)b2) / 255.0);
 //	newA = (int)(127.0 - 2.0 * (127.0 - (double)a1) * (127.0 - (double)a2) / 127.0);
 
 //	newR = (int)((double)r1 + (127.0 / 255.0 * (double)r2));
@@ -819,7 +879,7 @@ int PushButton::blend(int p1, int p2)
 //	newR = (int)(((double)r1 * ((double)a1 * 2.0) / 255.0) + ((double)r2 * (double)a2 * (255.0 - ((double)a2 * 2)) / (255.0 * 255.0)));
 //	newG = (int)(((double)g1 * ((double)a1 * 2.0) / 255.0) + ((double)g2 * (double)a2 * (255.0 - ((double)a2 * 2)) / (255.0 * 255.0)));
 //	newB = (int)(((double)b1 * ((double)a1 * 2.0) / 255.0) + ((double)b2 * (double)a2 * (255.0 - ((double)a2 * 2)) / (255.0 * 255.0)));
-	newA = (int)((double)a1 + ((double)a2 * (127.0 - (double)a1) / 127.0));
+//	newA = (int)((double)a1 + ((double)a2 * (127.0 - (double)a1) / 127.0));
 
 	// Add
 //	newR = r1 + r2;
@@ -850,23 +910,52 @@ int PushButton::blend(int p1, int p2)
 //	newB = (int)(255.0 - ((256.0 * (255.0 - (double)b2)) / (double)b1 + 1.0));
 //	newA = (int)(127.0 - ((128.0 * (127.0 - (double)a2)) / (double)a1 + 1.0));
 
+	// Average overlay
+//	newR = (r1 + r2) / 2;
+//	newG = (g1 + g2) / 2;
+//	newB = (b1 + b2) / 2;
+//	newR = r1 - (127 - r2 / 2) + (127 - a2) / 2;
+//	newG = g1 - (127 - g2 / 2) + (127 - a2) / 2;
+//	newB = b1 - (127 - b2 / 2) + (127 - a2) / 2;
+	int newPix = gdLayerMultiply(mask, base);
+	newR = gdTrueColorGetRed(newPix);
+	newG = gdTrueColorGetGreen(newPix);
+	newB = gdTrueColorGetBlue(newPix);
+	newA = a2;
+
 //	newR = softLight(r2, r1);
 //	newG = softLight(g2, g1);
 //	newB = softLight(b2, b1);
 
+//	newR = hardLight(r2, r1);
+//	newG = hardLight(g2, g1);
+//	newB = hardLight(b2, b1);
+
+//	newR = imgBurn(r2, r1);
+//	newG = imgBurn(g2, g1);
+//	newB = imgBurn(b2, b1);
+
 	if (newR > 255)
 		newR = 255;
+	else if (newR < 0)
+		newR = 0;
 
 	if (newG > 255)
 		newG = 255;
+	else if (newG < 0)
+		newG = 0;
 
 	if (newB > 255)
 		newB = 255;
+	else if (newB < 0)
+		newB = 0;
 
 	if (newA > 127)
 		newA = 127;
+	else if (newA < 0)
+		newA = 0;
 
-	if (newA < 127 && (newR > 0 || newG > 0 || newB > 0))
+	if ((newA < 127 && (newR > 0 || newG > 0 || newB > 0)) || ((newR || newG || newB) && !isGrey(gdTrueColor(newR, newG, newB))))
 		newA = 0;
 
 	return gdTrueColorAlpha(newR, newG, newB, newA);
@@ -917,4 +1006,28 @@ int PushButton::imgBurn(int mask, int img)
 		e = 0;
 
 	return e;
+}
+
+bool PushButton::isGrey(unsigned long col)
+{
+	int r1 = (col & 0xff000000) >> 24;
+	int g1 = (col & 0x00ff0000) >> 16;
+	int b1 = (col & 0x0000ff00) >> 8;
+
+	if (r1 == g1 && r1 == b1)
+		return true;
+
+	return false;
+}
+
+bool PushButton::isGrey(int col)
+{
+	int r1 = gdTrueColorGetRed(col);
+	int g1 = gdTrueColorGetGreen(col);
+	int b1 = gdTrueColorGetBlue(col);
+
+	if (r1 == g1 && r1 == b1)
+		return true;
+
+	return false;
 }
