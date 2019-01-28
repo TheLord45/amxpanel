@@ -711,13 +711,14 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 			int base = getBaseColor(pix1, pix2, webColToGd(fill), webColToGd(border));
 
 //			pixNew = gdLayerOverlay(base, pix2);
-			pixNew = blend(base, pix2);
+//			pixNew = blend(base, pix2);
+			pixNew = imgMultAlpha(pix2, base);
 
 			if (doIt && !done)
-            {
-                l += NameFormat::toHex(pix1, 8) + " ";
-                r += NameFormat::toHex(pix2, 8) + " ";
-            }
+			{
+				l += NameFormat::toHex(pix1, 8) + " ";
+				r += NameFormat::toHex(pix2, 8) + " ";
+			}
 
 			gdImageAlphaBlending(imNew, gdEffectReplace);	// switch to overwrite
 			gdImageSetPixel(imNew, x, y, pixNew);			// set pixel
@@ -834,7 +835,7 @@ int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 		return gdTrueColorAlpha(newR, newG, newB, a1);
 	}
 
-	return pix2;
+	return 0x7f000000;
 }
 
 int PushButton::blend(int base, int mask)
@@ -1030,4 +1031,46 @@ bool PushButton::isGrey(int col)
 		return true;
 
 	return false;
+}
+
+int PushButton::imgMultAlpha(int mask, int img)
+{
+	int rm = gdTrueColorGetRed(mask);
+	int gm = gdTrueColorGetGreen(mask);
+	int bm = gdTrueColorGetBlue(mask);
+	int am = gdTrueColorGetAlpha(mask);
+	int ri = gdTrueColorGetRed(img);
+	int gi = gdTrueColorGetGreen(img);
+	int bi = gdTrueColorGetBlue(img);
+	int ai = gdTrueColorGetAlpha(img);
+
+	if (ai == 127)
+		return mask;
+
+	int rem = rm * (127 - am) / 127;
+	int gem = gm * (127 - am) / 127;
+	int bem = bm * (127 - am) / 127;
+	int newR = ri + (ri * ((rem > 127)? 127 - rem : rem) / 255);
+	int newG = gi + (gi * ((gem > 127)? 127 - gem : gem) / 255);
+	int newB = bi + (bi * ((bem > 127)? 127 - bem : bem) / 255);
+
+	if (newR > 255)
+		newR = 255;
+
+	if (newR < 0)
+		newR = 0;
+
+	if (newG > 255)
+		newG = 255;
+
+	if (newG < 0)
+		newG = 0;
+
+	if (newB > 255)
+		newB = 255;
+
+	if (newB < 0)
+		newB = 0;
+
+	return gdTrueColorAlpha(newR, newG, newB, 0);
 }
