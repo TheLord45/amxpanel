@@ -274,6 +274,8 @@ void TouchPanel::readPages()
 	try
 	{
 		vector<String> pgs = getPageFileNames();
+		scBtArray = "\"buttons\":[";
+		bool first = false;
 
 		for (size_t i = 0; i < pgs.size(); i++)
 		{
@@ -304,8 +306,10 @@ void TouchPanel::readPages()
 
 				if (p.haveBtArray())
 				{
-					if (!scBtArray.empty())
+					if (first)
 						scBtArray += ",";
+					else
+						first = true;
 
 					scBtArray += p.getBtArray();
 				}
@@ -332,8 +336,10 @@ void TouchPanel::readPages()
 
 				if (p.haveBtArray())
 				{
-					if (!scBtArray.empty())
+					if (first)
 						scBtArray += ",";
+					else
+						first = true;
 
 				    scBtArray += p.getBtArray();
                 }
@@ -355,6 +361,8 @@ void TouchPanel::readPages()
 				stPopups.push_back(pop);
 			}
 		}
+
+		scBtArray += "]";
 	}
 	catch (exception& e)
 	{

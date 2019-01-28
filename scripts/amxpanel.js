@@ -32,7 +32,22 @@ function findPageGroup(name)
 			return Popups.pages[i].group;
 	}
 
-	return ;
+	return -1;
+}
+function findFirstButton(num)
+{
+	var bt;
+	var i;
+
+	for (i in buttonArray)
+	{
+		bt = buttonArray[i];
+		
+		if (bt.ch == num)
+			return bt;
+	}
+
+	return -1;
 }
 function getPopupIndex(name)
 {
@@ -450,6 +465,20 @@ function doCPG(msg)
 }
 function doAPF(msg)
 {
+	var name;
+	var cmd;
+	var addr;
+	var pos1;
+	var pos2;
+	var bt;
+
+	pos1 = msg.indexOf(',');
+	addr = msg.substr(5, msg.length - 5 - pos1);
+	pos2 = msg.indexOf(',', pos1);
+	cmd = msg.substr(pos1 + 1, pos2 - pos1);
+	name = msg.substr(pos2 + 1);
+
+	bt = buttonArray
 }
 function parseMessage(msg)
 {
