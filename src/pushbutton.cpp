@@ -873,12 +873,15 @@ int PushButton::imgMultAlpha(int mask, int img)
 	if (ai == 127)
 		return mask;
 
-	double rem = ((double)rm / 2.0) * (127.0 - am) / 127.0 * 2.0;
-	double gem = ((double)gm / 2.0) * (127.0 - am) / 127.0 * 2.0;
-	double bem = ((double)bm / 2.0) * (127.0 - am) / 127.0 * 2.0;
-	int newR = (int)(((double)ri + ((double)ri * rem / 255.0)));
-	int newG = (int)(((double)gi + ((double)gi * gem / 255.0)));
-	int newB = (int)(((double)bi + ((double)bi * bem / 255.0)));
+	double rem = (double)rm  * (255.0 - am * 2) / 255.0;
+	double gem = (double)gm  * (255.0 - am * 2) / 255.0;
+	double bem = (double)bm  * (255.0 - am * 2) / 255.0;
+//	int newR = (int)(((double)ri + ((double)ri * rem / 255.0)));
+//	int newG = (int)(((double)gi + ((double)gi * gem / 255.0)));
+//	int newB = (int)(((double)bi + ((double)bi * bem / 255.0)));
+	int newR = (int)((double)ri * rem / 255.0);
+	int newG = (int)((double)gi * gem / 255.0);
+	int newB = (int)((double)bi * bem / 255.0);
 
 	if (newR > 255)
 		newR = 255;
