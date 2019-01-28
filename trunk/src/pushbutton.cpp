@@ -709,9 +709,6 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 			pix1 = gdImageGetTrueColorPixel(im1, x, y);
 			pix2 = gdImageGetTrueColorPixel(im2, x, y);
 			int base = getBaseColor(pix1, pix2, webColToGd(fill), webColToGd(border));
-
-//			pixNew = gdLayerOverlay(base, pix2);
-//			pixNew = blend(base, pix2);
 			pixNew = imgMultAlpha(pix2, base);
 
 			if (doIt && !done)
@@ -785,6 +782,15 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 	return fname;
 }
 
+/*
+ * Die Maske unter pix1 definiert über den roten und/oder grünen Farbkanal,
+ * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
+ * Farbe unter "fill" zurückgegeben. Ist der grübe Farbkanal gesetzt, wird die
+ * Farbe unter "border" zurück gegeben. Der blaue Farbkanal wird nicht
+ * verwendet.
+ * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
+ * grüne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
+ */
 int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 {
 	int alpha = gdTrueColorGetAlpha(pix1);
@@ -804,162 +810,20 @@ int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 		int g2 = gdTrueColorGetGreen(border);
 		int b2 = gdTrueColorGetBlue(border);
 		int a2 = gdTrueColorGetAlpha(border);
-		int newR = ((r1 * red / 255) + (r2 * green / 255)) / 2;
-		int newG = ((g1 * red / 255) + (g2 * green / 255)) / 2;
-		int newB = ((b1 * red / 255) + (b2 * green / 255)) / 2;
+		int newR = (r1 + r2) / 2;
+		int newG = (g1 + g2) / 2;
+		int newB = (b1 + b2) / 2;
 		int newA = (a1 + a2) / 2;
 		return gdTrueColorAlpha(newR, newG, newB, newA);
 	}
 
 	if (red)
-	{
-		int r1 = gdTrueColorGetRed(fill);
-		int g1 = gdTrueColorGetGreen(fill);
-		int b1 = gdTrueColorGetBlue(fill);
-		int a1 = gdTrueColorGetAlpha(fill);
-		int newR = r1 * red / 255;
-		int newG = g1 * red / 255;
-		int newB = b1 * red / 255;
-		return gdTrueColorAlpha(newR, newG, newB, a1);
-    }
+		return fill;
 
 	if (green)
-	{
-		int r1 = gdTrueColorGetRed(border);
-		int g1 = gdTrueColorGetGreen(border);
-		int b1 = gdTrueColorGetBlue(border);
-		int a1 = gdTrueColorGetAlpha(border);
-		int newR = r1 * green / 255;
-		int newG = g1 * green / 255;
-		int newB = b1 * green / 255;
-		return gdTrueColorAlpha(newR, newG, newB, a1);
-	}
+		return border;
 
 	return 0x7f000000;
-}
-
-int PushButton::blend(int base, int mask)
-{
-	int r1, g1, b1, a1, r2, g2, b2, a2;
-	int newR, newG, newB, newA;
-
-	r1 = gdTrueColorGetRed(base);
-	g1 = gdTrueColorGetGreen(base);
-	b1 = gdTrueColorGetBlue(base);
-	a1 = gdTrueColorGetAlpha(base);
-
-	r2 = gdTrueColorGetRed(mask);
-	g2 = gdTrueColorGetGreen(mask);
-	b2 = gdTrueColorGetBlue(mask);
-	a2 = gdTrueColorGetAlpha(mask);
-
-	if (mask == 0x7fffffff)
-		return base;
-
-	if (a1 == 127 && a2 < 127)
-		return mask;
-
-	if (a1 == 127)
-		return base;
-
-//	newR = (int)(255.0 - 2.0 * (255.0 - (double)r1) * (255.0 - (double)r2) / 255.0);
-//	newG = (int)(255.0 - 2.0 * (255.0 - (double)g1) * (255.0 - (double)g2) / 255.0);
-//	newB = (int)(255.0 - 2.0 * (255.0 - (double)b1) * (255.0 - (double)b2) / 255.0);
-//	newA = (int)(127.0 - 2.0 * (127.0 - (double)a1) * (127.0 - (double)a2) / 127.0);
-
-//	newR = (int)((double)r1 + (127.0 / 255.0 * (double)r2));
-//	newG = (int)((double)g1 + (127.0 / 255.0 * (double)g2));
-//	newB = (int)((double)b1 + (127.0 / 255.0 * (double)b2));
-//	newA = (int)((double)a1 + (63.0 / 127.0 * (double)a2));
-
-//	newR = (r2 * a2) + (r1 * (127 - a2));
-//	newG = (g2 * a2) + (g1 * (127 - a2));
-//	newB = (b2 * a2) + (b1 * (127 - a2));
-
-	// Overlay 1
-//	newR = (int)(((double)r1 * ((double)a1 * 2.0) / 255.0) + ((double)r2 * (double)a2 * (255.0 - ((double)a2 * 2)) / (255.0 * 255.0)));
-//	newG = (int)(((double)g1 * ((double)a1 * 2.0) / 255.0) + ((double)g2 * (double)a2 * (255.0 - ((double)a2 * 2)) / (255.0 * 255.0)));
-//	newB = (int)(((double)b1 * ((double)a1 * 2.0) / 255.0) + ((double)b2 * (double)a2 * (255.0 - ((double)a2 * 2)) / (255.0 * 255.0)));
-//	newA = (int)((double)a1 + ((double)a2 * (127.0 - (double)a1) / 127.0));
-
-	// Add
-//	newR = r1 + r2;
-//	newG = g1 + g2;
-//	newB = b1 + b2;
-//	newA = a1 + a2;
-
-	// Multiply
-//	newR = r1 * r2 / 255;
-//	newG = g1 * g2 / 255;
-//	newB = b1 * b2 / 255;
-//	newA = a1 * a2 / 127;
-
-	// Screen
-//	newR = 255 - ((255 - r1) * (255 - r2)) / 255;
-//	newG = 255 - ((255 - g1) * (255 - g2)) / 255;
-//	newB = 255 - ((255 - b1) * (255 - b2)) / 255;
-//	newA = 127 - ((127 - a1) * (127 - a2)) / 127;
-
-	// Overlay 2
-//	newR = (int)((double)r2 / 255.0 * ((double)r2 + (2.0 * (double)r1) / 255.0 * (255.0 - (double)r2)));
-//	newG = (int)((double)g2 / 255.0 * ((double)g2 + (2.0 * (double)g1) / 255.0 * (255.0 - (double)g2)));
-//	newB = (int)((double)b2 / 255.0 * ((double)b2 + (2.0 * (double)b1) / 255.0 * (255.0 - (double)b2)));
-//	newA = (int)((double)a2 / 127.0 * ((double)a2 + (2.0 * (double)a1) / 127.0 * (127.0 - (double)a2)));
-
-//	newR = (int)(255.0 - ((256.0 * (255.0 - (double)r2)) / (double)r1 + 1.0));
-//	newG = (int)(255.0 - ((256.0 * (255.0 - (double)g2)) / (double)g1 + 1.0));
-//	newB = (int)(255.0 - ((256.0 * (255.0 - (double)b2)) / (double)b1 + 1.0));
-//	newA = (int)(127.0 - ((128.0 * (127.0 - (double)a2)) / (double)a1 + 1.0));
-
-	// Average overlay
-//	newR = (r1 + r2) / 2;
-//	newG = (g1 + g2) / 2;
-//	newB = (b1 + b2) / 2;
-//	newR = r1 - (127 - r2 / 2) + (127 - a2) / 2;
-//	newG = g1 - (127 - g2 / 2) + (127 - a2) / 2;
-//	newB = b1 - (127 - b2 / 2) + (127 - a2) / 2;
-	int newPix = gdLayerMultiply(mask, base);
-	newR = gdTrueColorGetRed(newPix);
-	newG = gdTrueColorGetGreen(newPix);
-	newB = gdTrueColorGetBlue(newPix);
-	newA = a2;
-
-//	newR = softLight(r2, r1);
-//	newG = softLight(g2, g1);
-//	newB = softLight(b2, b1);
-
-//	newR = hardLight(r2, r1);
-//	newG = hardLight(g2, g1);
-//	newB = hardLight(b2, b1);
-
-//	newR = imgBurn(r2, r1);
-//	newG = imgBurn(g2, g1);
-//	newB = imgBurn(b2, b1);
-
-	if (newR > 255)
-		newR = 255;
-	else if (newR < 0)
-		newR = 0;
-
-	if (newG > 255)
-		newG = 255;
-	else if (newG < 0)
-		newG = 0;
-
-	if (newB > 255)
-		newB = 255;
-	else if (newB < 0)
-		newB = 0;
-
-	if (newA > 127)
-		newA = 127;
-	else if (newA < 0)
-		newA = 0;
-
-	if ((newA < 127 && (newR > 0 || newG > 0 || newB > 0)) || ((newR || newG || newB) && !isGrey(gdTrueColor(newR, newG, newB))))
-		newA = 0;
-
-	return gdTrueColorAlpha(newR, newG, newB, newA);
 }
 
 int PushButton::webColToGd(unsigned long col)
@@ -969,44 +833,6 @@ int PushButton::webColToGd(unsigned long col)
 	int b1 = (col & 0x0000ff00) >> 8;
 	int a1 = 0x007f - ((col & 0x000000ff) / 2);
 	return gdTrueColorAlpha(r1, g1, b1, a1);
-}
-
-int PushButton::hardLight(int mask, int img)
-{
-	if (mask > 128)
-	{
-		double p1 = (255.0 - 2.0 * ((double)mask - 128)) * (255.0 - (double)img);
-		return (int)(255.0 - p1 / 256.0);
-	}
-	else
-		return (int)((2.0 * (double)mask * (double)img) / 256.0);
-}
-
-int PushButton::softLight(int mask, int img)
-{
-	double rs = 255.0 - ((255.0 - (double)mask) * (255.0 - (double)img)) / 255.0;
-	int e = (int)((((255.0 - (double)img) * (double)mask + rs) / 255.0) * (double)img);
-
-	if (e > 255)
-		e = 255;
-
-	if (e < 0)
-		e = 0;
-
-	return e;
-}
-
-int PushButton::imgBurn(int mask, int img)
-{
-	int e = (255 - (256 * (255 - img)) / (mask + 1));
-
-	if (e > 255)
-		e = 255;
-
-	if (e < 0)
-		e = 0;
-
-	return e;
 }
 
 bool PushButton::isGrey(unsigned long col)
@@ -1047,12 +873,12 @@ int PushButton::imgMultAlpha(int mask, int img)
 	if (ai == 127)
 		return mask;
 
-	int rem = rm * (127 - am) / 127;
-	int gem = gm * (127 - am) / 127;
-	int bem = bm * (127 - am) / 127;
-	int newR = ri + (ri * ((rem > 127)? 127 - rem : rem) / 255);
-	int newG = gi + (gi * ((gem > 127)? 127 - gem : gem) / 255);
-	int newB = bi + (bi * ((bem > 127)? 127 - bem : bem) / 255);
+	double rem = ((double)rm / 2.0) * (127.0 - am) / 127.0 * 2.0;
+	double gem = ((double)gm / 2.0) * (127.0 - am) / 127.0 * 2.0;
+	double bem = ((double)bm / 2.0) * (127.0 - am) / 127.0 * 2.0;
+	int newR = (int)(((double)ri + ((double)ri * rem / 255.0)));
+	int newG = (int)(((double)gi + ((double)gi * gem / 255.0)));
+	int newB = (int)(((double)bi + ((double)bi * bem / 255.0)));
 
 	if (newR > 255)
 		newR = 255;

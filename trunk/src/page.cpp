@@ -465,6 +465,17 @@ void amx::Page::generateButtons()
 
 		for (size_t i = 0; i < page.buttons.size(); i++)
 		{
+			if (page.buttons[i].ap > 0 || page.buttons[i].ad > 0 ||
+				page.buttons[i].cp > 0 || page.buttons[i].ch > 0)
+			{
+				if (!btArray.empty())
+					btArray += ",";
+
+				btArray += String("\"Page")+page.pageID+"_b"+i+"_Button_"+page.buttons[i].bi+"\":";
+				btArray += String("{\"ap\":")+page.buttons[i].ap+",\"ac\":"+page.buttons[i].ad;
+				btArray += String(",\"cp\":")+page.buttons[i].cp+",\"ch\":"+page.buttons[i].ch+"}";
+			}
+
 			PushButton pbt(page.buttons[i], paletteClass->getPalette());
 			pbt.setFontClass(fontClass);
 			pbt.setPageList(pgList);

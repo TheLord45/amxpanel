@@ -44,9 +44,10 @@ namespace amx
 			strings::String& getGroupName() { return page.group; }
 			strings::String& getScriptCode() { return scriptCode; }
 			strings::String& getScriptStart() { return scrStart; }
+			strings::String& getBtArray() { return btArray; }
+			bool haveBtArray() { return !btArray.empty(); }
 
 			void setPalette(Palette *pal) { paletteClass = pal; }
-//			void setPaletteFile(const strings::String& fname) { paletteFile = fname; }
 			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }
 			void setFontClass(FontList *fl) { fontClass = fl; }
 			void setIconClass(Icon *ic) { iconClass = ic; }
@@ -74,6 +75,7 @@ namespace amx
 			strings::String scrStart;
 			strings::String paletteFile;
 			strings::String pageFile;
+			strings::String btArray;
 			int totalWidth;
 			int totalHeight;
 			FontList *fontClass;

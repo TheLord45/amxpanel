@@ -80,9 +80,11 @@ namespace amx
 			void writeGroups(std::fstream& pgFile);
 			void writePopups(std::fstream& pgFile);
 			void writeAllPopups(std::fstream& pgFile);
+			void writeBtArray(std::fstream& pgFile);
 
 			strings::String scrBuffer;
 			strings::String scrStart;
+			strings::String scBtArray;
 			bool gotPages;
 			int openPage;		// The index number of the currently open page
 			std::vector<int> openPopups;	// The currently open popups connected

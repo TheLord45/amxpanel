@@ -302,6 +302,14 @@ void TouchPanel::readPages()
 				scrBuffer += p.getScriptCode();
 				scrStart += p.getScriptStart();
 
+				if (p.haveBtArray())
+				{
+					if (!scBtArray.empty())
+						scBtArray += ",";
+
+					scBtArray += p.getBtArray();
+				}
+
 				if (pg.name.compare(getProject().panelSetup.powerUpPage) == 0)
 					pg.active = true;
 				else
@@ -321,6 +329,11 @@ void TouchPanel::readPages()
 				pop.active = false;
 				scrBuffer += p.getScriptCode();
 				scrStart += p.getScriptStart();
+
+				if (i > 0)
+					scBtArray += ",";
+
+				scBtArray += p.getBtArray();
 
 				for (size_t j = 0; j < getProject().panelSetup.powerUpPopup.size(); j++)
 				{
@@ -404,12 +417,15 @@ bool TouchPanel::parsePages()
     writePages(pgFile);
 	writePopups(pgFile);
 	writeGroups(pgFile);
-    pgFile << "var Pages;\n";
+	writeBtArray(pgFile);
+	pgFile << "var Pages;\n";
 	pgFile << "var Popups;\n";
-	pgFile << "var popupGroups;\n\n";
-    pgFile << "Pages = JSON.parse(basePages);\n";
+	pgFile << "var popupGroups;\n";
+	pgFile << "var buttonArray;\n\n";
+	pgFile << "Pages = JSON.parse(basePages);\n";
 	pgFile << "Popups = JSON.parse(pageNames);\n";
 	pgFile << "popupGroups = JSON.parse(pageGroups);\n";
+	pgFile << "buttonArray = JSON.parse(buttonDefArray);\n";
 	pgFile << "</script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"amxpanel.js\"></script>\n";
 	// Add some special script functions
@@ -559,4 +575,11 @@ void TouchPanel::writeStyles(std::fstream& pgFile)
 
 		pgFile << pg.getStyleCode();
 	}
+}
+
+void TouchPanel::writeBtArray(fstream& pgFile)
+{
+	sysl->TRACE(std::string("TouchPanel::writeBtArray(fstream& pgFile)"));
+
+	pgFile << "var buttonDefArray = {" << scBtArray << "};\n";
 }
