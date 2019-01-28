@@ -330,10 +330,13 @@ void TouchPanel::readPages()
 				scrBuffer += p.getScriptCode();
 				scrStart += p.getScriptStart();
 
-				if (i > 0)
-					scBtArray += ",";
+				if (p.haveBtArray())
+				{
+					if (!scBtArray.empty())
+						scBtArray += ",";
 
-				scBtArray += p.getBtArray();
+				    scBtArray += p.getBtArray();
+                }
 
 				for (size_t j = 0; j < getProject().panelSetup.powerUpPopup.size(); j++)
 				{
