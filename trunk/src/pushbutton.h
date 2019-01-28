@@ -114,6 +114,7 @@ namespace amx
 			int hardLight(int mask, int img);
 			int softLight(int mask, int img);
 			int imgBurn(int mask, int img);
+			int imgMultAlpha(int mask, int img);
 			bool isGrey(unsigned long col);
 			bool isGrey(int col);
 
