@@ -109,11 +109,54 @@ namespace amx
 
 		private:
 			int blend(int base, int mask);
+			/**
+			 * Die Maske unter \a pix1 definiert über den roten und/oder grünen Farbkanal,
+			 * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
+			 * Farbe unter \a fill zurückgegeben. Ist der grüne Farbkanal gesetzt, wird die
+			 * Farbe unter \a border zurück gegeben. Der blaue Farbkanal wird nicht
+			 * verwendet.
+			 * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
+			 * grüne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
+			 * 
+			 * Der Parameter \a pix2 definiert (optional) eine Maske. Diese
+			 * besteht vorwiegend aus einem Alpha-Kanal und einem Wert pro
+			 * Farbkanal, welcher ein Pixel dunkler erscheinen lassen kann.
+			 * 
+			 * Die beiden Paremeter \a pix1 und \a pix2 sind jeweils ein Pixel
+			 * im Format einer \b GD Farbe.
+			 * 
+			 * @param pix1
+			 * Maske die definiert welche Farbe zurückgegeben werden soll.
+			 * 
+			 * @param pix2
+			 * Maske welche die Helligkeit oder Transparenz eines Pixels bestimmt.
+			 * 
+			 * @param fill
+			 * Diese Farbe wird zurückgegeben, wenn in der Maske \a pix1 der
+			 * grüne Farbkanal > 0 gesetzt ist.
+			 * 
+			 * @param border
+			 * Diese Farbe wird zurückgegeben, wenn in der Maske \a pix1 der
+			 * grüne Farbkanal > 0 gesetzt ist.
+			 * 
+			 * @return
+			 * Eine Farbe oder ein transparanetes Pixel.
+			 */
 			int getBaseColor(int pix1, int pix2, int fill, int border);
 			int webColToGd(unsigned long col);
-			int hardLight(int mask, int img);
-			int softLight(int mask, int img);
-			int imgBurn(int mask, int img);
+			/**
+			 * Legt die Maske \a mask über das Image \a img. Dabei wird ein
+			 * multiplizierender Algorithmus angewendet.
+			 * Die beiden Paremeter sind je ein Pixel in Form einer \b GD - Farbe.
+			 * 
+			 * TODO: Formel verbessern!
+			 * 
+			 * @param mask
+			 * Die Maske welche über das \a img gelegt werden soll.
+			 * 
+			 * @param img
+			 * Das Image über das die Maske \a mask gelegt werden soll.
+			 */
 			int imgMultAlpha(int mask, int img);
 			bool isGrey(unsigned long col);
 			bool isGrey(int col);

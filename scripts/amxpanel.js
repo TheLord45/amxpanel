@@ -448,6 +448,9 @@ function doCPG(msg)
 	for (i in group)
 		delete group[i];
 }
+function doAPF(msg)
+{
+}
 function parseMessage(msg)
 {
 	var name;
@@ -473,6 +476,8 @@ function parseMessage(msg)
 		doPPX(msg);
 	else if (msg.startsWidth("PAGE-"))	// Flip to page
 		doPAGE(msg);
+	else if (msg.startsWidth("^APF-"))	// Add page flip action to button
+		doAPF(msg);
 }
 function connect()
 {
