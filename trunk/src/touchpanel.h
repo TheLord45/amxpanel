@@ -21,6 +21,7 @@
 #include <array>
 #include <memory>
 #include <fstream>
+#include <functional>
 #ifdef __APPLE__
 #include <boost/asio.hpp>
 #else
@@ -71,6 +72,7 @@ namespace amx
 			bool parsePages();
 
 			void setCommand(const struct ANET_COMMAND& cmd);
+			void webMsg(std::string& msg);
 			bool startClient();
 
 		private:
