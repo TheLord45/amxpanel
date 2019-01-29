@@ -19,6 +19,7 @@
 
 #include <websocketpp/config/asio.hpp>
 #include <websocketpp/server.hpp>
+#include "strings.h"
 
 typedef websocketpp::server<websocketpp::config::asio_tls> server;
 
@@ -28,13 +29,23 @@ typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> conte
 
 namespace amx
 {
+	static server sock_server;
+	static bool connected = false;
+	static bool cbInit = false;
+	static std::function<void(std::string&)> fcall;
+
 	class WebSocket
 	{
 		public:
 			WebSocket();
 			~WebSocket();
 
+			static void regCallback(std::function<void(std::string&)> func) { fcall = func; cbInit = true; }
 			void run();
+			bool send(strings::String& msg);
+			static server& getServer() { return sock_server; }
+			static bool getConStatus() { return connected; }
+			static void setConStatus(bool s) { connected = s; }
 
 			enum tls_mode
 			{

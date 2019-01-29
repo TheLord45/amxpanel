@@ -1,3 +1,14 @@
+var curPort;
+var curCommand;
+
+function splittCmd(msg)
+{
+	var pos;
+
+	pos = msg.indexOf('|');
+	curPort = msg.substr(0, pos);
+	curCommand = msg.substr(pos+1);
+}
 function findPopupNumber(name)
 {
 	var i;
@@ -34,16 +45,16 @@ function findPageGroup(name)
 
 	return -1;
 }
-function findFirstButton(num)
+function findButton(num)
 {
 	var bt;
 	var i;
 
-	for (i in buttonArray)
+	for (i in buttonArray.buttons)
 	{
-		bt = buttonArray[i];
-		
-		if (bt.ch == num)
+		bt = buttonArray.buttons[i];
+
+		if (bt.cp == curPort && bt.ch == num)
 			return bt;
 	}
 
@@ -478,7 +489,19 @@ function doAPF(msg)
 	cmd = msg.substr(pos1 + 1, pos2 - pos1);
 	name = msg.substr(pos2 + 1);
 
-	bt = buttonArray
+	if ((bt = findButton(addr)) === -1)
+	{
+		console.log('doAPF: Error button '+addr+' not found!');
+		return;
+	}
+
+	if (cmd.startsWidth('Show'))
+		showPopup(name);
+	else if (cmd.startsWidth('Hide'))
+		hidePopup(name);
+	else if (cmd.startsWidth('ClearG'))
+		hideGroup(name);
+	// FIXME: There are more commands!
 }
 function parseMessage(msg)
 {
@@ -488,25 +511,26 @@ function parseMessage(msg)
 	var idx;
 
 	pg = "";
+	splittCmd(msg);
 
 	if (msg.startsWidth("@APG-"))		// Add a popup to a popup group
-		doAPG(msg);
+		doAPG(curCommand);
 	else if (msg.startsWidth("@CPG-"))	// Clear all popups from a group
-		doCPG(msg);
+		doCPG(curCommand);
 	else if (msg.startsWidth("@PPN-") || msg.startsWidth("PPON-"))	// Popup on
-		doPPN(msg);
+		doPPN(curCommand);
 	else if (msg.startsWidth("@PPF-") || msg.startsWidth("PPOF-"))	// Popup off
-		doPPF(msg);
+		doPPF(curCommand);
 	else if (msg.startsWidth("@PPG-") || msg.startsWidth("PPOG-"))	// Toggle a popup
-		doPPG(msg);
+		doPPG(curCommand);
 	else if (msg.startsWidth("@PPK-"))	// Close popup on all pages
-		doPPK(msg);
+		doPPK(curCommand);
 	else if (msg == "@PPX")				// close all popups on all pages
-		doPPX(msg);
+		doPPX(curCommand);
 	else if (msg.startsWidth("PAGE-"))	// Flip to page
-		doPAGE(msg);
+		doPAGE(curCommand);
 	else if (msg.startsWidth("^APF-"))	// Add page flip action to button
-		doAPF(msg);
+		doAPF(curCommand);
 }
 function connect()
 {

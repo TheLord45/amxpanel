@@ -47,6 +47,7 @@ TouchPanel::TouchPanel()
 	sysl->TRACE(Syslog::ENTRY, String("TouchPanel::TouchPanel()"));
 	openPage = 0;
 	busy = false;
+	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1));
 	readPages();
 	// Start thread for websocket
 /*	try
@@ -184,9 +185,24 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 		{
 			case 0x000c:
 				ANET_MSG_STRING msg = bef.data.message_string;
-				String com((char *)&msg.content);
+				String com(bef.port1);
+				com.append("|");
+				com.append((char *)&msg.content);
+				send(com);
 
-				if (com.contains("PAGE-"))
+				/* FIXME: Einfügen von Code für eine Schattenverwaltung der Pages.
+				 *        Alle Befehle welche eine Seite in irgend einer Form
+				 *        manipulieren, müssen im Code gespeichert werden.
+				 *        Verbindet sich ein Endgerät, muss seine Oberfläche
+				 *        korrekt gesetzt werden.
+				 * 
+				 * Alternative:
+				 * Die verbindung zum Controller wird unterbrochen, sobald der
+				 * Client nicht mehr verfügbar ist und erst wieder aufgebaut,
+				 * wenn der Client sich erneut verbindet. Dadurch wird der
+				 * Seitenaufbau vom Controller gesteuert.
+				 */
+/*				if (com.contains("PAGE-"))
 				{
 					String name = com.substring(com.findFirstOf('-')+1);
 					int id = findPage(name);
@@ -220,13 +236,23 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				{
 					String name = com.substring(5);
 					// FIXME: Open a partucular popup
-				}
+				} */
 			}
 		break;
 	}
 
 	// FIXME: Add a function to inform the client about a new page.
 	busy = false;
+}
+
+/*
+ * This function is called from class WebSocket every time a message from the
+ * client web browser is received. The messages are processed and then the
+ * result is send to the controller, if there is something to send.
+ */
+void TouchPanel::webMsg(std::string& msg)
+{
+	// FIXME: Add code here!
 }
 
 int TouchPanel::findPage(const String& name)
