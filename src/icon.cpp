@@ -92,12 +92,22 @@ amx::Icon::~Icon()
 
 strings::String amx::Icon::getFileName(size_t idx)
 {
-    sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getFileName(size_t idx)"));
+	sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getFileName(size_t idx)"));
 
-    if (idx > icons.size())
-        return "";
+	if (idx > icons.size())
+		return "";
 
-    return icons.at(idx).file;
+	return icons.at(idx).file;
+}
+
+int Icon::getID(size_t idx)
+{
+	sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getID(size_t idx)"));
+
+	if (idx > icons.size())
+		return -1;
+
+	return icons.at(idx).index;
 }
 
 strings::String amx::Icon::getFileFromID(int id)

@@ -77,9 +77,9 @@ String PushButton::getStyle()
 			hasChameleon = false;
 
 		if (button.ap == 0 && isSystemReserved(button.ad))
-			style += String(".")+btName+i+" {\n";
+			style += String(".")+btName+button.sr[i].number+" {\n";
 		else	// Name: .button<number>_b<id>_<name>
-			style += String(".Page")+pageID+"_b"+i+"_"+btName+" {\n";
+			style += String(".Page")+pageID+"_b"+button.sr[i].number+"_"+btName+" {\n";
 
 		style += "  position: absolute;\n";
 		style += String("  left: ")+String(button.lt)+"px;\n";
@@ -137,9 +137,9 @@ String PushButton::getStyle()
 		if (font.number == button.sr[i].fi)
 		{
 			if (button.ap == 0 && isSystemReserved(button.ad))
-				style += String(".")+btName+i+"_font {\n";
+				style += String(".")+btName+button.sr[i].number+"_font {\n";
 			else
-				style += String(".Page")+pageID+"_b"+i+"_"+btName+"_font {\n";
+				style += String(".Page")+pageID+"_b"+button.sr[i].number+"_"+btName+"_font {\n";
 
 			if (!button.sr[i].bs.empty())
 			{
@@ -194,13 +194,13 @@ String PushButton::getWebCode()
 	{
 		if (button.ap == 0 && isSystemReserved(button.ad))
 		{
-			names = btName+"0',";
-			names += btName+"1'";
+			names = btName+button.sr[0].number+"',";
+			names += btName+button.sr[1].number+"'";
 		}
 		else
 		{
-			names = String("'Page")+pageID+"_b0_"+btName+"',";
-			names += String("'Page")+pageID+"_b1_"+btName+"'";
+			names = String("'Page")+pageID+"_b"+button.sr[0].number+"_"+btName+"',";
+			names += String("'Page")+pageID+"_b"+button.sr[1].number+"_"+btName+"'";
 		}
 	}
 
@@ -227,13 +227,13 @@ String PushButton::getWebCode()
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		// FIXME: Die unterschiedlichen button status berücksichtigen
+		// FIXME: Die unterschiedlichen button status berÃ¼cksichtigen
 		String nm;
 
 		if (button.ap == 0 && isSystemReserved(button.ad))
-			nm = btName+i;
+			nm = btName+button.sr[i].number;
 		else
-			nm = String("Page")+pageID+"_b"+i+"_"+btName;
+			nm = String("Page")+pageID+"_b"+button.sr[i].number+"_"+btName;
 
 		code += String("      <div id=\"")+nm+"\" class=\""+nm+"\"";
 
@@ -250,7 +250,7 @@ String PushButton::getWebCode()
 			int width, height;
 			String icoFile = iconClass->getFileFromID(button.sr[i].ii);
 
-			code += String("         <img src=\"images/")+icoFile+"\"";
+			code += String("         <img id=\"")+nm+"_icon\" src=\"images/"+icoFile+"\"";
 
 			if (button.sr[i].ji == 0)
 			{
@@ -315,7 +315,7 @@ String PushButton::getWebCode()
 			code += String("         <span id=\"")+nm+"_font\" class=\""+nm+"_font\">";
 			code += NameFormat::textToWeb(button.sr[i].te)+"</span>\n";
 		}
-		else if (button.ad > 0 && button.ap > 0)	// A ^TXT command could send text to this field
+		else			// A ^TXT command could send text to this field
 			code += String("         <span id=\"")+nm+"_font\" class=\""+nm+"_font\"></span>\n";
 
 		code += "      </div>\n";
@@ -361,7 +361,7 @@ String PushButton::getScriptCode()
 		code += "\ts = checkTime(s);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = h + \":\" + m + \":\" + s;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = h + \":\" + m + \":\" + s;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 500);\n";
 		code += "}\n";
@@ -385,7 +385,7 @@ String PushButton::getScriptCode()
 		code += "\tm = checkTime(m);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = h + \":\" + m + \" \" + s;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = h + \":\" + m + \" \" + s;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 500);\n";
 		code += "}\n";
@@ -405,7 +405,7 @@ String PushButton::getScriptCode()
 		code += "\tm = checkTime(m);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = h + \":\" + m;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = h + \":\" + m;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 500);\n";
 		code += "}\n";
@@ -431,7 +431,7 @@ String PushButton::getScriptCode()
 		code += "\t}\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = mon + '/' + day;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = mon + '/' + day;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
@@ -451,7 +451,7 @@ String PushButton::getScriptCode()
 		code += "\tday = checkTime(day);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = mon + '/' + day;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = mon + '/' + day;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
@@ -471,7 +471,7 @@ String PushButton::getScriptCode()
 		code += "\tday = checkTime(day);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = day + '/' + mon;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = day + '/' + mon;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
@@ -492,7 +492,7 @@ String PushButton::getScriptCode()
 		code += "\tday = checkTime(day);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = mon + '/' + day + '/' + year;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = mon + '/' + day + '/' + year;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
@@ -513,7 +513,7 @@ String PushButton::getScriptCode()
 		code += "\tday = checkTime(day);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = day + '/' + mon + '/' + year;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = day + '/' + mon + '/' + year;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
@@ -547,7 +547,7 @@ String PushButton::getScriptCode()
 		code += "\tday = checkTime(day);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = mon + ' ' + day + ', ' + year;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = mon + ' ' + day + ', ' + year;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
@@ -581,7 +581,7 @@ String PushButton::getScriptCode()
 		code += "\tday = checkTime(day);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+i+"_font').innerHTML = day + ' ' + mon + ', ' + year;\n";
+			code += String("\tdocument.getElementById('")+getButtonName(button.ad)+button.sr[i].number+"_font').innerHTML = day + ' ' + mon + ', ' + year;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
@@ -602,7 +602,7 @@ String PushButton::getScriptCode()
 		code += "\tday = checkTime(day);\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)
-			code += String("\tdocument.getElementById('")+getBorderStyle(button.ad)+i+"_font').innerHTML = year + '-' + mon + '-' + day;\n";
+			code += String("\tdocument.getElementById('")+getBorderStyle(button.ad)+button.sr[i].number+"_font').innerHTML = year + '-' + mon + '-' + day;\n";
 
 		code += String("\tvar t = setTimeout(")+getFuncName(button.ad)+", 1000);\n";
 		code += "}\n";
@@ -783,13 +783,13 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 }
 
 /*
- * Die Maske unter pix1 definiert über den roten und/oder grünen Farbkanal,
+ * Die Maske unter pix1 definiert Ã¼ber den roten und/oder grÃ¼nen Farbkanal,
  * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
- * Farbe unter "fill" zurückgegeben. Ist der grübe Farbkanal gesetzt, wird die
- * Farbe unter "border" zurück gegeben. Der blaue Farbkanal wird nicht
+ * Farbe unter "fill" zurÃ¼ckgegeben. Ist der grÃ¼be Farbkanal gesetzt, wird die
+ * Farbe unter "border" zurÃ¼ck gegeben. Der blaue Farbkanal wird nicht
  * verwendet.
  * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
- * grüne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
+ * grÃ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
  */
 int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 {

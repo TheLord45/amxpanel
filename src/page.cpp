@@ -148,12 +148,12 @@ bool amx::Page::parsePage()
 			if (reader.has_attributes())
 			{
 				for (int i = 0; i < reader.get_attribute_count(); i++)
-					sysl->TRACE(String("Page::Page: name=")+name+", depth="+reader.get_depth()+", attr="+reader.get_attribute(i));
+					sysl->TRACE(String("Page::parsePage: name=")+name+", depth="+reader.get_depth()+", attr="+reader.get_attribute(i));
 			}
 			else if (reader.has_value())
-				sysl->TRACE(String("Page::Page: name=")+name+", depth="+reader.get_depth()+", value="+reader.get_value());
+				sysl->TRACE(String("Page::parsePage: name=")+name+", depth="+reader.get_depth()+", value="+reader.get_value());
 			else
-				sysl->TRACE(String("Page::Page: name=")+name+", depth="+reader.get_depth());
+				sysl->TRACE(String("Page::parsePage: name=")+name+", depth="+reader.get_depth());
 
 			if (name.caseCompare("page") == 0 && reader.has_attributes())
 			{
@@ -166,7 +166,7 @@ bool amx::Page::parsePage()
 				else
 					page.type = PNONE;
 
-				sysl->TRACE(String("Page::Page: page:")+page.type);
+				sysl->TRACE(String("Page::parsePage: page:")+page.type);
 			}
 			else if (name.caseCompare("pageID") == 0 && reader.has_value())
 				page.pageID = atoi(reader.get_value().c_str());
@@ -188,7 +188,7 @@ bool amx::Page::parsePage()
 				page.showTime = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("hideEffect") == 0 && reader.has_value())
 				page.hideEffect = (SHOWEFFECT)atoi(reader.get_value().c_str());
-			else if (name.caseCompare("hideEffect") == 0 && reader.has_value())
+			else if (name.caseCompare("hideTime") == 0 && reader.has_value())
 				page.hideTime = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("button") == 0 && reader.has_attributes())
 			{
@@ -218,7 +218,7 @@ bool amx::Page::parsePage()
 				button.fb = FB_NONE;
 				page.buttons.push_back(button);
 				inButton = true;
-				sysl->TRACE(String("Page::Page: Added for page ")+page.name+" button of type "+button.type);
+				sysl->TRACE(String("Page::parsePage: Added for page ")+page.name+" button of type "+button.type);
 			}
 			else if (name.caseCompare("button") == 0)
 				inButton = false;
@@ -465,8 +465,7 @@ void amx::Page::generateButtons()
 
 		for (size_t i = 0; i < page.buttons.size(); i++)
 		{
-			if (page.buttons[i].ap > 0 || page.buttons[i].ad > 0 ||
-				page.buttons[i].cp > 0)
+			if (page.buttons[i].ad > 0 || page.buttons[i].ch > 0)
 			{
 				if (!btArray.empty())
 					btArray += ",";

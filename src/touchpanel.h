@@ -83,6 +83,7 @@ namespace amx
 			void writePopups(std::fstream& pgFile);
 			void writeAllPopups(std::fstream& pgFile);
 			void writeBtArray(std::fstream& pgFile);
+			void writeIconTable(std::fstream& pgFile);
 
 			strings::String scrBuffer;
 			strings::String scrStart;
