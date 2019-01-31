@@ -22,26 +22,28 @@
 
 namespace amx
 {
-    typedef struct ICON
-    {
-        int index;
-        strings::String file;
-    }ICON_T;
+	typedef struct ICON
+	{
+		int index;
+		strings::String file;
+	}ICON_T;
 
-    class Icon
-    {
-        public:
-            Icon(const strings::String& file);
-            ~Icon();
+	class Icon
+	{
+		public:
+			Icon(const strings::String& file);
+			~Icon();
 
-            bool isOk() { return status; }
-            strings::String getFileName(size_t idx);
-            strings::String getFileFromID(int id);
+			bool isOk() { return status; }
+			strings::String getFileName(size_t idx);
+			int getID(size_t idx);
+			strings::String getFileFromID(int id);
+			size_t numIcons() { return icons.size(); }
 
-        private:
-            std::vector<ICON_T> icons;
-            bool status;
-    };
+		private:
+			std::vector<ICON_T> icons;
+			bool status;
+	};
 }
 
 #endif

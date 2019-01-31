@@ -190,15 +190,15 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				com.append((char *)&msg.content);
 				send(com);
 
-				/* FIXME: Einfügen von Code für eine Schattenverwaltung der Pages.
+				/* FIXME: EinfÃÂ¼gen von Code fÃÂ¼r eine Schattenverwaltung der Pages.
 				 *        Alle Befehle welche eine Seite in irgend einer Form
-				 *        manipulieren, müssen im Code gespeichert werden.
-				 *        Verbindet sich ein Endgerät, muss seine Oberfläche
+				 *        manipulieren, mÃÂ¼ssen im Code gespeichert werden.
+				 *        Verbindet sich ein EndgerÃÂ¤t, muss seine OberflÃÂ¤che
 				 *        korrekt gesetzt werden.
 				 * 
 				 * Alternative:
 				 * Die verbindung zum Controller wird unterbrochen, sobald der
-				 * Client nicht mehr verfügbar ist und erst wieder aufgebaut,
+				 * Client nicht mehr verfÃÂ¼gbar ist und erst wieder aufgebaut,
 				 * wenn der Client sich erneut verbindet. Dadurch wird der
 				 * Seitenaufbau vom Controller gesteuert.
 				 */
@@ -455,6 +455,7 @@ bool TouchPanel::parsePages()
 	writePopups(pgFile);
 	writeGroups(pgFile);
 	writeBtArray(pgFile);
+    writeIconTable(pgFile);
 	pgFile << "var Pages;\n";
 	pgFile << "var Popups;\n";
 	pgFile << "var popupGroups;\n";
@@ -462,7 +463,6 @@ bool TouchPanel::parsePages()
 	pgFile << "Pages = JSON.parse(basePages);\n";
 	pgFile << "Popups = JSON.parse(pageNames);\n";
 	pgFile << "popupGroups = JSON.parse(pageGroups);\n";
-	pgFile << "buttonArray = JSON.parse(buttonDefArray);\n";
 	pgFile << "</script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"amxpanel.js\"></script>\n";
 	// Add some special script functions
@@ -618,5 +618,24 @@ void TouchPanel::writeBtArray(fstream& pgFile)
 {
 	sysl->TRACE(std::string("TouchPanel::writeBtArray(fstream& pgFile)"));
 
-	pgFile << "var buttonDefArray = {" << scBtArray << "};\n";
+	pgFile << "var buttonArray = {" << scBtArray << "};\n";
+}
+
+void TouchPanel::writeIconTable(std::fstream& pgFile)
+{
+    sysl->TRACE(std::string("TouchPanel::writeIconTable(std::fstream& pgFile)"));
+
+    Icon *ic = getIconClass();
+    size_t ni = ic->numIcons();
+    pgFile << "var iconArray =\n\t{\"icons\":[\n";
+    
+    for (size_t i = 0; i < ni; i++)
+    {
+        if (i > 0)
+            pgFile << ",\n";
+
+        pgFile << "\t\t{\"id\":" << ic->getID(i) << ",\"file\":\"" << ic->getFileName(i) << "\"}";
+    }
+
+    pgFile << "\n\t]};\n\n";
 }

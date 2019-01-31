@@ -345,11 +345,11 @@ namespace amx
 			hs.clear();
 			bs.clear();
 			fb = FB_NONE;
-			ap = 0;
+			ap = 1;
 			ad = 0;
 			ch = 0;
-			cp = 0;
-			lp = 0;
+			cp = 1;
+			lp = 1;
 			va = 0;
 			rv = 0;
 			rl = 0;
