@@ -150,13 +150,20 @@ String PushButton::getStyle()
 				style += "  border: none;\n";
 
 			style += "  position: absolute;\n";
-//			style += String("  left: 5%;\n");
-			style += String("  width: 100%;\n");
-			style += String("  height: 100%;\n");
+			
+			if (button.sr[i].jt != ORI_ABSOLUT)
+			{
+				style += String("  left: 0px;\n");
+				style += String("  top: 0px;\n");
+			}
+
+			style += String("  width: ")+button.wt+"px;\n";
+			style += String("  height: ")+button.ht+"px;\n";
 			style += String("  font-family: \"")+font.name+"\";\n";
 			style += String("  font-size: ")+String(font.size)+"pt;\n";
 			style += String("  font-style: ")+fontClass->getFontStyle(font.subfamilyName)+";\n";
 			style += String("  font-weight: ")+fontClass->getFontWeight(font.subfamilyName)+";\n";
+//			int middle = (button.ht / 4) * -1;
 
 			switch(button.sr[i].jt)
 			{
@@ -168,6 +175,9 @@ String PushButton::getStyle()
 				case ORI_TOP_LEFT:		style += "  text-align: left;\n  vertical-align: top;\n"; break;
 				case ORI_TOP_MIDDLE:	style += "  text-align: center;\n  vertical-align: top;\n"; break;
 				case ORI_TOP_RIGHT:		style += "  text-align: right;\n  vertical-align: top;\n"; break;
+//				case ORI_CENTER_LEFT:	style += String("  text-align: left;\n  margin-top: ")+middle+"px;\n  vertical-align: middle;\n"; break;
+//				case ORI_CENTER_MIDDLE:	style += String("  text-align: center;\n  margin-top: ")+middle+"px;\n  vertical-align: middle;\n"; break;
+//				case ORI_CENTER_RIGHT:	style += String("  text-align: right;\n  margin-top: ")+middle+"px;\n  vertical-align: middle;\n"; break;
 				case ORI_CENTER_LEFT:	style += "  text-align: left;\n  vertical-align: middle;\n"; break;
 				case ORI_CENTER_MIDDLE:	style += "  text-align: center;\n  vertical-align: middle;\n"; break;
 				case ORI_CENTER_RIGHT:	style += "  text-align: right;\n  vertical-align: middle;\n"; break;
@@ -227,7 +237,7 @@ String PushButton::getWebCode()
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		// FIXME: Die unterschiedlichen button status berÃ¼cksichtigen
+		// FIXME: Die unterschiedlichen button status berücksichtigen
 		String nm;
 
 		if (button.ap == 0 && isSystemReserved(button.ad))
@@ -249,12 +259,13 @@ String PushButton::getWebCode()
 		{
 			int width, height;
 			String icoFile = iconClass->getFileFromID(button.sr[i].ii);
+			bool stat = getImageDimensions(Configuration->getHTTProot()+"/images/"+icoFile, &width, &height);
 
 			code += String("         <img id=\"")+nm+"_icon\" src=\"images/"+icoFile+"\"";
 
 			if (button.sr[i].ji == 0)
 			{
-				if (getImageDimensions(Configuration->getHTTProot()+"/images/"+icoFile, &width, &height))
+				if (stat)
 				{
 					sysl->TRACE(String("PushButton::getWebCode: width=")+width+", height="+height);
 
@@ -293,18 +304,10 @@ String PushButton::getWebCode()
 			switch(button.sr[i].ji)			// Icon justification
 			{
 				case 0:	code += String(" style=\"position: absolute;left: ")+button.sr[i].ix+"px;top: "+button.sr[i].iy+"px;\""; break;
-				case 1:	code += " style=\"align: left;vertical-align: top;\""; break;
-				case 2:	code += " style=\"align: center;vertical-align: top;\""; break;
-				case 3:	code += " style=\"align: right;vertical-align: top;\""; break;
-				case 4:	code += " style=\"align: left;vertical-align: middle;\""; break;
-				case 5:	code += " style=\"align: center;vertical-align: middle;\""; break;
-				case 6:	code += " style=\"align: right;vertical-align: middle;\""; break;
-				case 7:	code += " style=\"align: left;vertical-align: bottom;\""; break;
-				case 8:	code += " style=\"align: center;vertical-align: bottom;\""; break;
-				case 9:	code += " style=\"align: right;vertical-align: bottom;\""; break;
+				case 1:	code += " style=\"position: absolute;left: 0px;top: 0px;\""; break;
 
 				default:
-					code += String(" style=\"position: absolute;left: 0px;top: 0px;\"");
+					code += String(" onload=\"posImage(this,'")+nm+"',"+button.sr[i].ji+");\"";
 			}
 
 			code += ">\n";
@@ -783,13 +786,13 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 }
 
 /*
- * Die Maske unter pix1 definiert Ã¼ber den roten und/oder grÃ¼nen Farbkanal,
+ * Die Maske unter pix1 definiert ÃÂ¼ber den roten und/oder grÃÂ¼nen Farbkanal,
  * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
- * Farbe unter "fill" zurÃ¼ckgegeben. Ist der grÃ¼be Farbkanal gesetzt, wird die
- * Farbe unter "border" zurÃ¼ck gegeben. Der blaue Farbkanal wird nicht
+ * Farbe unter "fill" zurÃÂ¼ckgegeben. Ist der grÃÂ¼be Farbkanal gesetzt, wird die
+ * Farbe unter "border" zurÃÂ¼ck gegeben. Der blaue Farbkanal wird nicht
  * verwendet.
  * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
- * grÃ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
+ * grÃÂ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
  */
 int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 {

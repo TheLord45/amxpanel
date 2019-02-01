@@ -459,7 +459,6 @@ void amx::Page::generateButtons()
 		{
 			buttonsDone = false;
 			sysl->errlog(String("Page::generateButtons: Missing palette initialization!"));
-//			paletteClass = new Palette(paletteFile);
 			return;
 		}
 
@@ -470,7 +469,7 @@ void amx::Page::generateButtons()
 				if (!btArray.empty())
 					btArray += ",";
 
-				btArray += String("{\"pnum\":")+page.pageID+",\"bi\":"+page.buttons[i].bi+",";
+				btArray += String("\n\t\t{\"pnum\":")+page.pageID+",\"bi\":"+page.buttons[i].bi+",";
 				btArray += String("\"instances\":")+page.buttons[i].sr.size()+",";
 				btArray += String("\"ap\":")+page.buttons[i].ap+",\"ac\":"+page.buttons[i].ad;
 				btArray += String(",\"cp\":")+page.buttons[i].cp+",\"ch\":"+page.buttons[i].ch+"}";
@@ -516,9 +515,6 @@ String& amx::Page::getStyleCode()
 	if (!status || styleDone || !paletteClass)
 		return styleBuffer;
 
-//	if (!paletteClass)
-//		paletteClass = new Palette(paletteFile);
-
 	String pgName = String("Page_")+page.pageID;
 	styleBuffer = String(".")+pgName+" {\n";
 	styleBuffer += String("  left: ")+String(page.left)+"px;\n";
@@ -557,7 +553,7 @@ String& amx::Page::getStyleCode()
 			styleBuffer += "  display: none;\n";		// Hide the popup
 
 		styleBuffer += "  position: absolute;\n";		// Fixed position, don't move
-		styleBuffer += "  z-index: 1;\n";				// Display on top
+		styleBuffer += "  z-index: 2;\n";				// Display on top
 
 		if (page.showEffect && page.showTime)
 		{

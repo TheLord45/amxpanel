@@ -1,5 +1,6 @@
 var curPort;		// The port number the currently processed command depends on
 var curCommand;		// The currently command stripped from the port number
+var z_index = 0;
 var cmdArray =
 	{
 		"commands": [
@@ -162,6 +163,18 @@ function unsupported(msg)
 
 	console.log("Command "+bef+" is currently not supported!");
 }
+function newZIndex()
+{
+	z_index = z_index + 1;
+	console.log("+zIndex="+z_index);
+	return z_index;
+}
+function freeZIndex()
+{
+	if (z_index > 0)
+		z_index = z_index - 1;
+	console.log("-zIndex="+z_index);
+}
 function splittCmd(msg)
 {
 	var pos;
@@ -281,17 +294,20 @@ function findPageGroup(name)
 function findButton(num)
 {
 	var bt;
+	var btArray;
 	var i;
+
+	btArray = [];
 
 	for (i in buttonArray.buttons)
 	{
 		bt = buttonArray.buttons[i];
 
 		if (bt.cp == curPort && bt.ch == num)
-			return buttonArray.buttons[i];
+			btArray.push(buttonArray.buttons[i]);
 	}
 
-	return -1;
+	return btArray;
 }
 function getPopupIndex(name)
 {
@@ -411,6 +427,16 @@ function hideGroup(name)
 		try
 		{
 			document.getElementById(nm).style.display = 'none';
+			var idx = getPopupIndex(group[i]);
+
+			if (idx >= 0)
+			{
+				if (Popups.pages[idx].active == true)
+					freeZIndex();
+
+				Popups.pages[idx].active = false;
+				Popups.pages[idx].lnpage = "";
+			}
 		}
 		catch(e)
 		{
@@ -433,6 +459,7 @@ function showPopup(name)
 	try
 	{
 		document.getElementById(pname).style.display = 'inline-block';
+		document.getElementById(pname).style.zIndex = newZIndex();
 		idx = getPopupIndex(name);
 
 		if (idx >= 0)
@@ -461,6 +488,7 @@ function showPopupOnPage(name, pg)
 	try
 	{
 		document.getElementById(pname).style.display = 'inline-block';
+		document.getElementById(pname).style.zIndex = newZIndex();
 		idx = getPopupIndex(name);
 
 		if (idx >= 0)
@@ -493,6 +521,9 @@ function hidePopupOnPage(name, pg)
 
 		if (idx >= 0)
 		{
+			if (Popups.pages[idx].active)
+				freeZIndex();
+
 			Popups.pages[idx].active = false;
 			Popups.pages[idx].lnpage = getActivePageName();
 		}
@@ -517,7 +548,13 @@ function hidePopup(name)
 		idx = getPopupIndex(name);
 
 		if (idx >= 0)
+		{
+			if (Popups.pages[idx].active)
+				freeZIndex();
+
 			Popups.pages[idx].active = false;
+			Popups.pages[idx].lnpage = getActivePageName();
+		}
 	}
 	catch(e)
 	{
@@ -551,9 +588,15 @@ function showPage(name)
 			pname = "Page_"+Popups.pages[i].ID;
 
 			if (Popups.pages[i].active && Popups.pages[i].lnpage != name)
+			{
 				document.getElementById(pname).style.display = 'none';
+				freeZIndex();
+			}
 			else if (Popups.pages[i].active)
+			{
 				document.getElementById(pname).style.display = 'inline-block';
+				document.getElementById(pname).style.zIndex = newZIndex();
+			}
 		}
 	}
 	catch(e)
@@ -582,7 +625,10 @@ function hidePage(name)
 			pname = "Page_"+Popups.pages[i].ID;
 
 			if (Popups.pages[i].active && Popups.pages[i].lnpage != name)
+			{
 				document.getElementById(pname).style.display = 'none';
+				freeZIndex();
+			}
 		}
 	}
 	catch(e)
@@ -892,6 +938,7 @@ function doAPF(msg)
 	var bt;
 	var i;
 	var j;
+	var b;
 	var num;
 
 	addr = getField(msg, 0, ',');
@@ -901,27 +948,32 @@ function doAPF(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		if ((bt = findButton(addrRange[i])) === -1)
+		bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
 		{
 			console.log('doAPF: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
-		if (cmd.search('Show') >= 0)
+		for (b = 0; b < bt.length; b++)
 		{
-			num = bt.instances;
+			if (cmd.search('Show') >= 0)
+			{
+				num = bt[b].instances;
 
-			for (j = 0; j < num; j++)
-				document.getElementById('Page'+bt.pnum+'Button_'+bt.bi).addEventListener("click", showPopup(name));
-		}
-		else if (cmd.search('Hide') >= 0)
-		{
-			num = bt.instances;
+				for (j = 0; j < num; j++)
+					document.getElementById('Page'+bt[b].pnum+'Button_'+bt[b].bi).addEventListener("click", showPopup(name));
+			}
+			else if (cmd.search('Hide') >= 0)
+			{
+				num = bt[b].instances;
 
-			for (j = 0; j < num; j++)
-				document.getElementById('Page'+bt.pnum+'Button_'+bt.bi).addEventListener("click", hidePopup(name));
+				for (j = 0; j < num; j++)
+					document.getElementById('Page'+bt[b].pnum+'Button_'+bt[b].bi).addEventListener("click", hidePopup(name));
+			}
+			// FIXME: There are more commands!
 		}
-		// FIXME: There are more commands!
 	}
 }
 function doBAT(msg)
@@ -936,6 +988,7 @@ function doBAT(msg)
 	var i;
 	var j;
 	var z;
+	var b;
 	var name;
 	var elem;
 
@@ -948,36 +1001,41 @@ function doBAT(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		if ((bt = findButton(addrRange[i])) === -1)
+		bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
 		{
 			console.log('doBAT: Error button '+addrRange[i]+' not found!');
-			return;
+			continue;
 		}
 
-		if (btRange.length == 1 && btRange[0] == 0)
+		for (b = 0; b < bt.length; b++)
 		{
-			elem = readText(curPort, addrRange[i]);
-			writeText(curPort, addrRange[i], elem+text);
-			return;
-		}
-
-		for (z = 1; z <= bt.instances; z++)
-		{
-			for (j = 0; j < btRange.length; j++)
+			if (btRange.length == 1 && btRange[0] == 0)
 			{
-				if (btRange[j] == z)
-				{
-					name = 'Page'+bt.pnum+'_b'+z+'_Button_'+bt.bi+'_font';
+				elem = readText(curPort, addrRange[i]);
+				writeText(curPort, addrRange[i], elem+text);
+				break;
+			}
 
-					try
+			for (z = 1; z <= bt[b].instances; z++)
+			{
+				for (j = 0; j < btRange.length; j++)
+				{
+					if (btRange[j] == z)
 					{
-						elem = document.getElementById(name).innerHTML;
-						elem = elem + text;
-						document.getElementById(name).innerHTML = elem;
-					}
-					catch(e)
-					{
-						console.log("doBAT: No element of name "+name+" found!");
+						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi+'_font';
+
+						try
+						{
+							elem = document.getElementById(name).innerHTML;
+							elem = elem + text;
+							document.getElementById(name).innerHTML = elem;
+						}
+						catch(e)
+						{
+							console.log("doBAT: No element of name "+name+" found!");
+						}
 					}
 				}
 			}
@@ -996,6 +1054,7 @@ function doBMP(msg)
 	var i;
 	var j;
 	var z;
+	var b;
 	var name;
 
 	addr = getField(msg, 0, ',');
@@ -1007,34 +1066,32 @@ function doBMP(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		if ((bt = findButton(addrRange[i])) === -1)
+		bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
 		{
 			console.log('doBMI: Error button '+addrRange[i]+' not found!');
-			return;
+			continue;
 		}
 
-		if (btRange.length == 1 && btRange[0] == 0)
+		for (i = 0; i < bt.length; b++)
 		{
-			elem = readText(curPort, addrRange[i]);
-			writeText(curPort, addrRange[i], elem+text);
-			return;
-		}
-
-		for (z = 1; z <= bt.instances; z++)
-		{
-			for (j = 0; j < btRange.length; j++)
+			for (z = 1; z <= bt[b].instances; z++)
 			{
-				if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+				for (j = 0; j < btRange.length; j++)
 				{
-					name = 'Page'+bt.pnum+'_b'+z+'_Button_'+bt.bi;
+					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+					{
+						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
 
-					try
-					{
-						document.getElementById(name).src = img;
-					}
-					catch(e)
-					{
-						console.log("doBMI: No element of name "+name+" found!");
+						try
+						{
+							document.getElementById(name).src = img;
+						}
+						catch(e)
+						{
+							console.log("doBMI: No element of name "+name+" found!");
+						}
 					}
 				}
 			}
@@ -1044,6 +1101,7 @@ function doBMP(msg)
 function doBSP(msg)
 {
 	var bt;
+	var b;
 	var addr;
 	var addrRange;
 	var left;
@@ -1063,24 +1121,29 @@ function doBSP(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		if ((bt = findButton(addrRange[i])) === -1)
+		bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
 		{
 			console.log('doBSP: Error button '+addrRange[i]+' not found!');
-			return;
+			continue;
 		}
 
-		name = 'Page'+bt.pnum+'_b'+z+'_Button_'+bt.bi;
-		
-		try
+		for (b = 0; b < bt.length; b++)
 		{
-			document.getElementById(name).style.left = left;
-			document.getElementById(name).style.top = left;
-			document.getElementById(name).style.width = right - left;
-			document.getElementById(name).style.height = bottom - top;
-		}
-		catch(e)
-		{
-			console.log("doBSP: No element of name "+name+" found!");
+			name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+
+			try
+			{
+				document.getElementById(name).style.left = left;
+				document.getElementById(name).style.top = left;
+				document.getElementById(name).style.width = right - left;
+				document.getElementById(name).style.height = bottom - top;
+			}
+			catch(e)
+			{
+				console.log("doBSP: No element of name "+name+" found!");
+			}
 		}
 	}
 }
@@ -1090,27 +1153,33 @@ function doCPF(msg)
 	var addr;
 	var addrRange;
 	var name;
+	var b;
 
 	addr = getField(msg, 0, ',');
 	addrRange = getRange(addr);
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		if ((bt = findButton(addrRange[i])) === -1)
+		bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
 		{
 			console.log('doCPF: Error button '+addrRange[i]+' not found!');
-			return;
+			continue;
 		}
 
-		name = 'Page'+bt.pnum+'Button_'+bt.bi;
+		for (b = 0; b < bt.length; b++)
+		{
+			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
 
-		try
-		{
-			document.getElementById(name).deleteEventListener('click');
-		}
-		catch(e)
-		{
-			console.log("doCPF: No element of name "+name+" found!");
+			try
+			{
+				document.getElementById(name).addEventListener('click', null);
+			}
+			catch(e)
+			{
+				console.log("doCPF: No element of name "+name+" found!");
+			}
 		}
 	}
 }
@@ -1121,6 +1190,7 @@ function doENA(msg)
 	var addrRange;
 	var val;
 	var name;
+	var b;
 
 	addr = getField(msg, 0, ',');
 	val = getField(msg, 1, ',');
@@ -1128,24 +1198,29 @@ function doENA(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		if ((bt = findButton(addrRange[i])) === -1)
+		bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
 		{
 			console.log('doCPF: Error button '+addrRange[i]+' not found!');
-			return;
+			continue;
 		}
 
-		name = 'Page'+bt.pnum+'Button_'+bt.bi;
+		for (b = 0; b < bt.length; b++)
+		{
+			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
 
-		try
-		{
-			if (val == 0)
-				document.getElementById(name).style.display = 'none';
-			else
-				document.getElementById(name).style.display = 'inline';
-		}
-		catch(e)
-		{
-			console.log("doCPF: No element of name "+name+" found!");
+			try
+			{
+				if (val == 0)
+					document.getElementById(name).style.display = 'none';
+				else
+					document.getElementById(name).style.display = 'inline';
+			}
+			catch(e)
+			{
+				console.log("doCPF: No element of name "+name+" found!");
+			}
 		}
 	}
 }
@@ -1161,6 +1236,7 @@ function doICO(msg)
 	var i;
 	var j;
 	var z;
+	var b;
 	var name;
 	var stat;
 
@@ -1173,34 +1249,42 @@ function doICO(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		if ((bt = findButton(addrRange[i])) === -1)
+		bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
 		{
 			console.log('doICO: Error button '+addrRange[i]+' not found!');
-			return;
+			continue;
 		}
 
-		for (z = 1; z <= bt.instances; z++)
+		for (b = 0; b < bt.length; b++)
 		{
-			for (j = 0; j < btRange.length; j++)
+			for (z = 1; z <= bt[b].instances; z++)
 			{
-				if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+				for (j = 0; j < btRange.length; j++)
 				{
-					name = 'Page'+bt.pnum+'_b'+z+'_Button_'+parseInt(bt.bi);
-console.log("bt.pnum="+bt.pnum+", addrRange["+i+"]="+addrRange[i]+", bt.bi="+parseInt(bt.bi)+", bt.ch="+bt.ch);
-					try
+					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-						document.getElementById(name+'_icon').src = "images/"+getIconFile(idx);
-					}
-					catch(e)
-					{
+						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+
 						try
 						{
-							document.getElementById(name).innerHTML = '<img id="'+name+'_icon" src="images/'+getIconFile(idx)+'">' + document.getElementById(name).innerHTML;
-console.log(document.getElementById(name).innerHTML);
+							document.getElementById(name+'_icon').src = "images/"+getIconFile(idx);
 						}
 						catch(e)
 						{
-							console.log("doICO: No element of name "+name+" found!");
+							try
+							{
+								var elem = document.getElementById(name);
+								var cWidth = elem.clientWidth;
+								var cHeight = elem.clientHeight;
+								elem.innerHTML = '<img id="'+name+'_icon" src="images/'+getIconFile(idx)+'" onload="imgCenter(this,\''+name+'\');">' + elem.innerHTML;
+								imgCenter(document.getElementById(name+'_icon'), cWidth, cHeight);
+							}
+							catch(e)
+							{
+								console.log("doICO: No element of name "+name+" found! ["+e+"]");
+							}
 						}
 					}
 				}
@@ -1230,6 +1314,138 @@ function parseMessage(msg)
 		}
 	}
 }
+function imgCenter(img, name)
+{
+	var pw;
+	var ph;
+	var iw;
+	var ih;
+	var elem;
+
+	elem = document.getElementById(name);
+
+	if (elem === null)
+		return;
+
+	pw = elem.clientWidth;
+	ph = elem.clientHeight;
+	iw = img.width;
+	ih = img.height;
+
+	if (pw == 0)
+		pw = iw;
+
+	if (ph == 0)
+		ph = ih;
+
+	if (iw == 0 || ih == 0)
+	{
+		console.log("imgCenter: Image with no size at "+name+"!");
+		return;
+	}
+
+	img.style.position = 'absolute';
+
+	if (pw > iw)
+		img.style.left = (pw - iw) / 2 + 'px';
+
+	if (ph > ih)
+		img.style.top = (ph - ih) / 2 + 'px';
+}
+function posImage(img, name, code)
+{
+	var pw;
+	var ph;
+	var iw;
+	var ih;
+	var elem;
+
+	elem = document.getElementById(name);
+
+	if (elem === null)
+		return;
+
+	pw = elem.clientWidth;
+	ph = elem.clientHeight;
+	iw = img.width;
+	ih = img.height;
+
+	if (pw == 0)
+		pw = iw;
+
+	if (ph == 0)
+		ph = ih;
+
+	if (iw == 0 || ih == 0)
+	{
+		console.log("imgCenter: Image with no size at "+name+"!");
+		return;
+	}
+
+	img.style.position = 'absolute';
+	
+	switch (code)
+	{
+		case 2:	// center, top
+			img.style.top = "0px";
+
+			if (pw > iw)
+				img.style.left = (pw - iw) / 2 + 'px';
+		break;
+		
+		case 3:	// right, top
+			img.style.top = "0px";
+
+			if (pw >= iw)
+				img.style.left = (pw - iw) + 'px';
+		break;
+		
+		case 4:	// left, middle
+			img.style.left = "0px";
+
+			if (ph > ih)
+				img.style.top = (ph - ih) / 2 + 'px';
+		break;
+		
+		case 6:	// right, middle
+			if (pw >= iw)
+				img.style.left = (pw - iw) + 'px';
+
+			if (ph > ih)
+				img.style.top = (ph - ih) / 2 + 'px';
+		break;
+
+		case 7:	// left, bottom
+			img.style.left = "0px";
+
+			if (ph >= ih)
+				img.style.top = (ph - ih) + 'px';
+		break;
+
+		case 8:	// center, bottom
+			if (pw > iw)
+				img.style.left = (pw - iw) / 2 + 'px';
+
+			if (ph >= ih)
+				img.style.top = (ph - ih) + 'px';
+		break;
+
+		case 9:	// right, bottom
+			if (pw >= iw)
+				img.style.left = (pw - iw) + 'px';
+
+			if (ph >= ih)
+				img.style.top = (ph - ih) + 'px';
+		break;
+
+		default:	// center, middle
+			if (pw > iw)
+				img.style.left = (pw - iw) / 2 + 'px';
+
+			if (ph > ih)
+				img.style.top = (ph - ih) / 2 + 'px';
+	}
+}
 function connect()
 {
 	try
@@ -1246,8 +1462,11 @@ function connect()
 	}
 
 	parseMessage('1|@PPN-topmenu');
-	parseMessage('1|^ICO-1071,0,6');
+	parseMessage('1|^ICO-1071,0,23');
+	parseMessage('1|^ICO-1072,0,24');
+	parseMessage('1|^ICO-1073,0,27');
 	parseMessage('1|^ICO-1078,0,1');
+	parseMessage('1|@PPN-intercom_error');
 }
 
 function writeTextOut(msg)
@@ -1257,11 +1476,14 @@ function writeTextOut(msg)
 		console.log("WARNING: Socket not ready!");
 		return;
 	}
+
 	wsocket.send(msg);
 }
 function checkTime(i)
 {
-	if (i < 10) {i = "0" + i};
+	if (i < 10)	
+		i = "0" + i;
+
 	return i;
 }
 

@@ -190,15 +190,15 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				com.append((char *)&msg.content);
 				send(com);
 
-				/* FIXME: EinfÃÂ¼gen von Code fÃÂ¼r eine Schattenverwaltung der Pages.
+				/* FIXME: EinfÃÂÃÂ¼gen von Code fÃÂÃÂ¼r eine Schattenverwaltung der Pages.
 				 *        Alle Befehle welche eine Seite in irgend einer Form
-				 *        manipulieren, mÃÂ¼ssen im Code gespeichert werden.
-				 *        Verbindet sich ein EndgerÃÂ¤t, muss seine OberflÃÂ¤che
+				 *        manipulieren, mÃÂÃÂ¼ssen im Code gespeichert werden.
+				 *        Verbindet sich ein EndgerÃÂÃÂ¤t, muss seine OberflÃÂÃÂ¤che
 				 *        korrekt gesetzt werden.
 				 * 
 				 * Alternative:
 				 * Die verbindung zum Controller wird unterbrochen, sobald der
-				 * Client nicht mehr verfÃÂ¼gbar ist und erst wieder aufgebaut,
+				 * Client nicht mehr verfÃÂÃÂ¼gbar ist und erst wieder aufgebaut,
 				 * wenn der Client sich erneut verbindet. Dadurch wird der
 				 * Seitenaufbau vom Controller gesteuert.
 				 */
@@ -400,7 +400,7 @@ void TouchPanel::readPages()
 bool TouchPanel::parsePages()
 {
 	sysl->TRACE(std::string("TouchPanel::parsePages()"));
-	fstream pgFile, cssFile;
+	fstream pgFile, cssFile, jsFile;
 	std::string fname = Configuration->getHTTProot().toString()+"/index.html";
 	std::string cssname = Configuration->getHTTProot().toString()+"/amxpanel.css";
 
@@ -445,26 +445,135 @@ bool TouchPanel::parsePages()
 	pgFile << "<!DOCTYPE html>\n";
 	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
+	pgFile << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">\n";
 	// Scripts
 	pgFile << "<script>\n";
 	pgFile << "\"use strict\";\n";
 	pgFile << "var pageName = \"\";\n";
-	pgFile << "var wsocket;\n";
-    writePages(pgFile);
-	writePopups(pgFile);
-	writeGroups(pgFile);
-	writeBtArray(pgFile);
-    writeIconTable(pgFile);
-	pgFile << "var Pages;\n";
-	pgFile << "var Popups;\n";
-	pgFile << "var popupGroups;\n";
-	pgFile << "var buttonArray;\n\n";
-	pgFile << "Pages = JSON.parse(basePages);\n";
-	pgFile << "Popups = JSON.parse(pageNames);\n";
-	pgFile << "popupGroups = JSON.parse(pageGroups);\n";
+	pgFile << "var wsocket;\n\n";
+
+	try
+	{
+		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/pages.js";
+		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!jsFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			pgFile.close();
+			return false;
+		}
+
+		jsFile << "var Pages;\n\n";
+		writePages(jsFile);
+		jsFile.close();
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		pgFile.close();
+		return false;
+	}
+
+	try
+	{
+		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/popups.js";
+		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!jsFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			pgFile.close();
+			return false;
+		}
+
+		jsFile << "var Popups;\n\n";
+		writePopups(jsFile);
+		jsFile.close();
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		pgFile.close();
+		return false;
+	}
+
+	try
+	{
+		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/groups.js";
+		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!jsFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			pgFile.close();
+			return false;
+		}
+
+		jsFile << "var popupGroups;\n\n";
+		writeGroups(jsFile);
+		jsFile.close();
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		pgFile.close();
+		return false;
+	}
+
+	try
+	{
+		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/btarray.js";
+		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!jsFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			pgFile.close();
+			return false;
+		}
+
+		jsFile << "var buttonArray;\n\n";
+		writeBtArray(jsFile);
+		jsFile.close();
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		pgFile.close();
+		return false;
+	}
+
+	try
+	{
+		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/icons.js";
+		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!jsFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			pgFile.close();
+			return false;
+		}
+
+		writeIconTable(jsFile);
+		jsFile.close();
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		pgFile.close();
+		return false;
+	}
+
 	pgFile << "</script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"amxpanel.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/pages.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/popups.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/groups.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/btarray.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/icons.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>\n";
 	// Add some special script functions
 	pgFile << "<script>\n";
 	pgFile << scrBuffer << "\n";
@@ -499,7 +608,7 @@ void TouchPanel::writeGroups (fstream& pgFile)
 {
 	sysl->TRACE(std::string("TouchPanel::writeGroups (fstream& pgFile)"));
 	std::vector<strings::String> grName;
-	pgFile << "var pageGroups = '{";
+	pgFile << "var popupGroups = {";
 
 	// Find all unique group names
 	for (size_t i = 0; i < stPopups.size(); i++)
@@ -527,7 +636,7 @@ void TouchPanel::writeGroups (fstream& pgFile)
 		if (i > 0)
 			pgFile << ",";
 
-		pgFile << "\"" << grName[i] << "\":[";
+		pgFile << "\n\t\t\"" << grName[i] << "\":[";
 		bool komma = false;
 
 		for (size_t j = 0; j < stPopups.size(); j++)
@@ -537,51 +646,51 @@ void TouchPanel::writeGroups (fstream& pgFile)
 				if (komma)
 					pgFile << ",";
 
-				pgFile << "\"" << stPopups[j].name << "\"";
+				pgFile << "\n\t\t\t\"" << stPopups[j].name << "\"";
 				komma = true;
 			}
 		}
 
-		pgFile << "]";
+		pgFile << "\n\t\t]";
 	}
 
-	pgFile << "}';\n\n";
+	pgFile << "\n\t};\n\n";
 }
 
 void TouchPanel::writePages(std::fstream& pgFile)
 {
 	sysl->TRACE(String("TouchPanel::writePages(std::fstream& pgFile)"));
 	bool first = true;
-	pgFile << "var basePages = '{\"pages\":[";
+	pgFile << "var Pages = {\"pages\":[";
 
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
 		if (!first)
 			pgFile << ",";
 
-		pgFile << "{\"name\":\"" << stPages[i].name << "\",\"ID\":" << stPages[i].ID << ",\"active\":false}";
+		pgFile << "\n\t\t{\"name\":\"" << stPages[i].name << "\",\"ID\":" << stPages[i].ID << ",\"active\":false}";
 		first = false;
 	}
 
-	pgFile << "]}';\n";
+	pgFile << "\n\t]};\n";
 }
 
 void TouchPanel::writePopups (fstream& pgFile)
 {
 	sysl->TRACE(std::string("TouchPanel::writePopups (fstream& pgFile)"));
 	bool first = true;
-	pgFile << "var pageNames = '{\"pages\":[";
+	pgFile << "var Popups = {\"pages\":[";
 
 	for (size_t i = 0; i < stPopups.size(); i++)
 	{
 		if (!first)
 			pgFile << ",";
 
-		pgFile << "{\"name\":\"" << stPopups[i].name << "\",\"ID\":" << stPopups[i].ID << ",\"group\":\"" << stPopups[i].group << "\",\"active\":false,\"lnpage\":\"\"}";
+		pgFile << "\n\t\t{\"name\":\"" << stPopups[i].name << "\",\"ID\":" << stPopups[i].ID << ",\"group\":\"" << stPopups[i].group << "\",\"active\":false,\"lnpage\":\"\"}";
 		first = false;
 	}
 
-	pgFile << "]}';\n";
+	pgFile << "\n\t]};\n";
 }
 
 void TouchPanel::writeAllPopups (fstream& pgFile)
@@ -618,7 +727,7 @@ void TouchPanel::writeBtArray(fstream& pgFile)
 {
 	sysl->TRACE(std::string("TouchPanel::writeBtArray(fstream& pgFile)"));
 
-	pgFile << "var buttonArray = {" << scBtArray << "};\n";
+	pgFile << "var buttonArray = {" << scBtArray << "\n\t};\n";
 }
 
 void TouchPanel::writeIconTable(std::fstream& pgFile)
@@ -627,7 +736,7 @@ void TouchPanel::writeIconTable(std::fstream& pgFile)
 
     Icon *ic = getIconClass();
     size_t ni = ic->numIcons();
-    pgFile << "var iconArray =\n\t{\"icons\":[\n";
+    pgFile << "var iconArray = {\"icons\":[\n";
     
     for (size_t i = 0; i < ni; i++)
     {
