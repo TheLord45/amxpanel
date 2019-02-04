@@ -271,6 +271,8 @@ bool amx::Page::parsePage()
 					page.buttons.back().ch = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("lp") == 0 && reader.has_value())
 					page.buttons.back().lp = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("lv") == 0 && reader.has_value())
+					page.buttons.back().lv = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("va") == 0 && reader.has_value())
 					page.buttons.back().va = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("rv") == 0 && reader.has_value())
@@ -279,6 +281,8 @@ bool amx::Page::parsePage()
 					page.buttons.back().rl = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("rh") == 0 && reader.has_value())
 					page.buttons.back().rh = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("dr") == 0 && reader.has_value())
+					page.buttons.back().dr = reader.get_value().c_str();
 				else if (name.caseCompare("pf") == 0 && reader.has_value())
 				{
 					page.buttons.back().pfName = reader.get_value().c_str();
@@ -383,6 +387,8 @@ bool amx::Page::parsePage()
 					page.sr.back().ct = reader.get_value();
 				else if (name.caseCompare("ec") == 0 && reader.has_value())
 					page.sr.back().ec = reader.get_value();
+				else if (name.caseCompare("mi") == 0 && reader.has_value())
+					page.sr.back().mi = reader.get_value();
 				else if (name.caseCompare("bm") == 0 && reader.has_value())
 				{
 					page.sr.back().bm = reader.get_value();
@@ -522,11 +528,31 @@ String& amx::Page::getStyleCode()
 	styleBuffer += String("  width: ")+String(page.width)+"px;\n";
 	styleBuffer += String("  height: ")+String(page.height)+"px;\n";
 
+	bool hasChameleon = (!page.sr[0].mi.empty() && !page.sr[0].bm.empty() && page.sr[0].bs.empty());
+	sysl->TRACE(String("Page::getStyleCode: hasChameleon=")+hasChameleon+", mi="+page.sr[0].mi+", bm="+page.sr[0].bm+", bs="+page.sr[0].bs);
+
 	if (page.sr.size() > 0 && page.sr[0].bm.length() > 0)
 	{
-		styleBuffer += String("  background-color: ")+paletteClass->colorToString(paletteClass->getColor(page.sr[0].cf))+";\n";
+		if (!hasChameleon)
+		{
+			styleBuffer += String("  background-color: ")+paletteClass->colorToString(paletteClass->getColor(page.sr[0].cf))+";\n";
+			styleBuffer += String("  background-image: url(images/")+page.sr[0].bm+");\n";
+		}
+		else
+		{
+			String fname = PushButton::createChameleonImage(Configuration->getHTTProot()+"/images/"+page.sr[0].mi, Configuration->getHTTProot()+"/images/"+page.sr[0].bm, paletteClass->getColor(page.sr[0].cf), paletteClass->getColor(page.sr[0].cb));
+
+			if (!fname.empty())
+				styleBuffer += String("  background-image: url(")+fname+");\n";
+			else
+			{
+				styleBuffer += String("  background-image: url(images/")+NameFormat::toURL(page.sr[0].mi)+"), ";
+				styleBuffer += String("url(images/")+NameFormat::toURL(page.sr[0].bm)+");\n";
+				styleBuffer += "  background-blend-mode: screen;\n";
+			}
+		}
+
 		styleBuffer += String("  color: ")+paletteClass->colorToString(paletteClass->getColor(page.sr[0].ct))+";\n";
-		styleBuffer += String("  background-image: url(images/")+page.sr[0].bm+");\n";
 		styleBuffer += "  background-repeat: no-repeat;\n";
 	}
 
@@ -553,7 +579,7 @@ String& amx::Page::getStyleCode()
 			styleBuffer += "  display: none;\n";		// Hide the popup
 
 		styleBuffer += "  position: absolute;\n";		// Fixed position, don't move
-		styleBuffer += "  z-index: 2;\n";				// Display on top
+		styleBuffer += "  z-index: 1;\n";				// Display on top
 
 		if (page.showEffect && page.showTime)
 		{

@@ -190,15 +190,15 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				com.append((char *)&msg.content);
 				send(com);
 
-				/* FIXME: EinfÃÂÃÂ¼gen von Code fÃÂÃÂ¼r eine Schattenverwaltung der Pages.
+				/* FIXME: Einfügen von Code für eine Schattenverwaltung der Pages.
 				 *        Alle Befehle welche eine Seite in irgend einer Form
-				 *        manipulieren, mÃÂÃÂ¼ssen im Code gespeichert werden.
-				 *        Verbindet sich ein EndgerÃÂÃÂ¤t, muss seine OberflÃÂÃÂ¤che
+				 *        manipulieren, müssen im Code gespeichert werden.
+				 *        Verbindet sich ein Endgerät, muss seine Oberfläche
 				 *        korrekt gesetzt werden.
 				 * 
 				 * Alternative:
 				 * Die verbindung zum Controller wird unterbrochen, sobald der
-				 * Client nicht mehr verfÃÂÃÂ¼gbar ist und erst wieder aufgebaut,
+				 * Client nicht mehr verfügbar ist und erst wieder aufgebaut,
 				 * wenn der Client sich erneut verbindet. Dadurch wird der
 				 * Seitenaufbau vom Controller gesteuert.
 				 */
@@ -253,6 +253,21 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 void TouchPanel::webMsg(std::string& msg)
 {
 	// FIXME: Add code here!
+	if (msg.find("PUSH:") != std::string::npos)
+	{
+		std::vector<String> parts = String(msg).split(":");
+		ANET_SEND as;
+		as.port = atoi(parts[1].data());
+		as.channel = atoi(parts[2].data());
+		int value = atoi(parts[3].data());
+
+		if (value)
+			as.MC = 0x0084;
+		else
+			as.MC = 0x0085;
+
+		// FIXME: Add function call to send message!
+	}
 }
 
 int TouchPanel::findPage(const String& name)
@@ -368,7 +383,7 @@ void TouchPanel::readPages()
 						first = true;
 
 				    scBtArray += p.getBtArray();
-                }
+				}
 
 				for (size_t j = 0; j < getProject().panelSetup.powerUpPopup.size(); j++)
 				{
@@ -429,6 +444,7 @@ bool TouchPanel::parsePages()
 		return false;
 	}
 
+	cssFile << "* {\n\tbox-sizing: border-box;\n}\n";
 	// Font faces
 	cssFile << getFontList()->getFontStyles();
 	// The styles
@@ -591,13 +607,11 @@ bool TouchPanel::parsePages()
 	pgFile << "</head>\n";
 	// The page body
 	pgFile << "<body onload=\"main(); connect();\">\n";
-//	pgFile << getPage(aid);
 
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
 		pgFile << stPages[i].webcode;
 		writeAllPopups(pgFile);
-		pgFile << "</div>\n";
 	}
 
 	pgFile << "</body>\n</html>\n";

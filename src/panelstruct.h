@@ -325,6 +325,8 @@ namespace amx
 		int ch;					// Channel number
 		int cp;					// Channel port
 		int lp;					// Level port
+		int lv;					// Level code
+		strings::String dr;		// Level "horizontal" or "vertical"
 		int va;
 		int rv;
 		int rl;					// Range low

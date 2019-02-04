@@ -163,7 +163,9 @@ String PushButton::getStyle()
 			style += String("  font-size: ")+String(font.size)+"pt;\n";
 			style += String("  font-style: ")+fontClass->getFontStyle(font.subfamilyName)+";\n";
 			style += String("  font-weight: ")+fontClass->getFontWeight(font.subfamilyName)+";\n";
-//			int middle = (button.ht / 4) * -1;
+
+			if (!button.sr[i].ww && (button.sr[i].jt == ORI_CENTER_LEFT || button.sr[i].jt == ORI_CENTER_MIDDLE || button.sr[i].jt == ORI_CENTER_RIGHT))
+				style += String("  line-height: ")+button.ht+"px;\n";
 
 			switch(button.sr[i].jt)
 			{
@@ -175,9 +177,6 @@ String PushButton::getStyle()
 				case ORI_TOP_LEFT:		style += "  text-align: left;\n  vertical-align: top;\n"; break;
 				case ORI_TOP_MIDDLE:	style += "  text-align: center;\n  vertical-align: top;\n"; break;
 				case ORI_TOP_RIGHT:		style += "  text-align: right;\n  vertical-align: top;\n"; break;
-//				case ORI_CENTER_LEFT:	style += String("  text-align: left;\n  margin-top: ")+middle+"px;\n  vertical-align: middle;\n"; break;
-//				case ORI_CENTER_MIDDLE:	style += String("  text-align: center;\n  margin-top: ")+middle+"px;\n  vertical-align: middle;\n"; break;
-//				case ORI_CENTER_RIGHT:	style += String("  text-align: right;\n  margin-top: ")+middle+"px;\n  vertical-align: middle;\n"; break;
 				case ORI_CENTER_LEFT:	style += "  text-align: left;\n  vertical-align: middle;\n"; break;
 				case ORI_CENTER_MIDDLE:	style += "  text-align: center;\n  vertical-align: middle;\n"; break;
 				case ORI_CENTER_RIGHT:	style += "  text-align: right;\n  vertical-align: middle;\n"; break;
@@ -220,7 +219,7 @@ String PushButton::getWebCode()
 	{
 		code = String("   <a href=\"#\" id=\"Page")+pageID+btName+"\"";
 
-		if (!button.pfName.empty() && !button.pfType.empty())
+/*		if (!button.pfName.empty() && !button.pfType.empty())
 		{
 			sysl->TRACE(String("PushButton::getWebCode: Button ")+button.na+" show/hide popup page "+button.pfName+".");
 
@@ -231,7 +230,7 @@ String PushButton::getWebCode()
 			else if (button.pfType.caseCompare("scGroup") == 0)	// hide group
 				code += String(" onclick=\"hideGroup('")+button.pfName+"');\"";
 		}
-
+*/
 		code += ">\n";
 	}
 
@@ -247,7 +246,18 @@ String PushButton::getWebCode()
 
 		code += String("      <div id=\"")+nm+"\" class=\""+nm+"\"";
 
-		if (button.type == GENERAL && button.fb == FB_MOMENTARY && (i == 0 || i == 1))
+		if (!button.pfName.empty() && !button.pfType.empty())
+		{
+			sysl->TRACE(String("PushButton::getWebCode: Button ")+button.na+" show/hide popup page "+button.pfName+".");
+
+			if (button.pfType.caseCompare("sShow") == 0)		// show popup
+				code += String(" onclick=\"showPopup('")+button.pfName+"');\"";
+			else if (button.pfType.caseCompare("sHide") == 0)	// hide popup
+				code += String(" onclick=\"hidePopup('")+button.pfName+"');\"";
+			else if (button.pfType.caseCompare("scGroup") == 0)	// hide group
+				code += String(" onclick=\"hideGroup('")+button.pfName+"');\"";
+		}
+		else if (button.type == GENERAL && button.fb == FB_MOMENTARY && (i == 0 || i == 1))
 		{
 			code += String(" onmousedown=\"switchDisplay(")+names+",1,"+button.cp+","+button.ch+");\"";
 			code += String(" onmouseup=\"switchDisplay(")+names+",0,"+button.cp+","+button.ch+");\"";
@@ -638,9 +648,6 @@ bool PushButton::getImageDimensions(const String fname, int* width, int* height)
 	return true;
 }
 
-bool done = false;
-bool doIt = false;
-
 String PushButton::createChameleonImage(const String bm1, const String bm2, unsigned long fill, unsigned long border)
 {
 	sysl->TRACE(String("PushButton::createChameleonImage(const String bm1, const String bm2)"));
@@ -681,77 +688,30 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 	int pixNew = 0, pix1 = 0, pix2 = 0;
 	gdImageAlphaBlending(imNew, gdEffectOverlay);
 
-	std::fstream fs;
-
-	if (!done && width < 100 && height < 100 && !isGrey(fill))
-	{
-		String f = Configuration->getHTTProot()+"/piccolors.txt";
-		fs.open(f.data(), std::ios::out | std::ios::trunc);
-
-		if (!fs.is_open())
-			doIt = false;
-		else
-		{
-			doIt = true;
-			fs << "Base image file: " << bm1 << std::endl;
-			fs << "Mask image file: " << bm2 << std::endl;
-			fs << "Dimension      : " << width << " x " << height << std::endl;
-            fs << "Fill color     : " << NameFormat::toHex(fill, 8) << " [" << NameFormat::toHex(webColToGd(fill), 8) << "]" << std::endl;
-            fs << "Border color   : " << NameFormat::toHex(border, 8) << " [" << NameFormat::toHex(webColToGd(border), 8) << "]" << std::endl << std::endl;
-		}
-	}
-
 	for (int y = 0; y < height; y++)
 	{
-        String l, r;
-        l.clear();
-        r.clear();
-
 		for (int x = 0; x < width; x++)
 		{
 			pix1 = gdImageGetTrueColorPixel(im1, x, y);
 			pix2 = gdImageGetTrueColorPixel(im2, x, y);
 			int base = getBaseColor(pix1, pix2, webColToGd(fill), webColToGd(border));
-			pixNew = imgMultAlpha(pix2, base);
+			int ai = gdTrueColorGetAlpha(base);
 
-			if (doIt && !done)
-			{
-				l += NameFormat::toHex(pix1, 8) + " ";
-				r += NameFormat::toHex(pix2, 8) + " ";
-			}
+			if (ai == 127)
+				pixNew = pix2;
+			else
+				pixNew = gdAlphaBlend(base, pix2);
 
 			gdImageAlphaBlending(imNew, gdEffectReplace);	// switch to overwrite
 			gdImageSetPixel(imNew, x, y, pixNew);			// set pixel
 			gdImageAlphaBlending(imNew, gdEffectOverlay);	// switch back to overlay
 		}
-
-		if (doIt && !done)
-            fs << l << " | " << r << std::endl;
 	}
 
 	gdImageDestroy(im1);
 	gdImageDestroy(im2);
 	gdImageSaveAlpha(imNew, 1);
-	int rnd = 0;
-	bool found = false;
-
-	do
-	{
-		rnd = rand();
-		found = false;
-
-		for (size_t idx = 0; idx < tmpFiles.size(); idx++)
-		{
-			if (rnd == tmpFiles[idx])
-			{
-				found = true;
-				break;
-			}
-		}
-	}
-	while(found);
-
-	tmpFiles.push_back(rnd);
+	int rnd = rand();
 	String fname = String("chameleon/ChamImage_")+rnd+".png";
 	String path = Configuration->getHTTProot()+"/"+fname;
 
@@ -762,37 +722,18 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 		return "";
 	}
 
-	if (doIt && !done)
-	{
-		fs << std::endl << "Wrote to file: " << path << std::endl << std::endl;
-
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                fs << NameFormat::toHex(gdImageGetTrueColorPixel(imNew, x, y), 8) << " ";
-            }
-
-            fs << std::endl;
-        }
-
-		fs.close();
-		done = true;
-		doIt = false;
-	}
-
 	gdImageDestroy(imNew);
 	return fname;
 }
 
 /*
- * Die Maske unter pix1 definiert ÃÂ¼ber den roten und/oder grÃÂ¼nen Farbkanal,
+ * Die Maske unter pix1 definiert über den roten und/oder grünen Farbkanal,
  * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
- * Farbe unter "fill" zurÃÂ¼ckgegeben. Ist der grÃÂ¼be Farbkanal gesetzt, wird die
- * Farbe unter "border" zurÃÂ¼ck gegeben. Der blaue Farbkanal wird nicht
+ * Farbe unter "fill" zurückgegeben. Ist der grüne Farbkanal gesetzt, wird die
+ * Farbe unter "border" zurückgegeben. Der blaue Farbkanal wird nicht
  * verwendet.
  * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
- * grÃÂ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
+ * grüne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
  */
 int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 {
@@ -804,21 +745,7 @@ int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 		return pix2;
 
 	if (red && green)
-	{
-		int r1 = gdTrueColorGetRed(fill);
-		int g1 = gdTrueColorGetGreen(fill);
-		int b1 = gdTrueColorGetBlue(fill);
-		int a1 = gdTrueColorGetAlpha(fill);
-		int r2 = gdTrueColorGetRed(border);
-		int g2 = gdTrueColorGetGreen(border);
-		int b2 = gdTrueColorGetBlue(border);
-		int a2 = gdTrueColorGetAlpha(border);
-		int newR = (r1 + r2) / 2;
-		int newG = (g1 + g2) / 2;
-		int newB = (b1 + b2) / 2;
-		int newA = (a1 + a2) / 2;
-		return gdTrueColorAlpha(newR, newG, newB, newA);
-	}
+		return gdAlphaBlend(fill, border);
 
 	if (red)
 		return fill;
@@ -836,73 +763,4 @@ int PushButton::webColToGd(unsigned long col)
 	int b1 = (col & 0x0000ff00) >> 8;
 	int a1 = 0x007f - ((col & 0x000000ff) / 2);
 	return gdTrueColorAlpha(r1, g1, b1, a1);
-}
-
-bool PushButton::isGrey(unsigned long col)
-{
-	int r1 = (col & 0xff000000) >> 24;
-	int g1 = (col & 0x00ff0000) >> 16;
-	int b1 = (col & 0x0000ff00) >> 8;
-
-	if (r1 == g1 && r1 == b1)
-		return true;
-
-	return false;
-}
-
-bool PushButton::isGrey(int col)
-{
-	int r1 = gdTrueColorGetRed(col);
-	int g1 = gdTrueColorGetGreen(col);
-	int b1 = gdTrueColorGetBlue(col);
-
-	if (r1 == g1 && r1 == b1)
-		return true;
-
-	return false;
-}
-
-int PushButton::imgMultAlpha(int mask, int img)
-{
-	int rm = gdTrueColorGetRed(mask);
-	int gm = gdTrueColorGetGreen(mask);
-	int bm = gdTrueColorGetBlue(mask);
-	int am = gdTrueColorGetAlpha(mask);
-	int ri = gdTrueColorGetRed(img);
-	int gi = gdTrueColorGetGreen(img);
-	int bi = gdTrueColorGetBlue(img);
-	int ai = gdTrueColorGetAlpha(img);
-
-	if (ai == 127)
-		return mask;
-
-	double rem = (double)rm  * (255 - am * 2) / 255.0;
-	double gem = (double)gm  * (255 - am * 2) / 255.0;
-	double bem = (double)bm  * (255 - am * 2) / 255.0;
-	int newR = (int)(((double)ri + ((double)ri * rem / 255.0) / 2.2));
-	int newG = (int)(((double)gi + ((double)gi * gem / 255.0) / 2.2));
-	int newB = (int)(((double)bi + ((double)bi * bem / 255.0) / 2.2));
-//	int newR = (int)((double)ri * rem / 127.0);
-//	int newG = (int)((double)gi * gem / 127.0);
-//	int newB = (int)((double)bi * bem / 127.0);
-
-	if (newR > 255)
-		newR = 255;
-
-	if (newR < 0)
-		newR = 0;
-
-	if (newG > 255)
-		newG = 255;
-
-	if (newG < 0)
-		newG = 0;
-
-	if (newB > 255)
-		newB = 255;
-
-	if (newB < 0)
-		newB = 0;
-
-	return gdTrueColorAlpha(newR, newG, newB, 0);
 }
