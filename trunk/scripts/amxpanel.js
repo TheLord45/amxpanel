@@ -1461,12 +1461,13 @@ function connect()
 		console.error("Error initializing: "+exception);
 	}
 
+	setWiFi();
 	parseMessage('1|@PPN-topmenu');
 	parseMessage('1|^ICO-1071,0,23');
 	parseMessage('1|^ICO-1072,0,24');
 	parseMessage('1|^ICO-1073,0,27');
 	parseMessage('1|^ICO-1078,0,1');
-	parseMessage('1|@PPN-intercom_error');
+	parseMessage('1|@PPN-source_dreambox');
 }
 
 function writeTextOut(msg)
@@ -1486,4 +1487,99 @@ function checkTime(i)
 
 	return i;
 }
+navigator.getBattery().then(function(battery)
+{
+	function updateAllBatteryInfo()
+	{
+		updateChargeInfo();
+		updateLevelInfo();
+		console.log("navigator.getBattery()");
+	}
 
+	updateAllBatteryInfo();
+
+	battery.addEventListener('chargingchange', function()
+	{
+		updateChargeInfo();
+	});
+
+	function updateChargeInfo()
+	{
+		try
+		{
+			if (battery.charging)
+			{
+				document.getElementById('batCharge1').style.display = "none";
+				document.getElementById('batCharge2').style.display = "inline";
+			}
+			else
+			{
+				document.getElementById('batCharge1').style.display = "inline";
+				document.getElementById('batCharge2').style.display = "none";
+			}
+		}
+		catch(e)
+		{
+			console.log("updateChargeInfo: "+e);
+		}
+	}
+
+	battery.addEventListener('levelchange', function()
+	{
+		updateLevelInfo();
+	});
+  
+	function updateLevelInfo()
+	{
+		// FIXME: Add code (canvas?) to draw the level of the bargraph.
+		console.log("Battery level: " + battery.level * 100 + "%");
+	}
+});
+function setWiFi()
+{
+	var connection = window.navigator.connection ||
+					window.navigator.mozConnection ||
+					null;
+
+	if (connection === null)
+	{
+		console.log("setWiFi: WiFi API not supported!");
+		return;
+	}
+
+	if ('metered' in connection)	// Old style?
+	{
+		document.getElementById('nio-supported').classList.remove('hidden');
+		[].slice.call(document.getElementsByClassName('old-api')).forEach(function(element)
+		{
+			element.classList.remove('hidden');
+		});
+ 
+//		var bandwidthValue = document.getElementById('b-value');
+//		var meteredValue = document.getElementById('m-value');
+ 
+		connection.addEventListener('change', function (event)
+		{
+			console.log("Band width value: "+connection.bandwidth);
+			console.log("Metered value:"+(connection.metered ? '' : 'not ') + 'metered');
+		});
+
+		connection.dispatchEvent(new Event('change'));
+	}
+	else
+	{
+//		var typeValue = document.getElementById('t-value');
+
+		[].slice.call(document.getElementsByClassName('new-api')).forEach(function(element)
+		{
+//			element.classList.remove('hidden');
+		});
+ 
+		connection.addEventListener('typechange', function (event)
+		{
+			console.log("Connection type: "+connection.type);
+		});
+
+		connection.dispatchEvent(new Event('typechange'));	
+	}
+}

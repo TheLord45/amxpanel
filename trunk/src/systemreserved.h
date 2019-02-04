@@ -107,7 +107,9 @@ namespace amx
 				{ 155, "startDate_155", "btDate155" },			// Date: dd/mm/yyyy
 				{ 156, "startDate_156", "btDate156" },			// Date: month dd, yyyy
 				{ 157, "startDate_157", "btDate157" },			// Date: dd month, yyyy
-				{ 158, "startDate_158", "btDate158" }			// Date: yyyy-mm-dd
+				{ 158, "startDate_158", "btDate158" },			// Date: yyyy-mm-dd
+				{ 242, "updateLevelInfo", "batLevel" },			// Battery level
+				{ 234, "updateChargeInfo", "batCharge" },		// Battery charging/not charging
 			};
 
 			const std::vector<SYS_BORDERS> sysBorders =

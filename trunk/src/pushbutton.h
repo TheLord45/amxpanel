@@ -105,7 +105,7 @@ namespace amx
 			 * On success, the function returns the name of the newly created
 			 * PNG image. Otherwise an empty string is returned.
 			 */
-			strings::String createChameleonImage(const strings::String bm1, const strings::String bm2, unsigned long fill, unsigned long border);
+			static strings::String createChameleonImage(const strings::String bm1, const strings::String bm2, unsigned long fill, unsigned long border);
 
 		private:
 			int blend(int base, int mask);
@@ -133,7 +133,7 @@ namespace amx
 			 * 
 			 * @param fill
 			 * Diese Farbe wird zurückgegeben, wenn in der Maske \a pix1 der
-			 * grüne Farbkanal > 0 gesetzt ist.
+			 * rote Farbkanal > 0 gesetzt ist.
 			 * 
 			 * @param border
 			 * Diese Farbe wird zurückgegeben, wenn in der Maske \a pix1 der
@@ -142,24 +142,8 @@ namespace amx
 			 * @return
 			 * Eine Farbe oder ein transparanetes Pixel.
 			 */
-			int getBaseColor(int pix1, int pix2, int fill, int border);
-			int webColToGd(unsigned long col);
-			/**
-			 * Legt die Maske \a mask über das Image \a img. Dabei wird ein
-			 * multiplizierender Algorithmus angewendet.
-			 * Die beiden Paremeter sind je ein Pixel in Form einer \b GD - Farbe.
-			 * 
-			 * TODO: Formel verbessern!
-			 * 
-			 * @param mask
-			 * Die Maske welche über das \a img gelegt werden soll.
-			 * 
-			 * @param img
-			 * Das Image über das die Maske \a mask gelegt werden soll.
-			 */
-			int imgMultAlpha(int mask, int img);
-			bool isGrey(unsigned long col);
-			bool isGrey(int col);
+			static int getBaseColor(int pix1, int pix2, int fill, int border);
+			static int webColToGd(unsigned long col);
 
 			BUTTON_T button;
 			bool onOff;
