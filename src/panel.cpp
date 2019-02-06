@@ -84,7 +84,6 @@ void amx::Panel::readProject()
 	String name, lastName, attr;
 	int depth = 0;
 	bool endElement = false;		// end of XML element detected
-	bool addElement = false;		// a new structure should be added
 	status = true;
 
 	enum PART
@@ -118,11 +117,8 @@ void amx::Panel::readProject()
 			if (name.compare("#text") == 0)
 				name = lastName;
 
-			sysl->TRACE(String("Panel::readProject: name=")+name+", depth="+reader.get_depth()+" ("+depth+")");
 			endElement = (reader.get_depth() < depth);
-
-			if (endElement)
-				addElement = false;
+			sysl->TRACE(String("Panel::readProject: name=")+name+", endElement="+endElement+", Part="+Part+", depth="+reader.get_depth()+" ("+depth+")");
 
 			if (reader.get_depth() <= 1 && depth > 1)
 				Part = eNone;
@@ -191,7 +187,7 @@ void amx::Panel::readProject()
 				Project.fwFeatureList.push_back(fwl);
 				sysl->TRACE(String("Panel::readProject: Added a FEATURE_T entry!"));
 			}
-			else if (!endElement && Part == ePaletteList && name.caseCompare("palette") == 0 && reader.get_depth() > depth)
+			else if (!endElement && Part == ePaletteList && name.caseCompare("palette") == 0 && reader.get_depth() >= depth)
 			{
 				PALETTE_T pal;
 				Project.paletteList.push_back(pal);
@@ -218,7 +214,7 @@ void amx::Panel::readProject()
 					attr.trim();
 				}
 
-				sysl->TRACE(String("Panel::readProject: name=")+name+", value="+value+", attr="+attr+", Part="+Part+", addElement="+addElement);
+				sysl->TRACE(String("Panel::readProject: name=")+name+", value="+value+", attr="+attr+", Part="+Part+", endElement="+endElement);
 
 				if (!value.empty() || !attr.empty())
 				{
@@ -250,7 +246,7 @@ void amx::Panel::readProject()
 				else if (name.caseCompare("paletteList") == 0)
 					Part = ePaletteList;
 
-				sysl->TRACE(String("Panel::readProject: *name=")+name+", Part="+Part+", addElement="+addElement);
+				sysl->TRACE(String("Panel::readProject: *name=")+name+", Part="+Part+", endElement="+endElement);
 			}
 
 			lastName = name;

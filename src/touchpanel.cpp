@@ -27,7 +27,6 @@
 #include "config.h"
 #include "syslog.h"
 #include "fontlist.h"
-#include "amxnet.h"
 #include "touchpanel.h"
 #include "panelstruct.h"
 
@@ -49,6 +48,7 @@ TouchPanel::TouchPanel()
 	busy = false;
 	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1));
 	readPages();
+	amxnet = 0;
 	// Start thread for websocket
 /*	try
 	{
@@ -73,6 +73,7 @@ bool TouchPanel::startClient()
 		asio::io_context io_context;
 		asio::ip::tcp::resolver r(io_context);
 		AMXNet c(io_context);
+		amxnet = &c;
 		c.setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
 
 		c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getPort()).toString()));
@@ -172,10 +173,11 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 		return;
 
 	busy = true;
+	String com;
 
 	while (commands.size() > 0)
 	{
-		ANET_COMMAND bef = commands.at(0);
+		ANET_COMMAND& bef = commands.at(0);
 		commands.erase(commands.begin());
 
 		if (bef.device1 != Configuration->getAMXChannel())
@@ -183,65 +185,51 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 
 		switch (bef.MC)
 		{
-			case 0x000c:
+			case 0x0018:	// feedback channel on
+				com = bef.data.chan_state.port;
+				com.append("|ON-");
+				com.append(bef.data.chan_state.channel);
+				send(com);
+			break;
+
+			case 0x0019:	// feedback channel off
+				com = bef.data.chan_state.port;
+				com.append("|OFF-");
+				com.append(bef.data.chan_state.channel);
+				send(com);
+			break;
+
+			case 0x000a:	// level value change
+				com = bef.data.message_value.port;
+				com += "|LEVEL-";
+				com += bef.data.message_value.value;
+				com += ",";
+
+				switch (bef.data.message_value.type)
+				{
+					case 0x10: com += bef.data.message_value.content.byte; break;
+					case 0x11: com += bef.data.message_value.content.ch; break;
+					case 0x20: com += bef.data.message_value.content.integer; break;
+					case 0x21: com += bef.data.message_value.content.sinteger; break;
+					case 0x40: com += bef.data.message_value.content.dword; break;
+					case 0x41: com += bef.data.message_value.content.sdword; break;
+					case 0x4f: com += bef.data.message_value.content.fvalue; break;
+					case 0x8f: com += bef.data.message_value.content.dvalue; break;
+				}
+
+				send(com);
+			break;
+
+			case 0x000c:	// Command string
 				ANET_MSG_STRING msg = bef.data.message_string;
-				String com(bef.port1);
+				com = msg.port;
 				com.append("|");
 				com.append((char *)&msg.content);
 				send(com);
-
-				/* FIXME: Einfügen von Code für eine Schattenverwaltung der Pages.
-				 *        Alle Befehle welche eine Seite in irgend einer Form
-				 *        manipulieren, müssen im Code gespeichert werden.
-				 *        Verbindet sich ein Endgerät, muss seine Oberfläche
-				 *        korrekt gesetzt werden.
-				 * 
-				 * Alternative:
-				 * Die verbindung zum Controller wird unterbrochen, sobald der
-				 * Client nicht mehr verfügbar ist und erst wieder aufgebaut,
-				 * wenn der Client sich erneut verbindet. Dadurch wird der
-				 * Seitenaufbau vom Controller gesteuert.
-				 */
-/*				if (com.contains("PAGE-"))
-				{
-					String name = com.substring(com.findFirstOf('-')+1);
-					int id = findPage(name);
-					int aid = 0;
-
-					if ((aid = getActivePage()) != id)
-					{
-						for (size_t i = 0; i < stPages.size(); i++)
-						{
-							if (stPages[i].ID == aid)
-								stPages[i].active = false;
-							else if (stPages[i].ID == id)
-								stPages[i].active = true;
-						}
-					}
-				}
-				else if (com.caseCompare("@PPA") == 0)
-				{
-					// FIXME: Close all popups on current page
-				}
-				else if (com.caseCompare("@PPX") == 0)
-				{
-					// FIXME: Close all popups on all pages
-				}
-				else if (com.contains("@PPF-") == 0)
-				{
-					String name = com.substring(5);
-					// FIXME: Close a partucular popup
-				}
-				else if (com.contains("@PPN-") == 0)
-				{
-					String name = com.substring(5);
-					// FIXME: Open a partucular popup
-				} */
-			}
-		break;
+			break;
+		}
 	}
 
-	// FIXME: Add a function to inform the client about a new page.
 	busy = false;
 }
 
@@ -266,7 +254,10 @@ void TouchPanel::webMsg(std::string& msg)
 		else
 			as.MC = 0x0085;
 
-		// FIXME: Add function call to send message!
+		if (amxnet != 0)
+			amxnet->sendCommand(as);
+		else
+			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
 	}
 }
 
@@ -345,6 +336,12 @@ void TouchPanel::readPages()
 				scrBuffer += p.getScriptCode();
 				scrStart += p.getScriptStart();
 
+				if (!sBargraphs.empty() && p.haveBargraphs())
+					sBargraphs += ",\n";
+
+				if (p.haveBargraphs())
+					sBargraphs += p.getBargraphs();
+
 				if (p.haveBtArray())
 				{
 					if (first)
@@ -374,6 +371,12 @@ void TouchPanel::readPages()
 				pop.active = false;
 				scrBuffer += p.getScriptCode();
 				scrStart += p.getScriptStart();
+
+				if (!sBargraphs.empty() && p.haveBargraphs())
+					sBargraphs += ",\n";
+
+				if (p.haveBargraphs())
+					sBargraphs += p.getBargraphs();
 
 				if (p.haveBtArray())
 				{
@@ -583,12 +586,58 @@ bool TouchPanel::parsePages()
 		return false;
 	}
 
+	try
+	{
+		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/bargraphs.js";
+		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!jsFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			pgFile.close();
+			return false;
+		}
+
+		writeBargraphs(jsFile);
+		jsFile.close();
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		pgFile.close();
+		return false;
+	}
+
+	try
+	{
+		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/palette.js";
+		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!jsFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			pgFile.close();
+			return false;
+		}
+
+		jsFile << getPalettes()->getJson();
+		jsFile.close();
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		pgFile.close();
+		return false;
+	}
+
 	pgFile << "</script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/pages.js\"></script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/popups.js\"></script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/groups.js\"></script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/btarray.js\"></script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/icons.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/bargraphs.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>\n";
 	// Add some special script functions
 	pgFile << "<script>\n";
@@ -761,4 +810,10 @@ void TouchPanel::writeIconTable(std::fstream& pgFile)
     }
 
     pgFile << "\n\t]};\n\n";
+}
+
+void TouchPanel::writeBargraphs(std::fstream& pgFile)
+{
+	sysl->TRACE(String("TouchPanel::writeBargraphs(std::fstream& pgFile)"));
+	pgFile << "var bargraphs = {\"bargraphs\":[\n" << sBargraphs << "\n]};\n";
 }

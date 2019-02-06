@@ -19,7 +19,6 @@
 
 #include <functional>
 #include <cstring>
-#include "touchpanel.h"
 
 #ifdef __APPLE__
 using namespace boost;
@@ -222,6 +221,7 @@ namespace amx
 			bool sendCommand(const ANET_SEND& s);
 
 		private:
+			void init();
 			void start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter);
 			void handle_connect(const std::error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter);
 			void start_read();

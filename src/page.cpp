@@ -491,6 +491,12 @@ void amx::Page::generateButtons()
 			btWebBuffer.push_back(buf);
 			scriptCode += pbt.getScriptCode();
 			scrStart += pbt.getScriptCodeStart();
+
+			if (!sBargraphs.empty() && pbt.haveBargraph())
+				sBargraphs += ",\n";
+
+			if (pbt.haveBargraph())
+				sBargraphs += pbt.getBargraphs();
 		}
 	}
 	catch (exception& e)

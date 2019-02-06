@@ -37,6 +37,7 @@
 #include "strings.h"
 #include "config.h"
 #include "amxnet.h"
+#include <asio/read.hpp>
 
 #ifdef __APPLE__
 using namespace boost;
@@ -57,18 +58,23 @@ AMXNet::AMXNet(asio::io_context& io_context)
 				  heartbeat_timer_(io_context)
 {
 	sysl->TRACE(Syslog::ENTRY, std::string("AMXNet::AMXNet(asio::io_context& io_context)"));
-	readToken = RT_NONE;
-	sendCounter = 0;
-	write_busy = false;
-	serial = "201812XTHE74201";
-	version = "v1.00.00";
-	manufacturer = "TheoSys";
+    init();
 }
 
 AMXNet::~AMXNet()
 {
 	sysl->TRACE(Syslog::EXIT, std::string("AMXNet::AMXNet(...)"));
 	callback = 0;
+}
+
+void AMXNet::init()
+{
+	readToken = RT_NONE;
+	sendCounter = 0;
+	write_busy = false;
+	serial = "201812XTHE74201";
+	version = "v1.00.00";
+	manufacturer = "TheoSys";
 }
 
 void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints)
@@ -571,7 +577,7 @@ void AMXNet::start_write()
 
 		if (buf == 0)
 		{
-			sysl->errlog(strings::String("AMXNet::start_write: Error creating a buffer! Magic number: ")+send.MC);
+			sysl->errlog(strings::String("AMXNet::start_write: Error creating a buffer! Token number: ")+send.MC);
 			continue;
 		}
 

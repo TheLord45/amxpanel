@@ -58,8 +58,10 @@ namespace amx
 			strings::String getWebCode();
 			strings::String getScriptCode();
 			bool haveScript() { return hScript; }
-			SCR_TYPE getScriptType() { return scriptType; }
-			strings::String getScriptCodeStart() { return scrStart; }
+			SCR_TYPE& getScriptType() { return scriptType; }
+			strings::String& getScriptCodeStart() { return scrStart; }
+			strings::String& getBargraphs() { return sBargraph; }
+			bool haveBargraph() { return !sBargraph.empty(); }
 
 			void setPageList(const std::vector<PAGE_T>& pl) { pageList = pl; }
 			int findPage(const strings::String& name);
@@ -153,6 +155,7 @@ namespace amx
 			int pageID;
 			strings::String btName;
 			strings::String scrStart;
+			strings::String sBargraph;
 			bool hScript;
 			SCR_TYPE scriptType;
 			std::vector<PAGE_T> pageList;
