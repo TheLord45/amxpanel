@@ -1,3 +1,7 @@
+const sleep = (milliseconds) => {
+	return new Promise(resolve => setTimeout(resolve, milliseconds))
+}
+
 var curPort;		// The port number the currently processed command depends on
 var curCommand;		// The currently command stripped from the port number
 var z_index = 0;
@@ -33,9 +37,9 @@ var cmdArray =
 			{"cmd":"^APF-","call":doAPF},			// Add page flip action to button
 			{"cmd":"^BAT-","call":doBAT},			// Append non-unicode text.
 			{"cmd":"^BAU-","call":unsupported},		// Append unicode text
-			{"cmd":"^BCB-","call":unsupported},		// Set the border color to the specified color.
-			{"cmd":"^BCF-","call":unsupported},		// Set the fill color to the specified color.
-			{"cmd":"^BCT-","call":unsupported},		// Set the text color to the specified color.
+			{"cmd":"^BCB-","call":doBCB},			// Set the border color to the specified color.
+			{"cmd":"^BCF-","call":doBCF},			// Set the fill color to the specified color.
+			{"cmd":"^BCT-","call":doBCT},			// Set the text color to the specified color.
 			{"cmd":"^BDO-","call":unsupported},		// Set the button draw order.
 			{"cmd":"^BFB-","call":unsupported},		// Set the feedback type of the button.
 			{"cmd":"^BIM-","call":unsupported},		// Set the input mask for the specified address.
@@ -82,11 +86,11 @@ var cmdArray =
 			{"cmd":"^JST-","call":unsupported},
 			{"cmd":"^MBT-","call":unsupported},
 			{"cmd":"^MDC-","call":unsupported},
-			{"cmd":"^SHO-","call":unsupported},
+			{"cmd":"^SHO-","call":doSHO},
 			{"cmd":"^TEC-","call":unsupported},
 			{"cmd":"^TEF-","call":unsupported},
 			{"cmd":"^TOP-","call":unsupported},
-			{"cmd":"^TXT-","call":unsupported},
+			{"cmd":"^TXT-","call":doTXT},
 			{"cmd":"^UNI-","call":unsupported},
 			{"cmd":"^LPC-","call":unsupported},
 			{"cmd":"^LPR-","call":unsupported},
@@ -106,18 +110,18 @@ var cmdArray =
 			{"cmd":"?TEC-","call":unsupported},
 			{"cmd":"?TEF-","call":unsupported},
 			{"cmd":"?TXT-","call":unsupported},
-			{"cmd":"ABEEP","call":unsupported},
-			{"cmd":"ADBEEP","call":unsupported},
+			{"cmd":"ABEEP","call":doABEEP},
+			{"cmd":"ADBEEP","call":doADBEEP},
 			{"cmd":"@AKB-","call":unsupported},
 			{"cmd":"AKEYB-","call":unsupported},
 			{"cmd":"AKEYP-","call":unsupported},
 			{"cmd":"AKEYR-","call":unsupported},
 			{"cmd":"@AKP-","call":unsupported},
 			{"cmd":"@AKR","call":unsupported},
-			{"cmd":"BEEP","call":unsupported},
+			{"cmd":"BEEP","call":doABEEP},
 			{"cmd":"BRIT-","call":unsupported},
 			{"cmd":"@BRT-","call":unsupported},
-			{"cmd":"DBEEP","call":unsupported},
+			{"cmd":"DBEEP","call":doADBEEP},
 			{"cmd":"@EKP-","call":unsupported},
 			{"cmd":"PKEYP-","call":unsupported},
 			{"cmd":"@PKP-","call":unsupported},
@@ -145,7 +149,10 @@ var cmdArray =
 			{"cmd":"^ICE-","call":unsupported},
 			{"cmd":"^ICM-","call":unsupported},
 			{"cmd":"^PHN-","call":unsupported},
-			{"cmd":"?PHN-","call":unsupported}
+			{"cmd":"?PHN-","call":unsupported},
+			{"cmd":"ON-","call":setON},
+			{"cmd":"OFF-","call":setOFF},
+            {"cmd":"LEVEL-","call":setLEVEL}
 		]
 	};
 
@@ -255,6 +262,74 @@ function getRange(sr)
 
 	return narr;
 }
+function getRGBAColor(name)
+{
+	var i;
+
+	for (i in palette.colors)
+	{
+		var col = palette.colors[i];
+		var colArr = [];
+
+		if (col.name == name)
+		{
+			colArr.push(col.red);
+			colArr.push(col.green);
+			colArr.push(col.blue);
+			colArr.push(col.alpha);
+			return colArr;
+		}
+	}
+
+	return -1;
+}
+function getRGBColor(name)
+{
+	var i;
+
+	for (i in palette.colors)
+	{
+		var col = palette.colors[i];
+
+		if (col.name == name)
+		{
+			colArr.push(col.red);
+			colArr.push(col.green);
+			colArr.push(col.blue);
+			return colArr;
+		}
+	}
+
+	return -1;
+}
+function getHexColor(value)
+{
+	var alpha = 1;
+	var pos = value.indexOf('#');
+
+	if (pos != 0)
+	{
+		return getRGBAColor(value);
+	}
+
+	var red = parseInt(value.substr(1, 2), 16);
+	var green = parseInt(value.substr(3, 2), 16);
+	var blue = parseInt(value.substr(4, 2), 16);
+	var colArr = [];
+
+	colArr.push(red);
+	colArr.push(green);
+	colArr.push(blue);
+
+	if (value.length > 6)
+	{
+		alpha = parseInt(value.substr(6, 2), 16);
+		alpha = 1.0 / 256.0 * alpha;
+		colArr.push(alpha);
+	}
+
+	return colArr;
+}
 function findPopupNumber(name)
 {
 	var i;
@@ -308,6 +383,39 @@ function findButton(num)
 	}
 
 	return btArray;
+}
+function findButtonPort(num)
+{
+	var bt;
+	var btArray;
+	var i;
+
+	btArray = [];
+
+	for (i in buttonArray.buttons)
+	{
+		bt = buttonArray.buttons[i];
+
+		if (bt.ap == curPort && bt.ac == num)
+			btArray.push(buttonArray.buttons[i]);
+	}
+
+	return btArray;
+}
+function findBargraphs(port, channel)
+{
+	var i;
+	var bgArray = [];
+
+	for (i in bargraphs.bargraphs)
+	{
+		var bg = bargraphs.bargraphs[i];
+
+		if (bg.lp == port && bg.lc == channel)
+			bgArray.push(bg);
+	}
+
+	return bgArray;
 }
 function getPopupIndex(name)
 {
@@ -782,6 +890,73 @@ function writeTextInst(port, channel, inst, text)
 
 	return "";
 }
+function setON(msg)
+{
+	var b;
+
+	var addr = getField(msg, 0, ',');
+	var bt = findButton(addr);
+
+	if (bt.length == 0)
+	{
+		console.log('setON: Error button '+addr+' not found!');
+		return;
+	}
+
+	for (b = 0; b < bt.length; b++)
+	{
+		try
+		{
+			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
+			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
+
+			document.getElementById(name1).style.display = 'none';
+			document.getElementById(name2).style.display = 'inline';
+		}
+		catch(e)
+		{
+			console.log("setON: Error: "+e);
+		}
+	}
+
+}
+function setOFF(msg)
+{
+	var b;
+
+	var addr = getField(msg, 0, ',');
+	var bt = findButton(addr);
+
+	if (bt.length == 0)
+	{
+		console.log('setOFF: Error button '+addr+' not found!');
+		return;
+	}
+
+	for (b = 0; b < bt.length; b++)
+	{
+		try
+		{
+			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
+			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
+
+			document.getElementById(name1).style.display = 'inline';
+			document.getElementById(name2).style.display = 'none';
+		}
+		catch(e)
+		{
+			console.log("setOFF: Error: "+e);
+		}
+	}
+
+}
+function setLEVEL(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var level = getField(msg, 1, ',');
+	var bgArray = findBargraphs(curPort, addr);
+	// FIXME: Insert code to draw a bargraph
+}
 function doAPG(msg)
 {
 	var pg;
@@ -1042,6 +1217,165 @@ function doBAT(msg)
 		}
 	}
 }
+function doBCB(msg)
+{
+	var i;
+	var j;
+	var z;
+	var b;
+
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+	var col = getField(msg, 2, ',');
+
+	var addrRange = getRange(addr);
+	var btRange = getRange(bts);
+
+	for (i = 0; i < addrRange.length; i++)
+	{
+		var bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
+		{
+			console.log('doBCB: Error button '+addrRange[i]+' not found!');
+			continue;
+		}
+
+		for (b = 0; b < bt.length; b++)
+		{
+			for (z = 1; z <= bt[b].instances; z++)
+			{
+				for (j = 0; j < btRange.length; j++)
+				{
+					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+					{
+						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+
+						try
+						{
+							var colArr = getHexColor(col);
+
+							if (colArr.length > 3)
+								document.getElementById(name).style.borderColor = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
+							else
+								document.getElementById(name).style.borderColor = rgb(colArr[0], colArr[1], colArr[2]);
+						}
+						catch(e)
+						{
+							console.log("doBCB: No element of name "+name+" found!");
+						}
+					}
+				}
+			}
+		}
+	}
+}
+function doBCF(msg)
+{
+	var i;
+	var j;
+	var z;
+	var b;
+
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+	var col = getField(msg, 2, ',');
+
+	var addrRange = getRange(addr);
+	var btRange = getRange(bts);
+
+	for (i = 0; i < addrRange.length; i++)
+	{
+		var bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
+		{
+			console.log('doBCF: Error button '+addrRange[i]+' not found!');
+			continue;
+		}
+
+		for (b = 0; b < bt.length; b++)
+		{
+			for (z = 1; z <= bt[b].instances; z++)
+			{
+				for (j = 0; j < btRange.length; j++)
+				{
+					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+					{
+						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+
+						try
+						{
+							var colArr = getHexColor(col);
+
+							if (colArr.length > 3)
+								document.getElementById(name).style.backgroundColor = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
+							else
+								document.getElementById(name).style.backgroundColor = rgb(colArr[0], colArr[1], colArr[2]);
+						}
+						catch(e)
+						{
+							console.log("doBCF: No element of name "+name+" found!");
+						}
+					}
+				}
+			}
+		}
+	}
+}
+function doBCT(msg)
+{
+	var i;
+	var j;
+	var z;
+	var b;
+
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+	var col = getField(msg, 2, ',');
+
+	var addrRange = getRange(addr);
+	var btRange = getRange(bts);
+
+	for (i = 0; i < addrRange.length; i++)
+	{
+		var bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
+		{
+			console.log('doBCT: Error button '+addrRange[i]+' not found!');
+			continue;
+		}
+
+		for (b = 0; b < bt.length; b++)
+		{
+			for (z = 1; z <= bt[b].instances; z++)
+			{
+				for (j = 0; j < btRange.length; j++)
+				{
+					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+					{
+						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+
+						try
+						{
+							var colArr = getHexColor(col);
+
+							if (colArr.length > 3)
+								document.getElementById(name).style.color = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
+							else
+								document.getElementById(name).style.color = rgb(colArr[0], colArr[1], colArr[2]);
+						}
+						catch(e)
+						{
+							console.log("doBCT: No element of name "+name+" found! Error: "+e);
+						}
+					}
+				}
+			}
+		}
+	}
+}
 function doBMP(msg)
 {
 	var bt;
@@ -1074,7 +1408,7 @@ function doBMP(msg)
 			continue;
 		}
 
-		for (i = 0; i < bt.length; b++)
+		for (b = 0; b < bt.length; b++)
 		{
 			for (z = 1; z <= bt[b].instances; z++)
 			{
@@ -1232,7 +1566,6 @@ function doICO(msg)
 	var addrRange;
 	var btRange;
 	var idx;
-	var bt;
 	var i;
 	var j;
 	var z;
@@ -1249,7 +1582,7 @@ function doICO(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		bt = findButton(addrRange[i]);
+		bt = findButtonPort(addrRange[i]);
 
 		if (bt.length == 0)
 		{
@@ -1272,7 +1605,25 @@ function doICO(msg)
 							document.getElementById(name+'_icon').src = "images/"+getIconFile(idx);
 						}
 						catch(e)
-						{
+						{function findButton(num)
+{
+	var bt;
+	var btArray;
+	var i;
+
+	btArray = [];
+
+	for (i in buttonArray.buttons)
+	{
+		bt = buttonArray.buttons[i];
+
+		if (bt.cp == curPort && bt.ch == num)
+			btArray.push(buttonArray.buttons[i]);
+	}
+
+	return btArray;
+}
+
 							try
 							{
 								var elem = document.getElementById(name);
@@ -1291,6 +1642,117 @@ function doICO(msg)
 			}
 		}
 	}
+}
+function doSHO(msg)
+{
+	var bt;
+	var i;
+	var j;
+	var z;
+	var b;
+	var name;
+
+	var addr = getField(msg, 0, ',');
+	var stat = getField(msg, 1, ',');
+
+	var addrRange = getRange(addr);
+
+	for (i = 0; i < addrRange.length; i++)
+	{
+		bt = findButton(addrRange[i]);
+
+		if (bt.length == 0)
+		{
+			console.log('doSHO: Error button '+addrRange[i]+' not found!');
+			continue;
+		}
+
+		for (b = 0; b < bt.length; b++)
+		{
+			for (z = 1; z <= bt[b].instances; z++)
+			{
+				name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+
+				try
+				{
+					document.getElementById(name).style.display = ((stat == 0) ? 'none' : 'inline');
+				}
+				catch(e)
+				{
+					console.log("doSHO: No element of name "+name+" found! ["+e+"]");
+				}
+			}
+		}
+	}
+}
+function doTXT(msg)
+{
+	var bt;
+	var i;
+	var j;
+	var z;
+	var b;
+	var name;
+
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+	var text = getField(msg, 2, ',');
+
+	var addrRange = getRange(addr);
+	var btRange = getRange(bts);
+
+	for (i = 0; i < addrRange.length; i++)
+	{
+		bt = findButtonPort(addrRange[i]);
+
+		if (bt.length == 0)
+		{
+			console.log('doTXT: Error button '+addrRange[i]+' not found!');
+			continue;
+		}
+
+		for (b = 0; b < bt.length; b++)
+		{
+			for (z = 1; z <= bt[b].instances; z++)
+			{
+				for (j = 0; j < btRange.length; j++)
+				{
+					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+					{
+						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+
+						try
+						{
+							document.getElementById(name+'_font').innerHTML = text;
+						}
+						catch(e)
+						{
+							try
+							{
+								var elem = document.getElementById(name);
+								elem.innerHTML = elem.innerHTML + '<span id="'+name+'_font" class="'+name+'_font">'+text+'</span>';
+							}
+							catch(e)
+							{
+								console.log("doTXT: No element of name "+name+" found! ["+e+"]");
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+function doABEEP(msg)
+{
+	beep();
+}
+function doADBEEP(msg)
+{
+	beep();
+	sleep(250).then(() => {
+		beep();
+	});
 }
 function parseMessage(msg)
 {
@@ -1446,13 +1908,18 @@ function posImage(img, name, code)
 				img.style.top = (ph - ih) / 2 + 'px';
 	}
 }
+function beep()
+{
+	var snd = new Audio("data:audio/wav;base64,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qJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=");
+	snd.play();
+}
 function connect()
 {
 	try
 	{
 		wsocket = new WebSocket("wss://www.theosys.at:11012/");
 		wsocket.onopen = function() { wsocket.send('READY;'); }
-		wsocket.onerror = function(error) { console.log(`WebSocket error: ${error}`); }
+		wsocket.onerror = function(error) { console.log('WebSocket error: '+error); }
 		wsocket.onmessage = function(e) { parseMessage(e.data); }
 		wsocket.onclose = function() { console.log('WebSocket is closed!'); }
 	}
@@ -1467,7 +1934,18 @@ function connect()
 	parseMessage('1|^ICO-1072,0,24');
 	parseMessage('1|^ICO-1073,0,27');
 	parseMessage('1|^ICO-1078,0,1');
-	parseMessage('1|@PPN-source_dreambox');
+	parseMessage('1|^TXT-2012,0,Bathroom');
+	parseMessage('1|^BCT-2012,0,DarkYellow');
+	parseMessage('1|@PPN-select_room');
+	parseMessage('1|^SHO-1031,1');
+	parseMessage('1|^SHO-1032,1');
+	parseMessage('1|^SHO-1033,1');
+	parseMessage('1|^SHO-1034,0');
+	parseMessage('1|^SHO-1035,0');
+	parseMessage('1|ON-1031');
+	parseMessage('1|^ICO-1031,0,1');
+	parseMessage('1|^ICO-1032,0,6');
+	parseMessage('1|^ICO-1033,0,15');
 }
 
 function writeTextOut(msg)
@@ -1583,3 +2061,14 @@ function setWiFi()
 		connection.dispatchEvent(new Event('typechange'));	
 	}
 }
+/*********
+function drawBargraph(bg)
+{
+	var name = bg.name;
+
+	try
+	{
+		var styles = document.getElementById(name);
+		var bar = new CanvasJS.Chart(name,
+}
+**********/

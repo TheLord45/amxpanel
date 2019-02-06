@@ -269,3 +269,31 @@ String Palette::colorToString(unsigned long col)
 	color += String(red)+", "+green+", "+blue+", "+calpha+")";
 	return color;
 }
+
+String Palette::getJson()
+{
+	sysl->TRACE(String("Palette::getJson()"));
+
+	String json = "var palette = {\"colors\":[\n";
+
+	for (size_t i = 0; i < palette.size(); i++)
+	{
+		int red, green, blue;
+		double alpha;
+		char calpha[128];
+
+		red = (palette[i].color >> 24) & 0x000000ff;
+		green = (palette[i].color >> 16) & 0x000000ff;
+		blue = (palette[i].color >> 8) & 0x000000ff;
+		alpha = 1.0 / 256.0 * (double)(palette[i].color & 0x000000ff);
+		snprintf(calpha, sizeof(calpha), "%1.2f", alpha);
+
+		if (i > 0)
+			json += ",\n";
+
+		json += String("\t{\"name\":\"")+palette[i].name+"\",\"id\":"+palette[i].index+",\"red\":"+red+",\"green\":"+green+",\"blue\":"+blue+",\"alpha\":"+calpha+"}";
+	}
+
+	json += "\n]};\n";
+	return json;
+}

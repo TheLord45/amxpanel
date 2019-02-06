@@ -46,6 +46,8 @@ namespace amx
 			strings::String& getScriptStart() { return scrStart; }
 			strings::String& getBtArray() { return btArray; }
 			bool haveBtArray() { return !btArray.empty(); }
+			strings::String& getBargraphs() { return sBargraphs; }
+			bool haveBargraphs() { return !sBargraphs.empty(); }
 
 			void setPalette(Palette *pal) { paletteClass = pal; }
 			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }
@@ -76,6 +78,7 @@ namespace amx
 			strings::String paletteFile;
 			strings::String pageFile;
 			strings::String btArray;
+			strings::String sBargraphs;
 			int totalWidth;
 			int totalHeight;
 			FontList *fontClass;

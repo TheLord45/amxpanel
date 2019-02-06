@@ -199,7 +199,7 @@ String PushButton::getWebCode()
 
 	sysl->TRACE(String("PushButton::getWebCode: for page ID: ")+pageID);
 
-	if (button.type == GENERAL && button.sr.size() >= 2)
+	if ((button.type == GENERAL && button.sr.size() >= 2) || button.type == BARGRAPH)
 	{
 		if (button.ap == 0 && isSystemReserved(button.ad))
 		{
@@ -213,26 +213,46 @@ String PushButton::getWebCode()
 		}
 	}
 
+	if (button.type == BARGRAPH)
+	{
+		int level;
+
+		if (!sBargraph.empty())
+			sBargraph += ",\n";
+
+		if (button.rh > button.rl)
+			level = (button.rh - button.rl) / 2;	// Initial value is 50%
+		else
+			level = button.rl;
+
+		String nm;
+
+		if (button.ap == 0 && isSystemReserved(button.ad))
+			nm = btName;
+		else
+			nm = String("Page")+pageID+"_"+btName;
+
+		sBargraph += String("\t{\"name\":\"")+nm+"\",\"ap\":"+button.ap+",\"ac\":"+button.ad;
+		sBargraph += String(",\"cp\":")+button.cp+",\"ch\":"+button.ch+",\"lp\":"+button.lp+",\"lc\":"+button.lv;
+		sBargraph += String(",\"rl\":")+button.rl+",\"rh\":"+button.rh+",\"lv\":"+level;
+		sBargraph += String(",\"dr\":\"")+button.dr+"\",\"states\":[\n";
+
+		for (size_t i = 0; i < button.sr.size(); i++)
+		{
+			if (i > 0)
+				sBargraph += ",\n";
+
+			sBargraph += String("\t\t{\"mi\":\"")+button.sr[i].mi+"\",\"cb\":\""+button.sr[i].cb+"\"";
+			sBargraph += String(",\"cf\":\"")+button.sr[i].cf+"\",\"bm\":\""+button.sr[i].bm+"\"}";
+		}
+
+		sBargraph += "]}";
+	}
+
 	if (button.ap == 0 && isSystemReserved(button.ad))
 		code = String("   <a href=\"#\" id=\"")+btName+"\">\n";
 	else
-	{
-		code = String("   <a href=\"#\" id=\"Page")+pageID+btName+"\"";
-
-/*		if (!button.pfName.empty() && !button.pfType.empty())
-		{
-			sysl->TRACE(String("PushButton::getWebCode: Button ")+button.na+" show/hide popup page "+button.pfName+".");
-
-			if (button.pfType.caseCompare("sShow") == 0)		// show popup
-				code += String(" onclick=\"showPopup('")+button.pfName+"');\"";
-			else if (button.pfType.caseCompare("sHide") == 0)	// hide popup
-				code += String(" onclick=\"hidePopup('")+button.pfName+"');\"";
-			else if (button.pfType.caseCompare("scGroup") == 0)	// hide group
-				code += String(" onclick=\"hideGroup('")+button.pfName+"');\"";
-		}
-*/
-		code += ">\n";
-	}
+		code = String("   <a href=\"#\" id=\"Page")+pageID+btName+"\">\n";
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
@@ -257,7 +277,8 @@ String PushButton::getWebCode()
 			else if (button.pfType.caseCompare("scGroup") == 0)	// hide group
 				code += String(" onclick=\"hideGroup('")+button.pfName+"');\"";
 		}
-		else if (button.type == GENERAL && button.fb == FB_MOMENTARY && (i == 0 || i == 1))
+		else if (((button.type == GENERAL && button.fb == FB_MOMENTARY && (i == 0 || i == 1)) ||
+				button.type == BARGRAPH) && button.cp > 0 && button.ch > 0)
 		{
 			code += String(" onmousedown=\"switchDisplay(")+names+",1,"+button.cp+","+button.ch+");\"";
 			code += String(" onmouseup=\"switchDisplay(")+names+",0,"+button.cp+","+button.ch+");\"";

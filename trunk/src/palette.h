@@ -55,6 +55,7 @@ namespace amx
 			strings::String colorToString(unsigned long col);
 			std::vector<PDATA_T>& getPalette() { return palette; }
 			void setPalette(const std::vector<PDATA_T>& pd) { palette = pd; status = true; }
+			strings::String getJson();
 
 		private:
 			std::vector<PDATA_T> palette;
