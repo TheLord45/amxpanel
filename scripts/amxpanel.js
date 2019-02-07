@@ -156,6 +156,14 @@ var cmdArray =
 		]
 	};
 
+function rgb(red, green, blue)
+{
+	return "rgb("+red+","+green+","+blue+")";
+}
+function rgba(red, green, blue, alpha)
+{
+	return "rgb("+red+","+green+","+blue+","+alpha+")";
+}
 function unsupported(msg)
 {
 	var pos;
@@ -201,9 +209,12 @@ function splittCmd(msg)
 }
 function getField(msg, field, sep)
 {
-	var flds;
+	var flds = [];
 	var rest;
 	var pos;
+	var i;
+	var bStr = false;
+	var part = "";
 
 	pos = msg.indexOf('-');			// Check for the command part preceding the parameters
 
@@ -212,9 +223,26 @@ function getField(msg, field, sep)
 	else
 		rest = msg;					// No command part, so take the whole string
 
-	flds = rest.split(sep);			// Split in fields
+	for (i = 0; i < rest.length; i++)
+	{
+		if (rest.charAt(i) == sep && !bStr)
+		{
+			flds.push(part);
+			part = "";
+			continue;
+		}
+		else if (rest.charAt(i) == "'" && !bStr)
+			bStr = true;
+		else if (rest.charAt(i) == "'" && bStr)
+			bStr = false;
+		else
+			part = part + rest.charAt(i);
+	}
 
-	if (flds.length < field)
+	if (part.length > 0)
+		flds.push(part);
+
+	if (flds.length <= field)
 		return "";
 
 	return flds[field];
@@ -265,13 +293,14 @@ function getRange(sr)
 function getRGBAColor(name)
 {
 	var i;
+	var nm = name;
+	var colArr = [];
 
 	for (i in palette.colors)
 	{
 		var col = palette.colors[i];
-		var colArr = [];
 
-		if (col.name == name)
+		if (col.name == nm)
 		{
 			colArr.push(col.red);
 			colArr.push(col.green);
@@ -286,12 +315,14 @@ function getRGBAColor(name)
 function getRGBColor(name)
 {
 	var i;
+	var nm = name;
+	var colArr = [];
 
 	for (i in palette.colors)
 	{
 		var col = palette.colors[i];
 
-		if (col.name == name)
+		if (col.name == nm)
 		{
 			colArr.push(col.red);
 			colArr.push(col.green);
@@ -307,10 +338,8 @@ function getHexColor(value)
 	var alpha = 1;
 	var pos = value.indexOf('#');
 
-	if (pos != 0)
-	{
+	if (pos < 0)
 		return getRGBAColor(value);
-	}
 
 	var red = parseInt(value.substr(1, 2), 16);
 	var green = parseInt(value.substr(3, 2), 16);
@@ -1233,7 +1262,7 @@ function doBCB(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		var bt = findButton(addrRange[i]);
+		var bt = findButtonPort(addrRange[i]);
 
 		if (bt.length == 0)
 		{
@@ -1253,12 +1282,22 @@ function doBCB(msg)
 
 						try
 						{
-							var colArr = getHexColor(col);
+							var colArr;
+
+							if ((colArr = getHexColor(col)) === -1)
+							{
+								console.log("doBCT: Error getting color for "+name);
+								continue;
+							}
+
+							var color;
 
 							if (colArr.length > 3)
-								document.getElementById(name).style.borderColor = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
+								color = rgba(colArr[0],colArr[1],colArr[2],colArr[3]);
 							else
-								document.getElementById(name).style.borderColor = rgb(colArr[0], colArr[1], colArr[2]);
+								color = rgb(colArr[0],colArr[1],colArr[2]);
+
+							document.getElementById(name).style.borderColor = color;
 						}
 						catch(e)
 						{
@@ -1286,7 +1325,7 @@ function doBCF(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		var bt = findButton(addrRange[i]);
+		var bt = findButtonPort(addrRange[i]);
 
 		if (bt.length == 0)
 		{
@@ -1306,12 +1345,22 @@ function doBCF(msg)
 
 						try
 						{
-							var colArr = getHexColor(col);
+							var colArr;
+
+							if ((colArr = getHexColor(col)) === -1)
+							{
+								console.log("doBCT: Error getting color for "+name);
+								continue;
+							}
+
+							var color;
 
 							if (colArr.length > 3)
-								document.getElementById(name).style.backgroundColor = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
+								color = rgba(colArr[0],colArr[1],colArr[2],colArr[3]);
 							else
-								document.getElementById(name).style.backgroundColor = rgb(colArr[0], colArr[1], colArr[2]);
+								color = rgb(colArr[0],colArr[1],colArr[2]);
+
+							document.getElementById(name).style.backgroundColor = color;
 						}
 						catch(e)
 						{
@@ -1339,7 +1388,7 @@ function doBCT(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		var bt = findButton(addrRange[i]);
+		var bt = findButtonPort(addrRange[i]);
 
 		if (bt.length == 0)
 		{
@@ -1359,12 +1408,22 @@ function doBCT(msg)
 
 						try
 						{
-							var colArr = getHexColor(col);
+							var colArr;
+
+							if ((colArr = getHexColor(col)) === -1)
+							{
+								console.log("doBCT: Error getting color for "+name);
+								continue;
+							}
+
+							var color;
 
 							if (colArr.length > 3)
-								document.getElementById(name).style.color = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
+								color = rgba(colArr[0],colArr[1],colArr[2],colArr[3]);
 							else
-								document.getElementById(name).style.color = rgb(colArr[0], colArr[1], colArr[2]);
+								color = rgb(colArr[0],colArr[1],colArr[2]);
+
+							document.getElementById(name).style.color = color;
 						}
 						catch(e)
 						{
@@ -1400,7 +1459,7 @@ function doBMP(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		bt = findButton(addrRange[i]);
+		bt = findButtonPort(addrRange[i]);
 
 		if (bt.length == 0)
 		{
@@ -1455,7 +1514,7 @@ function doBSP(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		bt = findButton(addrRange[i]);
+		bt = findButtonPort(addrRange[i]);
 
 		if (bt.length == 0)
 		{
@@ -1494,7 +1553,7 @@ function doCPF(msg)
 
 	for (i = 0; i < addrRange.length; i++)
 	{
-		bt = findButton(addrRange[i]);
+		bt = findButtonPort(addrRange[i]);
 
 		if (bt.length == 0)
 		{
@@ -1605,25 +1664,7 @@ function doICO(msg)
 							document.getElementById(name+'_icon').src = "images/"+getIconFile(idx);
 						}
 						catch(e)
-						{function findButton(num)
-{
-	var bt;
-	var btArray;
-	var i;
-
-	btArray = [];
-
-	for (i in buttonArray.buttons)
-	{
-		bt = buttonArray.buttons[i];
-
-		if (bt.cp == curPort && bt.ch == num)
-			btArray.push(buttonArray.buttons[i]);
-	}
-
-	return btArray;
-}
-
+						{
 							try
 							{
 								var elem = document.getElementById(name);
@@ -1934,8 +1975,7 @@ function connect()
 	parseMessage('1|^ICO-1072,0,24');
 	parseMessage('1|^ICO-1073,0,27');
 	parseMessage('1|^ICO-1078,0,1');
-	parseMessage('1|^TXT-2012,0,Bathroom');
-	parseMessage('1|^BCT-2012,0,DarkYellow');
+	parseMessage("1|^TXT-2012,0,'Küche, Bad'");
 	parseMessage('1|@PPN-select_room');
 	parseMessage('1|^SHO-1031,1');
 	parseMessage('1|^SHO-1032,1');
