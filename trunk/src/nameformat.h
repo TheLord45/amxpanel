@@ -33,6 +33,8 @@ class NameFormat
 		static char *EncodeTo(char *buf, size_t *len, const strings::String& str, const strings::String& from, const strings::String& to);
 		static strings::String textToWeb(const strings::String& txt);
 		static strings::String toHex(int num, int width);
+		static strings::String latin1ToUTF8(const strings::String& str);
+		static strings::String cp1250ToUTF8(const strings::String& str);
 };
 
 #endif

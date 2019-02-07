@@ -256,7 +256,7 @@ String PushButton::getWebCode()
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		// FIXME: Die unterschiedlichen button status berücksichtigen
+		// FIXME: Die unterschiedlichen button status berÃ¼cksichtigen
 		String nm;
 
 		if (button.ap == 0 && isSystemReserved(button.ad))
@@ -748,13 +748,13 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 }
 
 /*
- * Die Maske unter pix1 definiert über den roten und/oder grünen Farbkanal,
+ * Die Maske unter pix1 definiert Ã¼ber den roten und/oder grÃ¼nen Farbkanal,
  * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
- * Farbe unter "fill" zurückgegeben. Ist der grüne Farbkanal gesetzt, wird die
- * Farbe unter "border" zurückgegeben. Der blaue Farbkanal wird nicht
+ * Farbe unter "fill" zurÃ¼ckgegeben. Ist der grÃ¼ne Farbkanal gesetzt, wird die
+ * Farbe unter "border" zurÃ¼ckgegeben. Der blaue Farbkanal wird nicht
  * verwendet.
  * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
- * grüne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
+ * grÃ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
  */
 int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 {
