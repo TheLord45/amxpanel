@@ -73,7 +73,7 @@ String PushButton::getStyle()
 		bool hasChameleon = (!button.sr[i].mi.empty() && !button.sr[i].bm.empty() && button.sr[i].bs.empty());
 		bool hasBorder = !button.sr[i].bs.empty();
 
-		if (hasBorder)
+		if (hasBorder || button.type == BARGRAPH)
 			hasChameleon = false;
 
 		if (button.ap == 0 && isSystemReserved(button.ad))
@@ -114,10 +114,11 @@ String PushButton::getStyle()
 				style += "  background-blend-mode: screen;\n";
 			}
 		}
-		else if (button.sr[i].bm.length())
+		else if (button.sr[i].bm.length() && button.type != BARGRAPH)
+		{
 			style += String("  background-image: url(images/")+NameFormat::toURL(button.sr[i].bm)+");\n";
-
-		style += "  background-repeat: no-repeat;\n";
+			style += "  background-repeat: no-repeat;\n";
+		}
 
 		if ((button.fb == FB_MOMENTARY && i == 0) || (button.fb == FB_ALWAYS_ON && i == 1) ||
 				(button.fb == FB_INV_CHANNEL && i == 1) || (button.fb == FB_CHANNEL && i == 0) ||
@@ -256,7 +257,7 @@ String PushButton::getWebCode()
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		// FIXME: Die unterschiedlichen button status berÃ¼cksichtigen
+		// FIXME: Die unterschiedlichen button status berücksichtigen
 		String nm;
 
 		if (button.ap == 0 && isSystemReserved(button.ad))
