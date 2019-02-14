@@ -53,6 +53,7 @@ namespace amx
 			unsigned long getColor(size_t idx);
 			unsigned long getColor(const strings::String& name);
 			strings::String colorToString(unsigned long col);
+			strings::String colorToSArray(unsigned long col);
 			std::vector<PDATA_T>& getPalette() { return palette; }
 			void setPalette(const std::vector<PDATA_T>& pd) { palette = pd; status = true; }
 			strings::String getJson();

@@ -101,7 +101,7 @@ String PushButton::getStyle()
 		else
 			style += "  border: none;\n";
 
-		if (hasChameleon)	// Chameleon image?
+/*		if (hasChameleon)	// Chameleon image?
 		{
 			String fname = createChameleonImage(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, Configuration->getHTTProot()+"/images/"+button.sr[i].bm, pal.getColor(button.sr[i].cf), pal.getColor(button.sr[i].cb));
 
@@ -114,7 +114,7 @@ String PushButton::getStyle()
 				style += "  background-blend-mode: screen;\n";
 			}
 		}
-		else if (button.sr[i].bm.length() && button.type != BARGRAPH)
+		else */if (!hasChameleon && button.sr[i].bm.length() && button.type != BARGRAPH)
 		{
 			style += String("  background-image: url(images/")+NameFormat::toURL(button.sr[i].bm)+");\n";
 			style += "  background-repeat: no-repeat;\n";
@@ -257,7 +257,7 @@ String PushButton::getWebCode()
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		// FIXME: Die unterschiedlichen button status berücksichtigen
+		// FIXME: Die unterschiedlichen button status berÃ¼cksichtigen
 		String nm;
 
 		if (button.ap == 0 && isSystemReserved(button.ad))
@@ -283,6 +283,18 @@ String PushButton::getWebCode()
 		{
 			code += String(" onmousedown=\"switchDisplay(")+names+",1,"+button.cp+","+button.ch+");\"";
 			code += String(" onmouseup=\"switchDisplay(")+names+",0,"+button.cp+","+button.ch+");\"";
+		}
+
+		if (button.type == GENERAL && !button.sr[i].mi.empty() && !button.sr[i].bm.empty())
+		{
+			int width, height;
+			Palette pal;
+
+			pal.setPalette(palette);
+			getImageDimensions(Configuration->getHTTProot()+"/mages/"+button.sr[i].mi, &width, &height);
+			unsigned long col1 = pal.getColor(button.sr[i].cf);
+			unsigned long col2 = pal.getColor(button.sr[i].cb);
+			code += String(" onload=\"drawButton(makeURL('/images/")+button.sr[i].mi+"'),makeURL('/images/"+button.sr[i].bm+"'),'"+nm+"',"+width+","+height+","+pal.colorToSArray(col1)+","+pal.colorToSArray(col2)+")\"";
 		}
 
 		code += ">\n";
@@ -749,13 +761,13 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 }
 
 /*
- * Die Maske unter pix1 definiert Ã¼ber den roten und/oder grÃ¼nen Farbkanal,
+ * Die Maske unter pix1 definiert ÃÂ¼ber den roten und/oder grÃÂ¼nen Farbkanal,
  * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
- * Farbe unter "fill" zurÃ¼ckgegeben. Ist der grÃ¼ne Farbkanal gesetzt, wird die
- * Farbe unter "border" zurÃ¼ckgegeben. Der blaue Farbkanal wird nicht
+ * Farbe unter "fill" zurÃÂ¼ckgegeben. Ist der grÃÂ¼ne Farbkanal gesetzt, wird die
+ * Farbe unter "border" zurÃÂ¼ckgegeben. Der blaue Farbkanal wird nicht
  * verwendet.
  * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
- * grÃ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
+ * grÃÂ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
  */
 int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 {
