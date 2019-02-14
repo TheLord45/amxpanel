@@ -638,6 +638,7 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/icons.js\"></script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/bargraphs.js\"></script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>\n";
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>\n";
 	// Add some special script functions
 	pgFile << "<script>\n";
