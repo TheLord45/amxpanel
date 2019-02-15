@@ -112,13 +112,13 @@ namespace amx
 		private:
 			int blend(int base, int mask);
 			/**
-			 * Die Maske unter \a pix1 definiert über den roten und/oder grünen Farbkanal,
+			 * Die Maske unter \a pix1 definiert Ã¼ber den roten und/oder grÃ¼nen Farbkanal,
 			 * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
-			 * Farbe unter \a fill zurückgegeben. Ist der grüne Farbkanal gesetzt, wird die
-			 * Farbe unter \a border zurück gegeben. Der blaue Farbkanal wird nicht
+			 * Farbe unter \a fill zurÃ¼ckgegeben. Ist der grÃ¼ne Farbkanal gesetzt, wird die
+			 * Farbe unter \a border zurÃ¼ck gegeben. Der blaue Farbkanal wird nicht
 			 * verwendet.
 			 * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
-			 * grüne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
+			 * grÃ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
 			 * 
 			 * Der Parameter \a pix2 definiert (optional) eine Maske. Diese
 			 * besteht vorwiegend aus einem Alpha-Kanal und einem Wert pro
@@ -128,18 +128,18 @@ namespace amx
 			 * im Format einer \b GD Farbe.
 			 * 
 			 * @param pix1
-			 * Maske die definiert welche Farbe zurückgegeben werden soll.
+			 * Maske die definiert welche Farbe zurÃ¼ckgegeben werden soll.
 			 * 
 			 * @param pix2
 			 * Maske welche die Helligkeit oder Transparenz eines Pixels bestimmt.
 			 * 
 			 * @param fill
-			 * Diese Farbe wird zurückgegeben, wenn in der Maske \a pix1 der
+			 * Diese Farbe wird zurÃ¼ckgegeben, wenn in der Maske \a pix1 der
 			 * rote Farbkanal > 0 gesetzt ist.
 			 * 
 			 * @param border
-			 * Diese Farbe wird zurückgegeben, wenn in der Maske \a pix1 der
-			 * grüne Farbkanal > 0 gesetzt ist.
+			 * Diese Farbe wird zurÃ¼ckgegeben, wenn in der Maske \a pix1 der
+			 * grÃ¼ne Farbkanal > 0 gesetzt ist.
 			 * 
 			 * @return
 			 * Eine Farbe oder ein transparanetes Pixel.
