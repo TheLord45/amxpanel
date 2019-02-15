@@ -511,4 +511,6 @@ async function drawButton(uriRed, uriMask, name, width, height, col1, col2)
 			div.appendChild(canvas3);
 		}
 	}
+	else
+		console.log("drawButton: Error getting context for canvas "+name+"!");
 }
