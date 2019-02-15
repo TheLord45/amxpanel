@@ -274,17 +274,14 @@ String Palette::colorToSArray(unsigned long col)
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("Palette::colorToSArray(unsigned long col)"));
 
-	int red, green, blue;
-	double alpha;
-	char calpha[128];
+	int red, green, blue, alpha;
 	String color = "[";
 
 	red = (col >> 24) & 0x000000ff;
 	green = (col >> 16) & 0x000000ff;
 	blue = (col >> 8) & 0x000000ff;
-	alpha = 1.0 / 256.0 * (double)(col & 0x000000ff);
-	snprintf(calpha, sizeof(calpha), "%1.2f", alpha);
-	color += String(red)+","+green+","+blue+","+calpha+"]";
+	alpha = (col & 0x000000ff);
+	color += String(red)+","+green+","+blue+","+alpha+"]";
 	return color;
 }
 
