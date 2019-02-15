@@ -296,10 +296,15 @@ String PushButton::getWebCode()
 			getImageDimensions(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, &width, &height);
 			unsigned long col1 = pal.getColor(button.sr[i].cf);
 			unsigned long col2 = pal.getColor(button.sr[i].cb);
-			code += String("         <canvas id=\"")+nm+"_canvas\" width=\""+width+"px\" height=\""+height+"px\"></canvas>\n";
-			code += String("         <script>document.getElementById('")+nm+"_canvas').addEventListener(\"load\",";
-			code += String("drawButton(makeURL('images/")+button.sr[i].mi+"'),makeURL('images/"+button.sr[i].bm+"'),'"+nm+"',"+width+","+height+","+pal.colorToSArray(col1)+","+pal.colorToSArray(col2)+"));";
-			code += "</script>\n";
+			code += String("         <canvas id=\"")+nm+"_canvas\" width=\""+width+"px\" height=\""+height+"px\" style=\"";
+			code += "position: absolute;left: 0px;top: 0px;\"></canvas>\n";
+			code += "         <script>\n";
+			code += "            var visProp = getHiddenProp();\n";
+			code += "            if (visProp) {\n";
+			code += "               var evtname = visProp.replace(/[H|h]idden/,'') + 'visibilitychange';\n";
+			code += String("               document.getElementById('Page_")+pageID+"').addEventListener(evtname,function() { ";
+			code += String("if (isVisible(document.getElementById('Page_")+pageID+"'))) drawButton(makeURL('images/"+button.sr[i].mi+"'),makeURL('images/"+button.sr[i].bm+"'),'"+nm+"',"+width+","+height+","+pal.colorToSArray(col1)+","+pal.colorToSArray(col2)+"); });\n";
+			code += "            }\n         </script>\n";
 		}
 
 		if (iconClass != 0 && button.sr[i].ii > 0)		// Icon?

@@ -155,7 +155,48 @@ var cmdArray =
             {"cmd":"LEVEL-","call":setLEVEL}
 		]
 	};
+function isVisible(elem)
+{
+	if (!(elem instanceof Element))
+		throw Error('DomUtil: elem is not an element.');
 
+	const style = getComputedStyle(elem);
+
+	if (style.display === 'none')
+		return false;
+
+	if (style.visibility !== 'visible')
+		return false;
+
+	return true;
+}
+function getHiddenProp()
+{
+	var prefixes = ['webkit','moz','ms','o'];
+
+	// if 'hidden' is natively supported just return it
+	if ('hidden' in document)
+		return 'hidden';
+
+	// otherwise loop over all the known prefixes until we find one
+	for (var i = 0; i < prefixes.length; i++)
+	{
+		if ((prefixes[i] + 'Hidden') in document)
+			return prefixes[i] + 'Hidden';
+	}
+
+	// otherwise it's not supported
+	return null;
+}
+function isHidden()
+{
+	var prop = getHiddenProp();
+
+	if (!prop)
+		return false;
+
+	return document[prop];
+}
 function rgb(red, green, blue)
 {
 	return "rgb("+red+","+green+","+blue+")";
