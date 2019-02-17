@@ -358,6 +358,7 @@ void TouchPanel::readPages()
 					pg.active = false;
 
 				stPages.push_back(pg);
+				p.serializeToFile();
 			}
 			else
 			{
@@ -403,6 +404,7 @@ void TouchPanel::readPages()
 				}
 
 				stPopups.push_back(pop);
+				p.serializeToFile();
 			}
 		}
 
@@ -630,16 +632,21 @@ bool TouchPanel::parsePages()
 		return false;
 	}
 
-	pgFile << "</script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/pages.js\"></script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/popups.js\"></script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/groups.js\"></script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/btarray.js\"></script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/icons.js\"></script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/bargraphs.js\"></script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>\n";
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>\n";
+	pgFile << "</script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/pages.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/popups.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/groups.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/btarray.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/icons.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/bargraphs.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl << std::endl;
+
+	for (size_t i = 0; i < stPopups.size(); i++)
+		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPopups[i].ID << ".js\"></script>" << std::endl;
+
+	pgFile << std::endl << "<script type=\"text/javascript\" src=\"scripts/page.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>" << std::endl;
 	// Add some special script functions
 	pgFile << "<script>\n";
 	pgFile << scrBuffer << "\n";
@@ -656,14 +663,15 @@ bool TouchPanel::parsePages()
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
-	pgFile << "<body onload=\"main(); connect();\">\n";
-
+	pgFile << "<body onload=\"main(); connect();\">" << std::endl;
+	pgFile << "   <div id=\"main\"></div>" << std::endl;
+/*
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
 		pgFile << stPages[i].webcode;
 		writeAllPopups(pgFile);
 	}
-
+*/
 	pgFile << "</body>\n</html>\n";
 	return true;
 }
@@ -801,7 +809,7 @@ void TouchPanel::writeIconTable(std::fstream& pgFile)
     Icon *ic = getIconClass();
     size_t ni = ic->numIcons();
     pgFile << "var iconArray = {\"icons\":[\n";
-    
+
     for (size_t i = 0; i < ni; i++)
     {
         if (i > 0)

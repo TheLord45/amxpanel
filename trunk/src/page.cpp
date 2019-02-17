@@ -451,6 +451,87 @@ amx::Page::~Page()
 //		delete paletteClass;
 }
 
+void Page::serializeToFile()
+{
+	sysl->TRACE(String("Page::serializeToFile()"));
+
+	fstream pgFile;
+	String fname = Configuration->getHTTProot()+"/scripts/Page"+page.pageID+".js";
+
+	try
+	{
+		pgFile.open(fname.toString(), ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!pgFile.is_open())
+		{
+			sysl->errlog(String("Page::serializeToFile: Error opening file ")+fname);
+			return;
+		}
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("Page::serializeToFile: I/O Error: ")+e.what());
+		return;
+	}
+
+	pgFile << "var structPage" << page.pageID << " = {" << std::endl;
+	pgFile << "\t\"name\":\"" << page.name << "\",\"ID\":" << page.pageID << ",\"type\":" << page.type << "," << std::endl;
+	pgFile << "\t\"left\":" << page.left << ",\"top\":" << page.top << ",\"width\":" << page.width << ",\"height\":" << page.height << "," << std::endl;
+	pgFile << "\t\"group\":\"" << page.group << "\",\"showEffect\":" << page.showEffect << ",\"showTime\":" << page.showTime << "," << std::endl;
+	pgFile << "\t\"hideEffect\":" << page.hideEffect << ",\"hideTime\":" << page.hideTime << ",\"buttons\":[";
+
+	for (size_t i = 0; i < page.buttons.size(); i++)
+	{
+		if (i > 0)
+			pgFile << ",";
+
+		pgFile << "\n\t\t{\"bname\":\"" << page.buttons[i].na << "\",\"bID\":" << page.buttons[i].bi << ",\"btype\":" << page.buttons[i].type << "," << std::endl;
+		pgFile << "\t\t \"lt\":" << page.buttons[i].lt << ",\"tp\":" << page.buttons[i].tp << ",\"wt\":" << page.buttons[i].wt << ",\"ht\":" << page.buttons[i].ht << "," << std::endl;
+		pgFile << "\t\t \"zo\":" << page.buttons[i].zo << ",\"hs\":\"" << page.buttons[i].hs << "\",\"bs\":\"" << page.buttons[i].bs << "\"," << std::endl;
+		pgFile << "\t\t \"fb\":" << page.buttons[i].fb << ",\"ap\":" << page.buttons[i].ap << ",\"ad\":" << page.buttons[i].ad << ",\"ch\":" << page.buttons[i].ch << "," << std::endl;
+		pgFile << "\t\t \"cp\":" << page.buttons[i].cp << ",\"lp\":" << page.buttons[i].lp << ",\"lv\":" << page.buttons[i].lv << ",\"dr\":\"" << page.buttons[i].dr << "\"," << std::endl;
+		pgFile << "\t\t \"va\":" << page.buttons[i].va << ",\"rv\":" << page.buttons[i].rv << ",\"rl\":" << page.buttons[i].rl << ",\"rh\":" << page.buttons[i].rh << "," << std::endl;
+		pgFile << "\t\t \"pfType\":\"" << page.buttons[i].pfType << "\",\"pfName\":\"" << page.buttons[i].pfName << "\",\"sr\":[";
+
+		for (size_t j = 0; j < page.buttons[i].sr.size(); j++)
+		{
+			if (j > 0)
+				pgFile << ",";
+
+			pgFile << "\n\t\t\t{\"number\":" << page.buttons[i].sr[j].number << ",\"do\":\"" << page.buttons[i].sr[j]._do << "\",\"bs\":\"" << page.buttons[i].sr[j].bs << "\"," << std::endl;
+			pgFile << "\t\t\t \"mi\":\"" << page.buttons[i].sr[j].mi << "\",\"cb\":\"" << page.buttons[i].sr[j].cb << "\",\"cf\":\"" << page.buttons[i].sr[j].cf << "\"," << std::endl;
+			pgFile << "\t\t\t \"ct\":\"" << page.buttons[i].sr[j].ct << "\",\"ec\":\"" << page.buttons[i].sr[j].ec << "\",\"bm\":\"" << page.buttons[i].sr[j].bm << "\"," << std::endl;
+			pgFile << "\t\t\t \"dynamic\":" << ((page.buttons[i].sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.buttons[i].sr[j].sb << ",\"ii\":" << page.buttons[i].sr[j].ii << "," << std::endl;
+			pgFile << "\t\t\t \"ji\":" << page.buttons[i].sr[j].ji << ",\"jb\":" << page.buttons[i].sr[j].jb << ",\"ix\":" << page.buttons[i].sr[j].ix << "," << std::endl;
+			pgFile << "\t\t\t \"iy\":" << page.buttons[i].sr[j].iy << ",\"fi\":" << page.buttons[i].sr[j].fi << ",\"te\":\"" << page.buttons[i].sr[j].te << "\"," << std::endl;
+			pgFile << "\t\t\t \"jt\":" << page.buttons[i].sr[j].jt << ",\"tx\":" << page.buttons[i].sr[j].tx << ",\"ty\":" << page.buttons[i].sr[j].ty << "," << std::endl;
+			pgFile << "\t\t\t \"ww\":" << page.buttons[i].sr[j].ww << ",\"et\":" << page.buttons[i].sr[j].et << "}";
+		}
+
+		pgFile << "]\n\t\t}";
+	}
+
+	pgFile << "],\"sr\":[" << std::endl;
+
+	for (size_t j = 0; j < page.sr.size(); j++)
+	{
+		if (j > 0)
+			pgFile << ",";
+
+		pgFile << "\n\t\t{\"number\":" << page.sr[j].number << ",\"do\":\"" << page.sr[j]._do << "\",\"bs\":\"" << page.sr[j].bs << "\"," << std::endl;
+		pgFile << "\t\t \"mi\":\"" << page.sr[j].mi << "\",\"cb\":\"" << page.sr[j].cb << "\",\"cf\":\"" << page.sr[j].cf << "\"," << std::endl;
+		pgFile << "\t\t \"ct\":\"" << page.sr[j].ct << "\",\"ec\":\"" << page.sr[j].ec << "\",\"bm\":\"" << page.sr[j].bm << "\"," << std::endl;
+		pgFile << "\t\t \"dynamic\":" << ((page.sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.sr[j].sb << ",\"ii\":" << page.sr[j].ii << "," << std::endl;
+		pgFile << "\t\t \"ji\":" << page.sr[j].ji << ",\"jb\":" << page.sr[j].jb << ",\"ix\":" << page.sr[j].ix << "," << std::endl;
+		pgFile << "\t\t \"iy\":" << page.sr[j].iy << ",\"fi\":" << page.sr[j].fi << ",\"te\":\"" << page.sr[j].te << "\"," << std::endl;
+		pgFile << "\t\t \"jt\":" << page.sr[j].jt << ",\"tx\":" << page.sr[j].tx << ",\"ty\":" << page.sr[j].ty << ",";
+		pgFile << "\t\t \"ww\":" << page.sr[j].ww << ",\"et\":" << page.sr[j].et << "}";
+	}
+
+	pgFile << "]\n\t};" << std::endl << std::endl;
+	pgFile.close();
+}
+
 void amx::Page::generateButtons()
 {
 	sysl->TRACE(String("Page::generateButtons()"));
