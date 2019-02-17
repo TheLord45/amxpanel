@@ -57,6 +57,7 @@ namespace amx
 			void setProject(PROJECT_T *prj) { Project = prj; }
 
 			int findPage(const strings::String& name);
+			void serializeToFile();
 
 		private:
 			void clear();

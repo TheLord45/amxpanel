@@ -236,7 +236,7 @@ function splittCmd(msg)
 	var pos;
 
 	pos = msg.indexOf('|');
-	
+
 	if (pos > 0)
 	{
 		curPort = parseInt(msg.substr(0, pos));
@@ -374,6 +374,31 @@ function getRGBColor(name)
 
 	return -1;
 }
+function getAMXColor(value)
+{
+	var alpha = 1;
+	var pos = value.indexOf('#');
+
+	if (pos < 0)
+		return getRGBAColor(value);
+
+	var red = parseInt(value.substr(1, 2), 16);
+	var green = parseInt(value.substr(3, 2), 16);
+	var blue = parseInt(value.substr(4, 2), 16);
+	var colArr = [];
+
+	colArr.push(red);
+	colArr.push(green);
+	colArr.push(blue);
+
+	if (value.length > 6)
+	{
+		alpha = parseInt(value.substr(6, 2), 16);
+		colArr.push(alpha);
+	}
+
+	return colArr;
+}
 function getHexColor(value)
 {
 	var alpha = 1;
@@ -399,6 +424,27 @@ function getHexColor(value)
 	}
 
 	return colArr;
+}
+function getWebColor(value)
+{
+	var alpha = 1;
+	var pos = value.indexOf('#');
+
+	if (pos < 0)
+		return getRGBAColor(value);
+
+	var red = parseInt(value.substr(1, 2), 16);
+	var green = parseInt(value.substr(3, 2), 16);
+	var blue = parseInt(value.substr(4, 2), 16);
+
+	if (value.length > 6)
+	{
+		alpha = parseInt(value.substr(6, 2), 16);
+		alpha = 1.0 / 256.0 * alpha;
+		return "rgba("+red+","+green+","+blue+","+alpha+")";
+	}
+
+	return "rgb("+red+","+green+","+blue+")";
 }
 function findPopupNumber(name)
 {
@@ -525,7 +571,7 @@ function getPopupStatus(name)	// return true if popup is shown
 	try
 	{
 		stat = document.getElementById(pname).style.display;
-		
+
 		if (stat == "none")
 			return false;
 		else
@@ -565,7 +611,7 @@ function getActivePage()
 function getActivePageName()
 {
 	var name;
-	
+
 	for (i in Pages.pages)
 	{
 		if (Pages.pages[i].active)
@@ -760,7 +806,7 @@ function showPage(name)
 			document.getElementById("Page_"+ID).style.display = 'none';
 
 		document.getElementById(pname).style.display = 'block';
-		
+
 		for (i in Popups.pages)
 		{
 			pname = "Page_"+Popups.pages[i].ID;
@@ -835,6 +881,10 @@ function switchDisplay(name1, name2, dStat, cport, cnum)
 	{
 		console.log('switchDisplay: Error: name1='+name1+', name2='+name2+', dStat='+dStat+', cport='+cport+', cnum='+cnum);
 	}
+}
+function pushButton(cport, cnum, stat)
+{
+	writeText("PUSH:"+cport+":"+cnum+":"+stat+";");
 }
 function readText(port, channel)
 {
@@ -1927,7 +1977,7 @@ function posImage(img, name, code)
 	}
 
 	img.style.position = 'absolute';
-	
+
 	switch (code)
 	{
 		case 2:	// center, top
@@ -1936,21 +1986,21 @@ function posImage(img, name, code)
 			if (pw > iw)
 				img.style.left = (pw - iw) / 2 + 'px';
 		break;
-		
+
 		case 3:	// right, top
 			img.style.top = "0px";
 
 			if (pw >= iw)
 				img.style.left = (pw - iw) + 'px';
 		break;
-		
+
 		case 4:	// left, middle
 			img.style.left = "0px";
 
 			if (ph > ih)
 				img.style.top = (ph - ih) / 2 + 'px';
 		break;
-		
+
 		case 6:	// right, middle
 			if (pw >= iw)
 				img.style.left = (pw - iw) + 'px';
@@ -2041,7 +2091,7 @@ function writeTextOut(msg)
 }
 function checkTime(i)
 {
-	if (i < 10)	
+	if (i < 10)
 		i = "0" + i;
 
 	return i;
@@ -2087,7 +2137,7 @@ navigator.getBattery().then(function(battery)
 	{
 		updateLevelInfo();
 	});
-  
+
 	function updateLevelInfo()
 	{
 		// FIXME: Add code (canvas?) to draw the level of the bargraph.
@@ -2113,10 +2163,10 @@ function setWiFi()
 		{
 			element.classList.remove('hidden');
 		});
- 
+
 //		var bandwidthValue = document.getElementById('b-value');
 //		var meteredValue = document.getElementById('m-value');
- 
+
 		connection.addEventListener('change', function (event)
 		{
 			console.log("Band width value: "+connection.bandwidth);
@@ -2133,13 +2183,13 @@ function setWiFi()
 		{
 //			element.classList.remove('hidden');
 		});
- 
+
 		connection.addEventListener('typechange', function (event)
 		{
 			console.log("Connection type: "+connection.type);
 		});
 
-		connection.dispatchEvent(new Event('typechange'));	
+		connection.dispatchEvent(new Event('typechange'));
 	}
 }
 /*********

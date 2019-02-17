@@ -166,12 +166,20 @@ function setColor(img1, img2, col1, col2, level, dir)
 	var x;
 	var y;
 	var pixel;
+	var ctx2;
+	var imgData2;
+
 	var width = img1.width;
 	var height = img1.height;
 	var ctx1 = img1.getContext('2d');
-	var ctx2 = img2.getContext('2d');
 	var imgData1 = ctx1.getImageData(0, 0, width, height);
-	var imgData2 = ctx2.getImageData(0, 0, width, height);
+
+	if (img2 !== null)
+	{
+		ctx2 = img2.getContext('2d');
+		imgData2 = ctx2.getImageData(0, 0, width, height);
+	}
+
 	var pegel = 0;
 	var data = [];
 
@@ -185,7 +193,13 @@ function setColor(img1, img2, col1, col2, level, dir)
 		for (y = 0; y < height; y++)
 		{
 			var pix1 = getColor(imgData1, x, y, width);
-			var pix2 = getColor(imgData2, x, y, width);
+			var pix2;
+
+			if (img2 !== null)
+				pix2 = getColor(imgData2, x, y, width);
+			else
+				pix2 = [255,255,255,0];
+
 			var base = baseColor(pix1, pix2, col1, col2);
 			var alpha = base[3];
 			var d = (dir)?y:x;
@@ -513,4 +527,107 @@ async function drawButton(uriRed, uriMask, name, width, height, col1, col2)
 	}
 	else
 		console.log("drawButton: Error getting context for canvas "+name+"!");
+}
+/**
+ * This function takes 1 URI for a special mask where the green and/or
+ * red channel marks whether there should be used col1 or col2. At positions
+ * Where no red and no green color is defined, a transparent pixel is set.
+ *
+ * @param uriRed
+ * This URI should point to a special mask. From this mask only the red and
+ * the green channels are used. If the red channel is > 0, than \a col1
+ * will be used for that pixel. If the green channel is > 0, than \a col2
+ * will be used for that pixel. In every other case the pixel is transparent.
+ *
+ * @param name
+ * This is the name of the element where the new \b canvas should be
+ * inserted.
+ *
+ * @param width
+ * The width of the image.
+ *
+ * @param height
+ * The hight of the image.
+ *
+ * @param col1
+ * This color must be an array with the values for red, green, blue and
+ * alpha channels. Every color and the alpha channel must be in the range
+ * from 0 to 255.
+ * This color is taken for every red pixel in the mask \a uriRed.
+ *
+ * @param col2
+ * This color must be an array with the values for red, green, blue and
+ * alpha channels. Every color and the alpha channel must be in the range
+ * from 0 to 255.
+ * This color is taken for every green pixel in the mask \a uriRed.
+ */
+async function drawArea(uriRed, name, width, height, col1, col2)
+{
+	var readyPic1 = false;
+	var canvas1 = document.createElement('canvas');
+	var canvas2 = document.createElement('canvas');
+
+	if (canvas1.getContext && canvas2.getContext)
+	{
+		var ctx1 = canvas1.getContext('2d');
+		var ctx2 = canvas2.getContext('2d');
+
+		var img = new Image();
+		img.src = encodeURI(uriRed);
+		img.setAttribute('crossOrigin', '');
+
+		canvas1.width = width;
+		canvas1.height = height;
+		canvas2.width = width;
+		canvas2.height = height;
+
+		if (!img.complete)
+		{
+			img.onload = function()
+			{
+				ctx1.drawImage(img, 0, 0);
+				readyPic1 = true;
+			}
+		}
+		else
+		{
+			ctx1.drawImage(img, 0, 0);
+			readyPic1 = true;
+		}
+
+		var cnt = 0;
+
+		while(!readyPic1 && cnt < 20)
+		{
+			await new Promise(r => setTimeout(r, 200));
+			cnt++;
+		}
+
+		if (!readyPic1)
+		{
+			console.log("drawArea: WARNING: "+uriRed+" not loaded!");
+			ctx1.drawImage(img, 0, 0);
+		}
+
+		var data = setColor(canvas1, null, col1, col2, 100, false);
+		var imgData = ctx1.getImageData(0, 0, width, height);
+		imgData.data.set(data);
+		ctx1.putImageData(imgData, 0, 0);
+		ctx2.drawImage(canvas1, 0, 0);
+
+		var div = document.getElementById(name);
+		canvas2.id = name+"_canvas";
+		var div = document.getElementById(name);
+
+		try
+		{
+			div.replaceChild(canvas2, can);
+		}
+		catch(e)
+		{
+			div.appendChild(canvas2);
+		}
+	}
+	else
+		console.log("drawArea: Error getting context for canvas "+name+"!");
 }
