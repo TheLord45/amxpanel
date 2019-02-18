@@ -174,6 +174,47 @@ strings::String amx::FontList::getFontStyles()
 	return styles;
 }
 
+bool FontList::serializeToJson()
+{
+	sysl->TRACE(String("FontList::serializeToJson()"));
+
+	fstream pgFile;
+	String fname = Configuration->getHTTProot()+"/scripts/fonts.js";
+
+	try
+	{
+		pgFile.open(fname.toString(), ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!pgFile.is_open())
+		{
+			sysl->errlog(String("Page::serializeToFile: Error opening file ")+fname);
+			return false;
+		}
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("Page::serializeToFile: I/O Error: ")+e.what());
+		return false;
+	}
+
+	pgFile << "var fontList = {\"fonts\":[";
+
+	for (size_t i = 0; i < fontList.size(); i++)
+	{
+		if (i > 0)
+			pgFile << ",";
+
+		pgFile << std::endl << "\t{\"name\":\"" << fontList[i].name << "\",\"subfamilyName\":\"" << fontList[i].subfamilyName << "\",";
+		pgFile << "\"fullName\":\"" << fontList[i].fullName << "\",";
+		pgFile << "\"number\":" << fontList[i].number << ",\"faceIndex\":" << fontList[i].faceIndex << ",";
+		pgFile << "\"file\":\"" << fontList[i].file << "\",\"size\":" << fontList[i].size << "}";
+	}
+
+	pgFile << std::endl << "]};" << std::endl;
+	pgFile.close();
+	return true;
+}
+
 FONT_T& FontList::findFont(int idx)
 {
 	sysl->TRACE(String("FontList::findFont(int idx)"));

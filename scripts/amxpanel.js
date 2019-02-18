@@ -203,7 +203,41 @@ function rgb(red, green, blue)
 }
 function rgba(red, green, blue, alpha)
 {
-	return "rgb("+red+","+green+","+blue+","+alpha+")";
+	return "rgba("+red+","+green+","+blue+","+alpha+")";
+}
+function findFont(id)
+{
+	var i;
+
+	for (i in fontList.fonts)
+	{
+		var fnt = fontList.fonts[i];
+
+		if (fnt.number == id)
+			return fnt;
+	}
+
+	return -1;
+}
+function getFontStyle(fs)
+{
+	if (fs == "Regular")
+		return "normal";
+
+	if (fs == "Italic" || fs == "Bold Italic")
+		return "italic";
+
+	return "normal";
+}
+function getFontWeight(fw)
+{
+	if (fw == "Regular")
+		return "normal";
+
+	if (fw == "Bold" || fw == "Bold Italic")
+		return "bold";
+
+	return "normal";
 }
 function unsupported(msg)
 {
@@ -630,7 +664,14 @@ function getIconFile(id)
 			return iconArray.icons[i].file;
 	}
 
-	return "";
+	return -1;
+}
+function getImageSize(name)
+{
+	var file = makeURL('images/'+name);
+	var img = new Image();
+	img.src = file;
+	return [img.width,img.height];
 }
 function hideGroup(name)
 {
@@ -650,7 +691,8 @@ function hideGroup(name)
 
 		try
 		{
-			document.getElementById(nm).style.display = 'none';
+//			document.getElementById(nm).style.display = 'none';
+			dropPopup(nm);
 			var idx = getPopupIndex(group[i]);
 
 			if (idx >= 0)
@@ -682,7 +724,8 @@ function showPopup(name)
 
 	try
 	{
-		document.getElementById(pname).style.display = 'inline-block';
+//		document.getElementById(pname).style.display = 'inline-block';
+		drawPopup(name);
 		document.getElementById(pname).style.zIndex = newZIndex();
 		idx = getPopupIndex(name);
 
@@ -711,12 +754,18 @@ function showPopupOnPage(name, pg)
 
 	try
 	{
-		document.getElementById(pname).style.display = 'inline-block';
-		document.getElementById(pname).style.zIndex = newZIndex();
+//		document.getElementById(pname).style.display = 'inline-block';
+//		document.getElementById(pname).style.zIndex = newZIndex();
 		idx = getPopupIndex(name);
 
 		if (idx >= 0)
 		{
+			if (!Popups.pages[idx].active)
+			{
+				drawPopup(name);
+				document.getElementById(pname).style.zIndex = newZIndex();
+			}
+
 			Popups.pages[idx].active = true;
 			Popups.pages[idx].lnpage = getActivePageName();
 		}
@@ -740,13 +789,16 @@ function hidePopupOnPage(name, pg)
 
 	try
 	{
-		document.getElementById(pname).style.display = 'none';
+//		document.getElementById(pname).style.display = 'none';
 		idx = getPopupIndex(name);
 
 		if (idx >= 0)
 		{
 			if (Popups.pages[idx].active)
+			{
+				dropPopup(pname);
 				freeZIndex();
+			}
 
 			Popups.pages[idx].active = false;
 			Popups.pages[idx].lnpage = getActivePageName();
@@ -767,14 +819,17 @@ function hidePopup(name)
 	pname = "Page_"+pID;
 
 	try
-{
-		document.getElementById(pname).style.display = 'none';
+	{
+//		document.getElementById(pname).style.display = 'none';
 		idx = getPopupIndex(name);
 
 		if (idx >= 0)
 		{
 			if (Popups.pages[idx].active)
+			{
+				dropPopup(pname);
 				freeZIndex();
+			}
 
 			Popups.pages[idx].active = false;
 			Popups.pages[idx].lnpage = getActivePageName();
@@ -802,10 +857,11 @@ function showPage(name)
 		var ID;
 		ID = getActivePage();
 
-		if (ID > 0)
-			document.getElementById("Page_"+ID).style.display = 'none';
+//		if (ID > 0)
+//			document.getElementById("Page_"+ID).style.display = 'none';
 
-		document.getElementById(pname).style.display = 'block';
+		dropPage();
+		document.getElementById('main').style.display = 'block';
 
 		for (i in Popups.pages)
 		{
@@ -813,12 +869,13 @@ function showPage(name)
 
 			if (Popups.pages[i].active && Popups.pages[i].lnpage != name)
 			{
-				document.getElementById(pname).style.display = 'none';
+//				document.getElementById(pname).style.display = 'none';
 				freeZIndex();
 			}
 			else if (Popups.pages[i].active)
 			{
-				document.getElementById(pname).style.display = 'inline-block';
+//				document.getElementById(pname).style.display = 'inline-block';
+				drawPopup(name);
 				document.getElementById(pname).style.zIndex = newZIndex();
 			}
 		}
@@ -842,15 +899,16 @@ function hidePage(name)
 
 	try
 	{
-		document.getElementById(pname).style.display = 'none';
+//		document.getElementById(pname).style.display = 'none';
+		dropPage();
 
 		for (i in Popups.pages)
 		{
-			pname = "Page_"+Popups.pages[i].ID;
+//			pname = "Page_"+Popups.pages[i].ID;
 
 			if (Popups.pages[i].active && Popups.pages[i].lnpage != name)
 			{
-				document.getElementById(pname).style.display = 'none';
+//				document.getElementById(pname).style.display = 'none';
 				freeZIndex();
 			}
 		}
@@ -899,7 +957,8 @@ function readText(port, channel)
 		return;
 	}
 
-	name = 'Page'+bt.pnum+'_b1_button_'+bt.bi+'_font';
+//	name = 'Page'+bt.pnum+'_b1_button_'+bt.bi+'_font';
+	name = 'Button_1'+bt.bi+'_font';
 
 	try
 	{
@@ -931,7 +990,8 @@ function readTextInst(port, channel, inst)
 	{
 		if (i == inst)
 		{
-			name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
+//			name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
+			name = 'Button_'+i+'_'+bt.bi+'_font';
 
 			try
 			{
@@ -963,7 +1023,8 @@ function writeText(port, channel, text)
 
 	for (i = 1; i <= bt.instances; i++)
 	{
-		name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
+//		name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
+		name = 'Button_'+i+'_'+bt.bi+'_font';
 
 		try
 		{
@@ -995,7 +1056,8 @@ function writeTextInst(port, channel, inst, text)
 	{
 		if (i == inst)
 		{
-			name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
+//			name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
+			name = 'Button_'+i+'_'+bt.bi+'_font';
 
 			try
 			{
@@ -1027,8 +1089,10 @@ function setON(msg)
 	{
 		try
 		{
-			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
-			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
+//			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
+//			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
+			var name1 = 'Button_1_'+bt.bi+'_font';
+			var name2 = 'Button_2_'+bt.bi+'_font';
 
 			document.getElementById(name1).style.display = 'none';
 			document.getElementById(name2).style.display = 'inline';
@@ -1057,8 +1121,10 @@ function setOFF(msg)
 	{
 		try
 		{
-			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
-			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
+//			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
+//			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
+			var name1 = 'Button_1_'+bt.bi+'_font';
+			var name2 = 'Button_2_'+bt.bi+'_font';
 
 			document.getElementById(name1).style.display = 'inline';
 			document.getElementById(name2).style.display = 'none';
@@ -1258,14 +1324,14 @@ function doAPF(msg)
 				num = bt[b].instances;
 
 				for (j = 0; j < num; j++)
-					document.getElementById('Page'+bt[b].pnum+'Button_'+bt[b].bi).addEventListener("click", showPopup(name));
+					document.getElementById('Button_'+j+"_"+bt[b].bi).addEventListener("click", showPopup(name));
 			}
 			else if (cmd.search('Hide') >= 0)
 			{
 				num = bt[b].instances;
 
 				for (j = 0; j < num; j++)
-					document.getElementById('Page'+bt[b].pnum+'Button_'+bt[b].bi).addEventListener("click", hidePopup(name));
+					document.getElementById('Button_'+j+"_"+bt[b].bi).addEventListener("click", hidePopup(name));
 			}
 			// FIXME: There are more commands!
 		}
@@ -1319,7 +1385,8 @@ function doBAT(msg)
 				{
 					if (btRange[j] == z)
 					{
-						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi+'_font';
+//						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi+'_font';
+						name = "Button_"+z+"_"+bt[b].bi+"_font";
 
 						try
 						{
@@ -1369,7 +1436,8 @@ function doBCB(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+//						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+						var name = "Button_"+z+"_"+bt[b].bi;
 
 						try
 						{
@@ -1432,7 +1500,8 @@ function doBCF(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+//						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+						var name = "Button_"+z+"_"+bt[b].bi;
 
 						try
 						{
@@ -1495,7 +1564,8 @@ function doBCT(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+//						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+						var name = "Button_"+z+"_"+bt[b].bi;
 
 						try
 						{
@@ -1566,7 +1636,8 @@ function doBMP(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+//						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+						name = "Button_"+z+"_"+bt[b].bi;
 
 						try
 						{
@@ -1615,7 +1686,8 @@ function doBSP(msg)
 
 		for (b = 0; b < bt.length; b++)
 		{
-			name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+//			name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+			name = "Button_"+z+"_"+bt[b].bi;
 
 			try
 			{
@@ -1654,7 +1726,8 @@ function doCPF(msg)
 
 		for (b = 0; b < bt.length; b++)
 		{
-			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
+//			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
+			name = "Button_"+bt[b].bi;
 
 			try
 			{
@@ -1692,7 +1765,8 @@ function doENA(msg)
 
 		for (b = 0; b < bt.length; b++)
 		{
-			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
+//			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
+			name = "Button_"+bt[b].bi;
 
 			try
 			{
@@ -1748,11 +1822,12 @@ function doICO(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+//						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+						name = "Button_"+z+"_"+bt[b].bi;
 
 						try
 						{
-							document.getElementById(name+'_icon').src = "images/"+getIconFile(idx);
+							document.getElementById(name+'_img').src = "images/"+getIconFile(idx);
 						}
 						catch(e)
 						{
@@ -1761,8 +1836,8 @@ function doICO(msg)
 								var elem = document.getElementById(name);
 								var cWidth = elem.clientWidth;
 								var cHeight = elem.clientHeight;
-								elem.innerHTML = '<img id="'+name+'_icon" src="images/'+getIconFile(idx)+'" onload="imgCenter(this,\''+name+'\');">' + elem.innerHTML;
-								imgCenter(document.getElementById(name+'_icon'), cWidth, cHeight);
+								elem.innerHTML = '<img id="'+name+'_img" src="images/'+getIconFile(idx)+'" onload="imgCenter(this,\''+name+'\');">' + elem.innerHTML;
+								imgCenter(document.getElementById(name+'_img'), cWidth, cHeight);
 							}
 							catch(e)
 							{
@@ -1803,7 +1878,8 @@ function doSHO(msg)
 		{
 			for (z = 1; z <= bt[b].instances; z++)
 			{
-				name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+//				name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+				name = "Button_"+z+"_"+bt[b].bi;
 
 				try
 				{
@@ -1851,7 +1927,8 @@ function doTXT(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+//						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
+						name = "Button_"+z+"_"+bt[b].bi;
 
 						try
 						{
@@ -1862,7 +1939,7 @@ function doTXT(msg)
 							try
 							{
 								var elem = document.getElementById(name);
-								elem.innerHTML = elem.innerHTML + '<span id="'+name+'_font" class="'+name+'_font">'+text+'</span>';
+								elem.innerHTML = elem.innerHTML + '<span id="'+name+'_font">'+text+'</span>';
 							}
 							catch(e)
 							{
@@ -1972,7 +2049,7 @@ function posImage(img, name, code)
 
 	if (iw == 0 || ih == 0)
 	{
-		console.log("imgCenter: Image with no size at "+name+"!");
+		console.log("posImage: Image with no size at "+name+"!");
 		return;
 	}
 
@@ -2192,14 +2269,3 @@ function setWiFi()
 		connection.dispatchEvent(new Event('typechange'));
 	}
 }
-/*********
-function drawBargraph(bg)
-{
-	var name = bg.name;
-
-	try
-	{
-		var styles = document.getElementById(name);
-		var bar = new CanvasJS.Chart(name,
-}
-**********/

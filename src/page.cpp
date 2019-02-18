@@ -503,7 +503,7 @@ void Page::serializeToFile()
 			pgFile << "\t\t\t \"ct\":\"" << page.buttons[i].sr[j].ct << "\",\"ec\":\"" << page.buttons[i].sr[j].ec << "\",\"bm\":\"" << page.buttons[i].sr[j].bm << "\"," << std::endl;
 			pgFile << "\t\t\t \"dynamic\":" << ((page.buttons[i].sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.buttons[i].sr[j].sb << ",\"ii\":" << page.buttons[i].sr[j].ii << "," << std::endl;
 			pgFile << "\t\t\t \"ji\":" << page.buttons[i].sr[j].ji << ",\"jb\":" << page.buttons[i].sr[j].jb << ",\"ix\":" << page.buttons[i].sr[j].ix << "," << std::endl;
-			pgFile << "\t\t\t \"iy\":" << page.buttons[i].sr[j].iy << ",\"fi\":" << page.buttons[i].sr[j].fi << ",\"te\":\"" << page.buttons[i].sr[j].te << "\"," << std::endl;
+			pgFile << "\t\t\t \"iy\":" << page.buttons[i].sr[j].iy << ",\"fi\":" << page.buttons[i].sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.buttons[i].sr[j].te) << "\"," << std::endl;
 			pgFile << "\t\t\t \"jt\":" << page.buttons[i].sr[j].jt << ",\"tx\":" << page.buttons[i].sr[j].tx << ",\"ty\":" << page.buttons[i].sr[j].ty << "," << std::endl;
 			pgFile << "\t\t\t \"ww\":" << page.buttons[i].sr[j].ww << ",\"et\":" << page.buttons[i].sr[j].et << "}";
 		}
@@ -523,7 +523,7 @@ void Page::serializeToFile()
 		pgFile << "\t\t \"ct\":\"" << page.sr[j].ct << "\",\"ec\":\"" << page.sr[j].ec << "\",\"bm\":\"" << page.sr[j].bm << "\"," << std::endl;
 		pgFile << "\t\t \"dynamic\":" << ((page.sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.sr[j].sb << ",\"ii\":" << page.sr[j].ii << "," << std::endl;
 		pgFile << "\t\t \"ji\":" << page.sr[j].ji << ",\"jb\":" << page.sr[j].jb << ",\"ix\":" << page.sr[j].ix << "," << std::endl;
-		pgFile << "\t\t \"iy\":" << page.sr[j].iy << ",\"fi\":" << page.sr[j].fi << ",\"te\":\"" << page.sr[j].te << "\"," << std::endl;
+		pgFile << "\t\t \"iy\":" << page.sr[j].iy << ",\"fi\":" << page.sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.sr[j].te) << "\"," << std::endl;
 		pgFile << "\t\t \"jt\":" << page.sr[j].jt << ",\"tx\":" << page.sr[j].tx << ",\"ty\":" << page.sr[j].ty << ",";
 		pgFile << "\t\t \"ww\":" << page.sr[j].ww << ",\"et\":" << page.sr[j].et << "}";
 	}
