@@ -46,6 +46,7 @@ namespace amx
 			bool isOk() { return status; }
 			strings::String getFontStyle(const strings::String& fs);
 			strings::String getFontWeight(const strings::String& fw);
+			bool serializeToJson();
 
 		private:
 			bool exist(const strings::String& ff);

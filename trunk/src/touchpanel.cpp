@@ -461,6 +461,7 @@ bool TouchPanel::parsePages()
 		cssFile << getPageStyle(stPopups[i].ID);
 
 	cssFile.close();
+	getFontList()->serializeToJson();
 
 	// Page header
 	pgFile << "<!DOCTYPE html>\n";
@@ -640,6 +641,7 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/icons.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/bargraphs.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl << std::endl;
 
 	for (size_t i = 0; i < stPopups.size(); i++)
