@@ -119,6 +119,79 @@ var sysBorders = { "borders":[
 	{ "name": "Bevel Raised _S", "border_style": "outset", "border_width": "2px", "border_radius": "" }
 ]};
 
+var sysReserved = { "dttm":[
+	{ "channel":141, "name":"btTimeStandard" },	// Standard time
+	{ "channel":142, "name":"btTimeAM/PM" },	// Time AM/PM
+	{ "channel":143, "name":"btTime24" },		// 24 hour time
+	{ "channel":151, "name":"btDate151" },		// Date: weekday
+	{ "channel":152, "name":"btDate152" },		// Date: mm/dd
+	{ "channel":153, "name":"btDate153" },		// Date: dd/mm
+	{ "channel":154, "name":"btDate154" },		// Date: mm/dd/yyyy
+	{ "channel":155, "name":"btDate155" },		// Date: dd/mm/yyyy
+	{ "channel":156, "name":"btDate156" },		// Date: month dd, yyyy
+	{ "channel":157, "name":"btDate157" },		// Date: dd month, yyyy
+	{ "channel":158, "name":"btDate158" },		// Date: yyyy-mm-dd
+	{ "channel":242, "name":"batLevel" },		// Battery level
+	{ "channel":234, "name":"batCharge" }		// Battery charging/not charging
+]};
+
+function isSystemReserved(channel)
+{
+	var i;
+
+	try
+	{
+		for (i in sysReserved.dttm)
+		{
+			if (sysReserved.dttm[i].channel == channel)
+				return true;
+		}
+	}
+	catch(e)
+	{
+		console.log("isSystemReserved: Error: "+e);
+	}
+
+	return false;
+}
+function getSystemReservedFunc(channel)
+{
+	var i;
+
+	try
+	{
+		for (i in sysReserved.dttm)
+		{
+			if (sysReserved.dttm[i].channel == channel)
+				return sysReserved.dttm[i].func;
+		}
+	}
+	catch(e)
+	{
+		console.log("getSystemReservedFunc: Error: "+e);
+	}
+
+	return -1;
+}
+function getSystemReservedName(channel)
+{
+	var i;
+
+	try
+	{
+		for (i in sysReserved.dttm)
+		{
+			if (sysReserved.dttm[i].channel == channel)
+				return sysReserved.dttm[i].name;
+		}
+	}
+	catch(e)
+	{
+		console.log("getSystemReservedName: Error: "+e);
+	}
+
+	return -1;
+}
 function getBorderStyle(name)
 {
 	var i;
@@ -153,7 +226,7 @@ function drawPage(name)
 	{
 		if (Pages.pages[i].name == name)
 		{
-			pageID = Ppages.pages[i].ID;
+			pageID = Pages.pages[i].ID;
 			break;
 		}
 	}
@@ -168,7 +241,7 @@ function drawPage(name)
 
 	if (!dropPage())
 		return false;
-
+console.log("drawPage: "+name);
 	return doDraw(pgKey, pageID, PAGETYPE.PAGE);
 }
 function drawPopup(name)
@@ -205,11 +278,13 @@ function doDraw(pgKey, pageID, what)
 		{
 			var div = document.getElementById('main');
 			page = document.createElement('div');
+			page.style.display = "inline-block"
 			div.appendChild(page);
 		}
 		else
 		{
 			page = document.getElementById('main');
+			page.style.display = "inline";
 			page.style.overflow = "hidden";
 		}
 	}
@@ -220,7 +295,9 @@ function doDraw(pgKey, pageID, what)
 	}
 
 	// The base popup
-	page.id = "Page_"+pageID;
+	if (what == PAGETYPE.SUBPAGE)
+		page.id = "Page_"+pageID;
+
 	page.style.position = "absolute";
 	page.style.left = pgKey.left+"px";
 	page.style.top = pgKey.top+"px";
@@ -272,7 +349,8 @@ function doDraw(pgKey, pageID, what)
 		{
 			var bt = document.createElement('div');
 			page.appendChild(bt);
-			bt.id = "Button_"+button.bID;
+
+			bt.id = "Page_"+pageID+"_Button_"+button.bID;
 			bt.style.position = "absolute";
 			bt.style.left = button.lt+"px";
 			bt.style.top = button.tp+"px";
@@ -286,8 +364,8 @@ function doDraw(pgKey, pageID, what)
 			{
 				if (button.fb == FEEDBACK.FB_MOMENTARY)
 				{
-					bt.addEventListener('mousedown',switchDisplay(nm+buttin.sr[0].number,nm+button.sr[1].number,1,button.cp,button.ch));
-					bt.addEventListener('mouseup',switchDisplay(nm+buttin.sr[0].number,nm+button.sr[1].number,0,button.cp,button.ch));
+					bt.addEventListener('mousedown',switchDisplay(nm+button.sr[0].number,nm+button.sr[1].number,1,button.cp,button.ch));
+					bt.addEventListener('mouseup',switchDisplay(nm+button.sr[0].number,nm+button.sr[1].number,0,button.cp,button.ch));
 				}
 				else if (button.fb == FEEDBACK.FB_CHANNEL)
 				{
@@ -320,7 +398,12 @@ function doDraw(pgKey, pageID, what)
 				bsr.style.width = bt.style.width;
 				bsr.style.height = bt.style.height;
 				bt.appendChild(bsr);
-				var nm = "Button_"+button.bID+"_"
+				var nm;
+
+				if (button.ap == 0 && isSystemReserved(button.ad))
+					nm = getSystemReservedName(button.ad);
+				else
+					nm = "Page_"+pageID+"_Button_"+button.bID+"_"
 
 				bsr.id = nm+sr.number;
 				bsr.style.color = getWebColor(sr.ct);
@@ -356,19 +439,42 @@ function doDraw(pgKey, pageID, what)
 
 				if (!(button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2) && sr.mi.length > 0)	// chameleon image?
 				{
-					var idim = getImageSize("images/"+sr.mi);
-					var width = idim[0];
-					var height = idim[1];
+//					var idim = getImageSize("images/"+sr.mi);
+					var width = button.wt;
+					var height = button.ht;
+					var can;
+					var cnt = 0;
 
-					if (button.bm.length > 0)
-						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+					if (sr.bm.length > 0)
+					{
+						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb))
+						.then(function() {
+							can = document.getElementById(nm+sr.number+"_canvas");
+							can.style.position = "absolute";
+							can.style.left = 0+'px';
+							can.style.top = 0+'px';
+							can.style.width = width;
+							can.style.height = height;
+						})
+						.catch(function() {
+							console.log("doDraw: The canvas "+nm+sr.number+"_canvas couldn't be drawn! (width: "+width+", height: "+height+")");
+						});
+					}
 					else
-						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
-
-					var can = document.getElementById(nm+sr.number+"_canvas");
-					can.style.position = "absolute";
-					can.style.left = 0+'px';
-					can.style.top = 0+'px';
+					{
+						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb))
+						.then(function() {
+							can = document.getElementById(nm+sr.number+"_canvas");
+							can.style.position = "absolute";
+							can.style.left = 0+'px';
+							can.style.top = 0+'px';
+							can.style.width = width;
+							can.style.height = height;
+						})
+						.catch(function() {
+							console.log("doDraw: The canvas "+nm+sr.number+"_canvas couldn't be drawn! (width: "+width+", height: "+height+")");
+						});
+					}
 				}
 				else if (sr.bm.length > 0)
 				{
@@ -389,57 +495,8 @@ function doDraw(pgKey, pageID, what)
 						var img = document.createElement('img');
 						bsr.appendChild(img);
 						img.id = nm+sr.number+'_img';
+						img.onload = posImage(img, nm+sr.number, sr.ji);
 						img.src = makeURL('images/'+ico);
-
-						if (sr.ji == 0)
-						{
-							if ((sr.ix + width) > button.wt)
-							{
-								var ix = button.wt - width;
-
-								if (ix < 0)
-								{
-									ix = 0;
-									img.width = button.wt+"px";
-								}
-								else
-									img.width = width+"px";
-							}
-							else
-								img.width = width+"px";
-
-							if ((sr.iy + height) > button.ht)
-							{
-								var iy = button.ht - height;
-
-								if (iy < 0)
-								{
-									iy = 0;
-									img.height = button.ht+"px";
-								}
-								else
-									img.height = height+"px";
-							}
-							else
-								img.height = height+"px";
-						}
-
-						if (sr.ji == 0)
-						{
-							img.style.position = "absolute";
-							img.style.left = sr.ix+"px";
-							img.style.top = sr.iy+"px";
-						}
-						else if (sr.ji == 1)
-						{
-							img.style.position = "absolute";
-							img.style.left = "0px";
-							img.style.top = "0px";
-						}
-						else
-						{
-							img.addEventListener("load", posImage(img, nm+sr.number+'_img',sr.ji));
-						}
 					}
 				}
 
@@ -510,7 +567,7 @@ function doDraw(pgKey, pageID, what)
 					if (sr.te.length > 0)
 						fnt.innerHTML = sr.te;
 				}
-console.log("doDraw: name: "+nm+", button.fb: "+button.fb);
+
 				if (j == 0 && button.fb != FEEDBACK.FB_INV_CHANNEL && button.fb != FEEDBACK.FB_ALWAYS_ON)
 					bsr.style.display = "inline";
 				else if (j == 1 && button.fb == FEEDBACK.FB_INV_CHANNEL && button.fb == FEEDBACK.FB_ALWAYS_ON)

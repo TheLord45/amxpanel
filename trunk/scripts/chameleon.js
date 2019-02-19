@@ -388,6 +388,13 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 			drawBargraph(uriRed, uriMask, name, lev, width, height, col1, col2, dir);
 		}, false);
 	}
+	else
+	{
+		console.log("drawBargraph: Error getting context for canvas "+name+"!");
+		return false;
+	}
+
+	return true;
 }
 /**
  * this function takes 2 URIs. One for a special mask where the green and/or
@@ -526,7 +533,12 @@ async function drawButton(uriRed, uriMask, name, width, height, col1, col2)
 		}
 	}
 	else
+	{
 		console.log("drawButton: Error getting context for canvas "+name+"!");
+		return false;
+	}
+
+	return true;
 }
 /**
  * This function takes 1 URI for a special mask where the green and/or
@@ -629,5 +641,10 @@ async function drawArea(uriRed, name, width, height, col1, col2)
 		}
 	}
 	else
+	{
 		console.log("drawArea: Error getting context for canvas "+name+"!");
+		return false;
+	}
+
+	return true;
 }

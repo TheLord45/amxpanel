@@ -644,6 +644,11 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl << std::endl;
 
+	for (size_t i = 0; i < stPages.size(); i++)
+		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPages[i].ID << ".js\"></script>" << std::endl;
+
+	pgFile << std::endl;
+
 	for (size_t i = 0; i < stPopups.size(); i++)
 		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPopups[i].ID << ".js\"></script>" << std::endl;
 

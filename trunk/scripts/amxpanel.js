@@ -418,7 +418,7 @@ function getAMXColor(value)
 
 	var red = parseInt(value.substr(1, 2), 16);
 	var green = parseInt(value.substr(3, 2), 16);
-	var blue = parseInt(value.substr(4, 2), 16);
+	var blue = parseInt(value.substr(5, 2), 16);
 	var colArr = [];
 
 	colArr.push(red);
@@ -427,7 +427,7 @@ function getAMXColor(value)
 
 	if (value.length > 6)
 	{
-		alpha = parseInt(value.substr(6, 2), 16);
+		alpha = parseInt(value.substr(7, 2), 16);
 		colArr.push(alpha);
 	}
 
@@ -435,7 +435,7 @@ function getAMXColor(value)
 }
 function getHexColor(value)
 {
-	var alpha = 1;
+	var alpha = 1.0;
 	var pos = value.indexOf('#');
 
 	if (pos < 0)
@@ -443,7 +443,7 @@ function getHexColor(value)
 
 	var red = parseInt(value.substr(1, 2), 16);
 	var green = parseInt(value.substr(3, 2), 16);
-	var blue = parseInt(value.substr(4, 2), 16);
+	var blue = parseInt(value.substr(5, 2), 16);
 	var colArr = [];
 
 	colArr.push(red);
@@ -452,28 +452,32 @@ function getHexColor(value)
 
 	if (value.length > 6)
 	{
-		alpha = parseInt(value.substr(6, 2), 16);
+		alpha = parseInt(value.substr(7, 2), 16);
 		alpha = 1.0 / 256.0 * alpha;
 		colArr.push(alpha);
 	}
+	else
+		colArr.push(alpha);
 
 	return colArr;
 }
 function getWebColor(value)
 {
-	var alpha = 1;
 	var pos = value.indexOf('#');
 
 	if (pos < 0)
-		return getRGBAColor(value);
+	{
+		var col = getRGBAColor(value);
+		return "rgba("+col[0]+","+col[1]+","+col[2]+","+col[3]+")";
+	}
 
 	var red = parseInt(value.substr(1, 2), 16);
 	var green = parseInt(value.substr(3, 2), 16);
-	var blue = parseInt(value.substr(4, 2), 16);
+	var blue = parseInt(value.substr(5, 2), 16);
 
 	if (value.length > 6)
 	{
-		alpha = parseInt(value.substr(6, 2), 16);
+		alpha = parseInt(value.substr(7, 2), 16);
 		alpha = 1.0 / 256.0 * alpha;
 		return "rgba("+red+","+green+","+blue+","+alpha+")";
 	}
@@ -692,13 +696,15 @@ function hideGroup(name)
 		try
 		{
 //			document.getElementById(nm).style.display = 'none';
-			dropPopup(nm);
 			var idx = getPopupIndex(group[i]);
 
 			if (idx >= 0)
 			{
 				if (Popups.pages[idx].active == true)
+				{
+					dropPopup(Popups.pages[idx].name);
 					freeZIndex();
+				}
 
 				Popups.pages[idx].active = false;
 				Popups.pages[idx].lnpage = "";
@@ -796,7 +802,7 @@ function hidePopupOnPage(name, pg)
 		{
 			if (Popups.pages[idx].active)
 			{
-				dropPopup(pname);
+				dropPopup(name);
 				freeZIndex();
 			}
 
@@ -827,7 +833,7 @@ function hidePopup(name)
 		{
 			if (Popups.pages[idx].active)
 			{
-				dropPopup(pname);
+				dropPopup(name);
 				freeZIndex();
 			}
 
@@ -861,7 +867,7 @@ function showPage(name)
 //			document.getElementById("Page_"+ID).style.display = 'none';
 
 		dropPage();
-		document.getElementById('main').style.display = 'block';
+		drawPage(name);
 
 		for (i in Popups.pages)
 		{
@@ -958,7 +964,7 @@ function readText(port, channel)
 	}
 
 //	name = 'Page'+bt.pnum+'_b1_button_'+bt.bi+'_font';
-	name = 'Button_1'+bt.bi+'_font';
+	name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_1_font';
 
 	try
 	{
@@ -991,7 +997,7 @@ function readTextInst(port, channel, inst)
 		if (i == inst)
 		{
 //			name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
-			name = 'Button_'+i+'_'+bt.bi+'_font';
+			name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_'+i+'_font';
 
 			try
 			{
@@ -1024,7 +1030,7 @@ function writeText(port, channel, text)
 	for (i = 1; i <= bt.instances; i++)
 	{
 //		name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
-		name = 'Button_'+i+'_'+bt.bi+'_font';
+		name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_'+i+'_font';
 
 		try
 		{
@@ -1057,7 +1063,7 @@ function writeTextInst(port, channel, inst, text)
 		if (i == inst)
 		{
 //			name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
-			name = 'Button_'+i+'_'+bt.bi+'_font';
+			name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_'+i+'_font';
 
 			try
 			{
@@ -1091,8 +1097,8 @@ function setON(msg)
 		{
 //			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
 //			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
-			var name1 = 'Button_1_'+bt.bi+'_font';
-			var name2 = 'Button_2_'+bt.bi+'_font';
+			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_1_font';
+			var name2 = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_2_font';
 
 			document.getElementById(name1).style.display = 'none';
 			document.getElementById(name2).style.display = 'inline';
@@ -1123,8 +1129,8 @@ function setOFF(msg)
 		{
 //			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
 //			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
-			var name1 = 'Button_1_'+bt.bi+'_font';
-			var name2 = 'Button_2_'+bt.bi+'_font';
+			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_1_font';
+			var name2 = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_2_font';
 
 			document.getElementById(name1).style.display = 'inline';
 			document.getElementById(name2).style.display = 'none';
@@ -1324,14 +1330,14 @@ function doAPF(msg)
 				num = bt[b].instances;
 
 				for (j = 0; j < num; j++)
-					document.getElementById('Button_'+j+"_"+bt[b].bi).addEventListener("click", showPopup(name));
+					document.getElementById('Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+j).addEventListener("click", showPopup(name));
 			}
 			else if (cmd.search('Hide') >= 0)
 			{
 				num = bt[b].instances;
 
 				for (j = 0; j < num; j++)
-					document.getElementById('Button_'+j+"_"+bt[b].bi).addEventListener("click", hidePopup(name));
+					document.getElementById('Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+j).addEventListener("click", hidePopup(name));
 			}
 			// FIXME: There are more commands!
 		}
@@ -1386,7 +1392,7 @@ function doBAT(msg)
 					if (btRange[j] == z)
 					{
 //						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi+'_font';
-						name = "Button_"+z+"_"+bt[b].bi+"_font";
+						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z+"_font";
 
 						try
 						{
@@ -1437,7 +1443,7 @@ function doBCB(msg)
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
 //						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
-						var name = "Button_"+z+"_"+bt[b].bi;
+						var name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
 						{
@@ -1501,7 +1507,7 @@ function doBCF(msg)
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
 //						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
-						var name = "Button_"+z+"_"+bt[b].bi;
+						var name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
 						{
@@ -1565,7 +1571,7 @@ function doBCT(msg)
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
 //						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
-						var name = "Button_"+z+"_"+bt[b].bi;
+						var name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
 						{
@@ -1637,7 +1643,7 @@ function doBMP(msg)
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
 //						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
-						name = "Button_"+z+"_"+bt[b].bi;
+						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
 						{
@@ -1687,7 +1693,7 @@ function doBSP(msg)
 		for (b = 0; b < bt.length; b++)
 		{
 //			name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
-			name = "Button_"+z+"_"+bt[b].bi;
+			name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 			try
 			{
@@ -1727,7 +1733,7 @@ function doCPF(msg)
 		for (b = 0; b < bt.length; b++)
 		{
 //			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
-			name = "Button_"+bt[b].bi;
+			name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi;
 
 			try
 			{
@@ -1766,7 +1772,7 @@ function doENA(msg)
 		for (b = 0; b < bt.length; b++)
 		{
 //			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
-			name = "Button_"+bt[b].bi;
+			name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi;
 
 			try
 			{
@@ -1823,7 +1829,7 @@ function doICO(msg)
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
 //						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
-						name = "Button_"+z+"_"+bt[b].bi;
+						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
 						{
@@ -1837,7 +1843,7 @@ function doICO(msg)
 								var cWidth = elem.clientWidth;
 								var cHeight = elem.clientHeight;
 								elem.innerHTML = '<img id="'+name+'_img" src="images/'+getIconFile(idx)+'" onload="imgCenter(this,\''+name+'\');">' + elem.innerHTML;
-								imgCenter(document.getElementById(name+'_img'), cWidth, cHeight);
+//								imgCenter(document.getElementById(name+'_img'), cWidth, cHeight);
 							}
 							catch(e)
 							{
@@ -1879,7 +1885,7 @@ function doSHO(msg)
 			for (z = 1; z <= bt[b].instances; z++)
 			{
 //				name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
-				name = "Button_"+z+"_"+bt[b].bi;
+				name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 				try
 				{
@@ -1928,7 +1934,7 @@ function doTXT(msg)
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
 //						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
-						name = "Button_"+z+"_"+bt[b].bi;
+						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
 						{
@@ -2022,6 +2028,9 @@ function imgCenter(img, name)
 
 	if (ph > ih)
 		img.style.top = (ph - ih) / 2 + 'px';
+
+	img.style.width = iw;
+	img.style.height = ih;
 }
 function posImage(img, name, code)
 {
