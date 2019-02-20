@@ -224,6 +224,57 @@ function setCSSclass(name, content)
     style.innerHTML = "."+name+" {"+content+"}";
     document.getElementsByTagName('head')[0].appendChild(style);
 }
+function changePageText(num, port, channel, text)
+{
+	try
+	{
+		var pgKey = eval("structPage"+num);
+		var i;
+
+		for (i in pgKey.buttons)
+		{
+			button = pgKey.buttons[i];
+
+			if (button.ap == port && button.ad == channel)
+			{
+				var j;
+
+				for (j in button.sr)
+				{
+					var sr = button.sr[i];
+					sr.te = text;
+				}
+			}
+		}
+	}
+	catch(e)
+	{
+		console.log("changePageText: Error: "+e);
+	}
+}
+function changePageTextInst(num, port, channel, inst, text)
+{
+	try
+	{
+		var pgKey = eval("structPage"+num);
+		var i;
+
+		for (i in pgKey.buttons)
+		{
+			button = pgKey.buttons[i];
+
+			if (button.ap == port && button.ad == channel)
+			{
+				if (inst < button.sr.length)
+					button.sr[inst].te = text;
+			}
+		}
+	}
+	catch(e)
+	{
+		console.log("changePageText: Error: "+e);
+	}
+}
 function drawPage(name)
 {
 	var i;
@@ -248,7 +299,7 @@ function drawPage(name)
 
 	if (!dropPage())
 		return false;
-console.log("drawPage: "+name);
+
 	return doDraw(pgKey, pageID, PAGETYPE.PAGE);
 }
 function drawPopup(name)
@@ -355,8 +406,6 @@ function doDraw(pgKey, pageID, what)
 		try
 		{
 			var bt = document.createElement('div');
-			page.appendChild(bt);
-
 			bt.id = "Page_"+pageID+"_Button_"+button.bID;
 			bt.style.position = "absolute";
 			bt.style.left = button.lt+"px";
@@ -373,27 +422,44 @@ function doDraw(pgKey, pageID, what)
 				{
 					bt.addEventListener('mousedown',switchDisplay(nm+button.sr[0].number,nm+button.sr[1].number,1,button.cp,button.ch));
 					bt.addEventListener('mouseup',switchDisplay(nm+button.sr[0].number,nm+button.sr[1].number,0,button.cp,button.ch));
+					console.log(bt.id+" Added FEEDBACK.FB_MOMENTARY");
 				}
 				else if (button.fb == FEEDBACK.FB_CHANNEL)
 				{
 					bt.addEventListener('mousedown',pushButton(button.cp,button.ch,1));
 					bt.addEventListener('mouseup',pushButton(button.cp,button.ch,0));
+					console.log(bt.id+" Added FEEDBACK.FB_CHANNEL");
 				}
 				else if (button.fb == FEEDBACK.FB_INV_CHANNEL)
 				{
 					bt.addEventListener('mousedown',pushButton(button.cp,button.ch,0));
 					bt.addEventListener('mouseup',pushButton(button.cp,button.ch,1));
+					console.log(bt.id+" Added FEEDBACK.FB_INV_CHANNEL");
 				}
 				else if (button.fb == FEEDBACK.FB_ALWAYS_ON)
+				{
 					bt.addEventListener('click',pushButton(button.cp,button.ch,1));
+					console.log(bt.id+" Added FEEDBACK.FB_ALWAYS_ON");
+				}
 			}
 
 			if (button.pfType == "sShow")			// show popup
-				bt.addEventListener("click", showPopup(button.pfName));
+			{
+				bt.onclick = showPopup(button.pfName);
+				console.log(bt.id+" Added sShow");
+			}
 			else if (button.pfType == "sHide")		// hide popup
-				bt.addEventListener("click", hidePopup(button.pfName));
+			{
+				bt.onclick = hidePopup(button.pfName);
+				console.log(bt.id+" Added sHide");
+			}
 			else if (button.pfType == "scGroup")	// hide group
-				bt.addEventListener("click", hideGroup(button.pfName));
+			{
+				bt.onclick = hideGroup(button.pfName);
+				console.log(bt.id+" Added scGroup");
+			}
+
+			page.appendChild(bt);
 
 			for (j in button.sr)
 			{
