@@ -155,48 +155,7 @@ var cmdArray =
             {"cmd":"LEVEL-","call":setLEVEL}
 		]
 	};
-function isVisible(elem)
-{
-	if (!(elem instanceof Element))
-		throw Error('DomUtil: elem is not an element.');
 
-	const style = getComputedStyle(elem);
-
-	if (style.display === 'none')
-		return false;
-
-	if (style.visibility !== 'visible')
-		return false;
-
-	return true;
-}
-function getHiddenProp()
-{
-	var prefixes = ['webkit','moz','ms','o'];
-
-	// if 'hidden' is natively supported just return it
-	if ('hidden' in document)
-		return 'hidden';
-
-	// otherwise loop over all the known prefixes until we find one
-	for (var i = 0; i < prefixes.length; i++)
-	{
-		if ((prefixes[i] + 'Hidden') in document)
-			return prefixes[i] + 'Hidden';
-	}
-
-	// otherwise it's not supported
-	return null;
-}
-function isHidden()
-{
-	var prop = getHiddenProp();
-
-	if (!prop)
-		return false;
-
-	return document[prop];
-}
 function rgb(red, green, blue)
 {
 	return "rgb("+red+","+green+","+blue+")";
@@ -468,7 +427,7 @@ function getWebColor(value)
 	if (pos < 0)
 	{
 		var col = getRGBAColor(value);
-		return "rgba("+col[0]+","+col[1]+","+col[2]+","+col[3]+")";
+		return rgba(col[0],col[1],col[2],col[3]);
 	}
 
 	var red = parseInt(value.substr(1, 2), 16);
@@ -479,10 +438,10 @@ function getWebColor(value)
 	{
 		alpha = parseInt(value.substr(7, 2), 16);
 		alpha = 1.0 / 256.0 * alpha;
-		return "rgba("+red+","+green+","+blue+","+alpha+")";
+		return rgba(red,green,blue,alpha);
 	}
 
-	return "rgb("+red+","+green+","+blue+")";
+	return rgb(red,green,blue);
 }
 function findPopupNumber(name)
 {
@@ -504,6 +463,30 @@ function findPageNumber(name)
 	{
 		if (Pages.pages[i].name == name)
 			return Pages.pages[i].ID;
+	}
+
+	return -1;
+}
+function findPageName(num)
+{
+	var i;
+
+	for (i in Pages.pages)
+	{
+		if (Pages.pages[i].ID == num)
+			return Pages.pages[i].name;
+	}
+
+	return -1;
+}
+function findPopupName(num)
+{
+	var i;
+
+	for (i in Popups.pages)
+	{
+		if (Popups.pages[i].ID == num)
+			return Popups.pages[i].name;
 	}
 
 	return -1;
@@ -618,6 +601,7 @@ function getPopupStatus(name)	// return true if popup is shown
 	catch(e)
 	{
 		console.log('getPopupStatus: Error on name <'+name+'> and page '+pname+': '+e);
+		return false;
 	}
 }
 function getPageStatus(name)	// return true if popup is shown
@@ -682,13 +666,6 @@ function getIconDim(id)
 
 	return -1;
 }
-function getImageSize(name)
-{
-	var file = makeURL('images/'+name);
-	var img = new Image();
-	img.src = file;
-	return [img.width,img.height];
-}
 function hideGroup(name)
 {
 	var nm;
@@ -707,7 +684,6 @@ function hideGroup(name)
 
 		try
 		{
-//			document.getElementById(nm).style.display = 'none';
 			var idx = getPopupIndex(group[i]);
 
 			if (idx >= 0)
@@ -742,7 +718,6 @@ function showPopup(name)
 
 	try
 	{
-//		document.getElementById(pname).style.display = 'inline-block';
 		drawPopup(name);
 		document.getElementById(pname).style.zIndex = newZIndex();
 		idx = getPopupIndex(name);
@@ -772,8 +747,6 @@ function showPopupOnPage(name, pg)
 
 	try
 	{
-//		document.getElementById(pname).style.display = 'inline-block';
-//		document.getElementById(pname).style.zIndex = newZIndex();
 		idx = getPopupIndex(name);
 
 		if (idx >= 0)
@@ -807,7 +780,6 @@ function hidePopupOnPage(name, pg)
 
 	try
 	{
-//		document.getElementById(pname).style.display = 'none';
 		idx = getPopupIndex(name);
 
 		if (idx >= 0)
@@ -819,7 +791,7 @@ function hidePopupOnPage(name, pg)
 			}
 
 			Popups.pages[idx].active = false;
-			Popups.pages[idx].lnpage = getActivePageName();
+			Popups.pages[idx].lnpage = "";
 		}
 	}
 	catch(e)
@@ -838,7 +810,6 @@ function hidePopup(name)
 
 	try
 	{
-//		document.getElementById(pname).style.display = 'none';
 		idx = getPopupIndex(name);
 
 		if (idx >= 0)
@@ -850,7 +821,7 @@ function hidePopup(name)
 			}
 
 			Popups.pages[idx].active = false;
-			Popups.pages[idx].lnpage = getActivePageName();
+			Popups.pages[idx].lnpage = "";
 		}
 	}
 	catch(e)
@@ -875,9 +846,6 @@ function showPage(name)
 		var ID;
 		ID = getActivePage();
 
-//		if (ID > 0)
-//			document.getElementById("Page_"+ID).style.display = 'none';
-
 		dropPage();
 		drawPage(name);
 
@@ -887,13 +855,13 @@ function showPage(name)
 
 			if (Popups.pages[i].active && Popups.pages[i].lnpage != name)
 			{
-//				document.getElementById(pname).style.display = 'none';
 				freeZIndex();
 			}
 			else if (Popups.pages[i].active)
 			{
-//				document.getElementById(pname).style.display = 'inline-block';
-				drawPopup(name);
+				if (document.getElementById(pname) === null)
+					drawPopup(name);
+
 				document.getElementById(pname).style.zIndex = newZIndex();
 			}
 		}
@@ -917,17 +885,17 @@ function hidePage(name)
 
 	try
 	{
-//		document.getElementById(pname).style.display = 'none';
 		dropPage();
 
 		for (i in Popups.pages)
 		{
-//			pname = "Page_"+Popups.pages[i].ID;
-
-			if (Popups.pages[i].active && Popups.pages[i].lnpage != name)
+			if (Popups.pages[i].active)
 			{
-//				document.getElementById(pname).style.display = 'none';
-				freeZIndex();
+				if (Popups.pages[i].lnpage != name)
+					freeZIndex();
+				else
+					Popups.pages[i].active = false;
+
 			}
 		}
 	}
@@ -975,7 +943,6 @@ function readText(port, channel)
 		return;
 	}
 
-//	name = 'Page'+bt.pnum+'_b1_button_'+bt.bi+'_font';
 	name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_1_font';
 
 	try
@@ -1008,7 +975,6 @@ function readTextInst(port, channel, inst)
 	{
 		if (i == inst)
 		{
-//			name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
 			name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_'+i+'_font';
 
 			try
@@ -1041,7 +1007,6 @@ function writeText(port, channel, text)
 
 	for (i = 1; i <= bt.instances; i++)
 	{
-//		name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
 		name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_'+i+'_font';
 
 		try
@@ -1074,7 +1039,6 @@ function writeTextInst(port, channel, inst, text)
 	{
 		if (i == inst)
 		{
-//			name = 'Page'+bt.pnum+'_b'+i+'_button_'+bt.bi+'_font';
 			name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_'+i+'_font';
 
 			try
@@ -1103,24 +1067,27 @@ function setON(msg)
 		return;
 	}
 
+	if (bt.length != 2)
+	{
+		console.log("setON: "+addr+" is not a button!");
+		return;
+	}
+
 	for (b = 0; b < bt.length; b++)
 	{
 		try
 		{
-//			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
-//			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
-			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_1_font';
-			var name2 = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_2_font';
+			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_1';
+			var name2 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_2';
 
 			document.getElementById(name1).style.display = 'none';
 			document.getElementById(name2).style.display = 'inline';
 		}
 		catch(e)
 		{
-			console.log("setON: Error: "+e);
+			console.log("setON: [Page_"+bt[b].pnum+"_Button_"+bt[b].bi+"_?] Error: "+e);
 		}
 	}
-
 }
 function setOFF(msg)
 {
@@ -1135,21 +1102,25 @@ function setOFF(msg)
 		return;
 	}
 
+	if (bt.length != 2)
+	{
+		console.log("setOFF: "+addr+" is not a button!");
+		return;
+	}
+
 	for (b = 0; b < bt.length; b++)
 	{
 		try
 		{
-//			var name1 = 'Page'+bt[b].pnum+'_b1_Button_'+bt[b].bi;
-//			var name2 = 'Page'+bt[b].pnum+'_b2_Button_'+bt[b].bi;
-			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_1_font';
-			var name2 = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_2_font';
+			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_1';
+			var name2 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_2';
 
 			document.getElementById(name1).style.display = 'inline';
 			document.getElementById(name2).style.display = 'none';
 		}
 		catch(e)
 		{
-			console.log("setOFF: Error: "+e);
+			console.log("setOFF: [Page_"+bt[b].pnum+"_Button_"+bt[b].bi+"_?] Error: "+e);
 		}
 	}
 
@@ -1281,9 +1252,7 @@ function doPPX(msg)
 
 	for (i in Popups.pages)
 	{
-		ID = Popups.pages[i].ID;
-		name = "Page_"+ID;
-		hidePopup(name);
+		hidePopup(Popups.pages[i].name);
 	}
 }
 function doPAGE(msg)
@@ -1403,7 +1372,6 @@ function doBAT(msg)
 				{
 					if (btRange[j] == z)
 					{
-//						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi+'_font';
 						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z+"_font";
 
 						try
@@ -1454,7 +1422,6 @@ function doBCB(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-//						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
 						var name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
@@ -1518,7 +1485,6 @@ function doBCF(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-//						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
 						var name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
@@ -1582,7 +1548,6 @@ function doBCT(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-//						var name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
 						var name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
@@ -1654,7 +1619,6 @@ function doBMP(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-//						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
 						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
@@ -1744,7 +1708,6 @@ function doCPF(msg)
 
 		for (b = 0; b < bt.length; b++)
 		{
-//			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
 			name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi;
 
 			try
@@ -1783,7 +1746,6 @@ function doENA(msg)
 
 		for (b = 0; b < bt.length; b++)
 		{
-//			name = 'Page'+bt[b].pnum+'Button_'+bt[b].bi;
 			name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi;
 
 			try
@@ -1800,7 +1762,7 @@ function doENA(msg)
 		}
 	}
 }
-function doICO(msg)
+async function doICO(msg)
 {
 	var bt;
 	var addr;
@@ -1848,17 +1810,69 @@ function doICO(msg)
 						}
 						catch(e)
 						{
+							// Create a new icon image
+							var span;
+							var hasSpan = false;
+
 							try
 							{
-								var elem = document.getElementById(name);
-								var cWidth = elem.clientWidth;
-								var cHeight = elem.clientHeight;
-								elem.innerHTML = '<img id="'+name+'_img" src="images/'+getIconFile(idx)+'" onload="imgCenter(this,\''+name+'\');">' + elem.innerHTML;
-//								imgCenter(document.getElementById(name+'_img'), cWidth, cHeight);
+								span = document.getElementById(name+'_font');
+								hasSpan = true;
 							}
 							catch(e)
 							{
-								console.log("doICO: No element of name "+name+" found! ["+e+"]");
+								hasSpan = false;
+							}
+
+							var parent;
+							var hasParent = false;
+							var cnt = 0;
+							var err = "";
+
+							while(!hasParent && cnt < 20)
+							{
+								try
+								{
+									parent = document.getElementById(name);
+
+									if (parent !== null)
+									{
+										hasParent = true;
+										break;
+									}
+								}
+								catch(e)
+								{
+									err = e;
+								}
+
+								await new Promise(r => setTimeout(r, 200));
+								cnt++;
+							}
+
+							if (!hasParent || parent === null)
+							{
+								console.log("doICO: No parent of name "+name+" found! ["+err+"]");
+								return;
+							}
+
+							var ico = getIconFile(idx);
+							var dim = getIconDim(idx);
+
+							if (ico !== -1)
+							{
+								var img = document.createElement('img');
+								img.src = makeURL('images/'+ico);
+								img.id = name+'_img';
+								img.width = dim[0];
+								img.height = dim[1];
+								img.onload = imgCenter(img, name);
+								img.style.display = "flex";
+								img.style.order = 2;
+								parent.appendChild(img);
+
+								if (hasSpan)
+									parent.insertBefore(img, span);
 							}
 						}
 					}
@@ -1910,7 +1924,7 @@ function doSHO(msg)
 		}
 	}
 }
-function doTXT(msg)
+async function doTXT(msg)
 {
 	var bt;
 	var i;
@@ -1944,8 +1958,8 @@ function doTXT(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-//						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
 						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
+						changePageTextInst(bt[b].pnum, curPort, addrRange[i], z-1, text);
 
 						try
 						{
@@ -1953,15 +1967,44 @@ function doTXT(msg)
 						}
 						catch(e)
 						{
-							try
+							var parent;
+							var hasParent = false;
+							var cnt = 0;
+							var err = "";
+
+							while(!hasParent && cnt < 20)
 							{
-								var elem = document.getElementById(name);
-								elem.innerHTML = elem.innerHTML + '<span id="'+name+'_font">'+text+'</span>';
+								try
+								{
+									parent = document.getElementById(name);
+
+									if (parent !== null)
+									{
+										hasParent = true;
+										break;
+									}
+								}
+								catch(e)
+								{
+									err = e;
+								}
+
+								await new Promise(r => setTimeout(r, 200));
+								cnt++;
 							}
-							catch(e)
+
+							if (!hasParent || parent === null)
 							{
-								console.log("doTXT: No element of name "+name+" found! ["+e+"]");
+								console.log("doTXT: No parent of name "+name+" found! ["+err+"]");
+								continue;
 							}
+
+							var span = document.createElement('span');
+							span.id = name+'_font';
+							span.style.display = "flex";
+							span.style.order = 3;
+							span.innerHTML = text;
+							parent.appendChild(span);
 						}
 					}
 				}

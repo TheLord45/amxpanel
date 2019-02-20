@@ -79,7 +79,7 @@ String PushButton::getStyle()
 		if (button.ap == 0 && isSystemReserved(button.ad))
 			style += String(".")+btName+button.sr[i].number+" {\n";
 		else	// Name: .button<number>_b<id>_<name>
-			style += String(".Page")+pageID+"_b"+button.sr[i].number+"_"+btName+" {\n";
+			style += String(".Page_")+pageID+"_"+btName+"_"+button.sr[i].number" {\n";
 
 		style += "  position: absolute;\n";
 		style += String("  left: ")+String(button.lt)+"px;\n";
@@ -87,8 +87,8 @@ String PushButton::getStyle()
 		style += String("  width: ")+String(button.wt)+"px;\n";
 		style += String("  height: ")+String(button.ht)+"px;\n";
 
-		if (button.zo > 0)
-			style += String("  z-index: ")+button.zo+";\n";
+//		if (button.zo > 0)
+//			style += String("  z-index: ")+button.zo+";\n";
 
 		if (button.hs.caseCompare("bounding") == 0)
 			style += String("  overflow: hidden;\n");
@@ -140,7 +140,7 @@ String PushButton::getStyle()
 			if (button.ap == 0 && isSystemReserved(button.ad))
 				style += String(".")+btName+button.sr[i].number+"_font {\n";
 			else
-				style += String(".Page")+pageID+"_b"+button.sr[i].number+"_"+btName+"_font {\n";
+				style += String(".Page_")+pageID+"_"+btName+"_"+button.sr[i].number+"_font {\n";
 
 			if (!button.sr[i].bs.empty())
 			{

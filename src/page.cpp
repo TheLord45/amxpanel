@@ -674,7 +674,7 @@ String& amx::Page::getStyleCode()
 			styleBuffer += String("  background-color: ")+paletteClass->colorToString(paletteClass->getColor(page.sr[0].cf))+";\n";
 			styleBuffer += String("  background-image: url(images/")+page.sr[0].bm+");\n";
 		}
-		else
+/*		else
 		{
 			String fname = PushButton::createChameleonImage(Configuration->getHTTProot()+"/images/"+page.sr[0].mi, Configuration->getHTTProot()+"/images/"+page.sr[0].bm, paletteClass->getColor(page.sr[0].cf), paletteClass->getColor(page.sr[0].cb));
 
@@ -687,7 +687,7 @@ String& amx::Page::getStyleCode()
 				styleBuffer += "  background-blend-mode: screen;\n";
 			}
 		}
-
+*/
 		styleBuffer += String("  color: ")+paletteClass->colorToString(paletteClass->getColor(page.sr[0].ct))+";\n";
 		styleBuffer += "  background-repeat: no-repeat;\n";
 	}
@@ -708,14 +708,14 @@ String& amx::Page::getStyleCode()
 				}
 			}
 
-			if (!have)
-				styleBuffer += "  display: none;\n";	// Hide the popup
+//			if (!have)
+//				styleBuffer += "  display: none;\n";	// Hide the popup
 		}
-		else
-			styleBuffer += "  display: none;\n";		// Hide the popup
+//		else
+//			styleBuffer += "  display: none;\n";		// Hide the popup
 
 		styleBuffer += "  position: absolute;\n";		// Fixed position, don't move
-		styleBuffer += "  z-index: 1;\n";				// Display on top
+//		styleBuffer += "  z-index: 1;\n";				// Display on top
 
 		if (page.showEffect && page.showTime)
 		{
@@ -760,12 +760,12 @@ String& amx::Page::getStyleCode()
 		if (Project)
 		{
 			if (page.name.compare(Project->panelSetup.powerUpPage) == 0)
-				styleBuffer += "  display: static;\n";		// Show the page
-			else
-				styleBuffer += "  display: none;\n";		// Hide the page
+				styleBuffer += "  display: block;\n";		// Show the page
+//			else
+//				styleBuffer += "  display: none;\n";		// Hide the page
 		}
-		else
-			styleBuffer += "  display: none;\n";			// Hide the page
+//		else
+//			styleBuffer += "  display: none;\n";			// Hide the page
 
 		styleBuffer += "  position: absolute;\n";			// Fixed position, don't move
 		styleBuffer += "  overflow: hidden;\n";				// Enable scroll if needed
