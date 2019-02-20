@@ -670,6 +670,18 @@ function getIconFile(id)
 
 	return -1;
 }
+function getIconDim(id)
+{
+	var i;
+
+	for (i in iconArray.icons)
+	{
+		if (iconArray.icons[i].id == id)
+			return [ iconArray.icons[i].width, iconArray.icons[i].height ];
+	}
+
+	return -1;
+}
 function getImageSize(name)
 {
 	var file = makeURL('images/'+name);
@@ -1828,7 +1840,6 @@ function doICO(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-//						name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
 						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 						try
@@ -2043,7 +2054,10 @@ function posImage(img, name, code)
 	elem = document.getElementById(name);
 
 	if (elem === null)
+	{
+		console.log("posImage: Couldn't find an element with name "+name+"!");
 		return;
+	}
 
 	pw = elem.clientWidth;
 	ph = elem.clientHeight;
@@ -2051,10 +2065,16 @@ function posImage(img, name, code)
 	ih = img.height;
 
 	if (pw == 0)
+	{
+		console.log("posImage: WARNING: Parent width is 0!");
 		pw = iw;
+	}
 
 	if (ph == 0)
+	{
+		console.log("posImage: WARNING: Parent height is 0!");
 		ph = ih;
+	}
 
 	if (iw == 0 || ih == 0)
 	{

@@ -65,7 +65,7 @@ namespace amx
 
 			void setPageList(const std::vector<PAGE_T>& pl) { pageList = pl; }
 			int findPage(const strings::String& name);
-			bool getImageDimensions(const strings::String fname, int *width, int *height);
+			static bool getImageDimensions(const strings::String fname, int *width, int *height);
 
 			/**
 			 * \brief

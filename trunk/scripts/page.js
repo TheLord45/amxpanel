@@ -217,6 +217,13 @@ function getBorderStyle(name)
 
 	return -1;
 }
+function setCSSclass(name, content)
+{
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = "."+name+" {"+content+"}";
+    document.getElementsByTagName('head')[0].appendChild(style);
+}
 function drawPage(name)
 {
 	var i;
@@ -439,42 +446,15 @@ function doDraw(pgKey, pageID, what)
 
 				if (!(button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2) && sr.mi.length > 0)	// chameleon image?
 				{
-//					var idim = getImageSize("images/"+sr.mi);
-					var width = button.wt;
-					var height = button.ht;
+					var width = sr.mi_width;
+					var height = sr.mi_height;
 					var can;
-					var cnt = 0;
+					setCSSclass(nm+sr.number+"_canvas", "position: absolute; left: 0px; top: 0px; width: "+width+"px; height: "+height+"px; display: flex; order: 1;");
 
 					if (sr.bm.length > 0)
-					{
-						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb))
-						.then(function() {
-							can = document.getElementById(nm+sr.number+"_canvas");
-							can.style.position = "absolute";
-							can.style.left = 0+'px';
-							can.style.top = 0+'px';
-							can.style.width = width;
-							can.style.height = height;
-						})
-						.catch(function() {
-							console.log("doDraw: The canvas "+nm+sr.number+"_canvas couldn't be drawn! (width: "+width+", height: "+height+")");
-						});
-					}
+						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 					else
-					{
-						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb))
-						.then(function() {
-							can = document.getElementById(nm+sr.number+"_canvas");
-							can.style.position = "absolute";
-							can.style.left = 0+'px';
-							can.style.top = 0+'px';
-							can.style.width = width;
-							can.style.height = height;
-						})
-						.catch(function() {
-							console.log("doDraw: The canvas "+nm+sr.number+"_canvas couldn't be drawn! (width: "+width+", height: "+height+")");
-						});
-					}
+						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 				}
 				else if (sr.bm.length > 0)
 				{
@@ -485,18 +465,19 @@ function doDraw(pgKey, pageID, what)
 				if (sr.ii > 0)		// Icon?
 				{
 					var ico = getIconFile(sr.ii);
+					var dim = getIconDim(sr.ii);
 
 					if (ico !== -1)
 					{
-						var idim = getImageSize("images/"+ico);
-						var width = idim[0];
-						var height = idim[1];
-
 						var img = document.createElement('img');
-						bsr.appendChild(img);
-						img.id = nm+sr.number+'_img';
-						img.onload = posImage(img, nm+sr.number, sr.ji);
 						img.src = makeURL('images/'+ico);
+						img.id = nm+sr.number+'_img';
+						img.width = dim[0];
+						img.height = dim[1];
+						img.onload = posImage(img, nm+sr.number, sr.ji);
+						img.style.display = "flex";
+						img.style.order = 2;
+						bsr.appendChild(img);
 					}
 				}
 
@@ -505,17 +486,19 @@ function doDraw(pgKey, pageID, what)
 				if (font !== -1)
 				{
 					var fnt = document.createElement('span');
+					fnt.id = nm+sr.number+'_font';
 					fnt.style.position = "absolute";
 					fnt.style.left = "0px";
 					fnt.style.top = "0px";
 					fnt.style.width = bsr.style.width;
 					fnt.style.height = bsr.style.height;
-					bsr.appendChild(fnt);
-					fnt.id = nm+sr.number+'_font';
 					fnt.style.fontFamily = font.name;
 					fnt.style.fontSize = font.size+"pt";
 					fnt.style.fontStyle = getFontStyle(font.subfamilyName);
 					fnt.style.fontWeight = getFontWeight(font.subfamilyName);
+					fnt.style.display = "flex";
+					fnt.style.order = 3;
+					bsr.appendChild(fnt);
 
 					if (sr.ww  == 0 && (sr.jt == TEXT_ORIENTATION.ORI_CENTER_LEFT || sr.jt == TEXT_ORIENTATION.ORI_CENTER_MIDDLE || sr.jt == TEXT_ORIENTATION.ORI_CENTER_RIGHT))
 						fnt.style.lineHeight = button.ht+"px";
