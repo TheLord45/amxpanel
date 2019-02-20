@@ -28,6 +28,7 @@
 #include "datetime.h"
 #include "config.h"
 #include "syslog.h"
+#include "pushbutton.h"
 #include "icon.h"
 
 extern Syslog *sysl;
@@ -65,6 +66,19 @@ amx::Icon::Icon(const strings::String& file)
 				ICON_T ico;
 				ico.index = index;
 				ico.file = reader.get_value();
+				int width, height;
+
+				if (PushButton::getImageDimensions(Configuration->getHTTProot()+"/images/"+ico.file, &width, &height))
+				{
+					ico.width = width;
+					ico.height = height;
+				}
+				else
+				{
+					ico.width = 0;
+					ico.height = 0;
+				}
+
 				icons.push_back(ico);
 				index = -1;
 				sysl->TRACE(String("Icon::Icon: index=")+ico.index+", file="+ico.file);
@@ -108,6 +122,26 @@ int Icon::getID(size_t idx)
 		return -1;
 
 	return icons.at(idx).index;
+}
+
+int Icon::getWidth(size_t idx)
+{
+	sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getWidth(size_t idx)"));
+
+	if (idx > icons.size())
+		return -1;
+
+	return icons.at(idx).width;
+}
+
+int Icon::getHeight(size_t idx)
+{
+	sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getHeight(size_t idx)"));
+
+	if (idx > icons.size())
+		return -1;
+
+	return icons.at(idx).height;
 }
 
 strings::String amx::Icon::getFileFromID(int id)

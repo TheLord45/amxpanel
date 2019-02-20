@@ -319,7 +319,31 @@ bool amx::Page::parsePage()
 				else if (name.caseCompare("bs") == 0 && reader.has_value())
 					page.buttons.back().sr.back().bs = reader.get_value();
 				else if (name.caseCompare("mi") == 0 && reader.has_value())
-					page.buttons.back().sr.back().mi = reader.get_value();
+				{
+					String mi = reader.get_value().c_str();
+					page.buttons.back().sr.back().mi = mi;
+
+					if (!mi.empty())
+					{
+						int width, height;
+
+						if (PushButton::getImageDimensions(Configuration->getHTTProot()+"/images/"+mi, &width, &height))
+						{
+							page.buttons.back().sr.back().mi_width = width;
+							page.buttons.back().sr.back().mi_height = height;
+						}
+						else
+						{
+							page.buttons.back().sr.back().mi_width = 0;
+							page.buttons.back().sr.back().mi_height = 0;
+						}
+					}
+					else
+					{
+						page.buttons.back().sr.back().mi_width = 0;
+						page.buttons.back().sr.back().mi_height = 0;
+					}
+				}
 				else if (name.caseCompare("cb") == 0 && reader.has_value())
 					page.buttons.back().sr.back().cb = reader.get_value();
 				else if (name.caseCompare("cf") == 0 && reader.has_value())
@@ -330,7 +354,8 @@ bool amx::Page::parsePage()
 					page.buttons.back().sr.back().ec = reader.get_value();
 				else if (name.caseCompare("bm") == 0 && reader.has_value())
 				{
-					page.buttons.back().sr.back().bm = reader.get_value();
+					String bm = reader.get_value().c_str();
+					page.buttons.back().sr.back().bm = bm;
 
 					if (reader.has_attributes())
 					{
@@ -338,6 +363,27 @@ bool amx::Page::parsePage()
 							page.buttons.back().sr.back().dynamic = false;
 						else
 							page.buttons.back().sr.back().dynamic = true;
+					}
+
+					if (!bm.empty())
+					{
+						int width, height;
+
+						if (PushButton::getImageDimensions(Configuration->getHTTProot()+"/images/"+bm, &width, &height))
+						{
+							page.buttons.back().sr.back().bm_width = width;
+							page.buttons.back().sr.back().bm_height = height;
+						}
+						else
+						{
+							page.buttons.back().sr.back().bm_width = 0;
+							page.buttons.back().sr.back().bm_height = 0;
+						}
+					}
+					else
+					{
+						page.buttons.back().sr.back().bm_width = 0;
+						page.buttons.back().sr.back().bm_height = 0;
 					}
 				}
 				else if (name.caseCompare("ii") == 0 && reader.has_value())
@@ -500,7 +546,9 @@ void Page::serializeToFile()
 
 			pgFile << "\n\t\t\t{\"number\":" << page.buttons[i].sr[j].number << ",\"do\":\"" << page.buttons[i].sr[j]._do << "\",\"bs\":\"" << page.buttons[i].sr[j].bs << "\"," << std::endl;
 			pgFile << "\t\t\t \"mi\":\"" << page.buttons[i].sr[j].mi << "\",\"cb\":\"" << page.buttons[i].sr[j].cb << "\",\"cf\":\"" << page.buttons[i].sr[j].cf << "\"," << std::endl;
-			pgFile << "\t\t\t \"ct\":\"" << page.buttons[i].sr[j].ct << "\",\"ec\":\"" << page.buttons[i].sr[j].ec << "\",\"bm\":\"" << page.buttons[i].sr[j].bm << "\"," << std::endl;
+			pgFile << "\t\t\t \"ct\":\"" << page.buttons[i].sr[j].ct << "\",\"ec\":\"" << page.buttons[i].sr[j].ec << "\",\"bm\":\"" << page.buttons[i].sr[j].bm << "\",";
+			pgFile << "\"mi_width\":" << page.buttons[i].sr[j].mi_width << ",\"mi_height\":" << page.buttons[i].sr[j].mi_height << ",\"bm_width\":" << page.buttons[i].sr[j].bm_width << ",";
+			pgFile << "\"bm_height\":" << page.buttons[i].sr[j].bm_height << "," << std::endl;
 			pgFile << "\t\t\t \"dynamic\":" << ((page.buttons[i].sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.buttons[i].sr[j].sb << ",\"ii\":" << page.buttons[i].sr[j].ii << "," << std::endl;
 			pgFile << "\t\t\t \"ji\":" << page.buttons[i].sr[j].ji << ",\"jb\":" << page.buttons[i].sr[j].jb << ",\"ix\":" << page.buttons[i].sr[j].ix << "," << std::endl;
 			pgFile << "\t\t\t \"iy\":" << page.buttons[i].sr[j].iy << ",\"fi\":" << page.buttons[i].sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.buttons[i].sr[j].te) << "\"," << std::endl;
@@ -525,7 +573,7 @@ void Page::serializeToFile()
 		pgFile << "\t\t \"ji\":" << page.sr[j].ji << ",\"jb\":" << page.sr[j].jb << ",\"ix\":" << page.sr[j].ix << "," << std::endl;
 		pgFile << "\t\t \"iy\":" << page.sr[j].iy << ",\"fi\":" << page.sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.sr[j].te) << "\"," << std::endl;
 		pgFile << "\t\t \"jt\":" << page.sr[j].jt << ",\"tx\":" << page.sr[j].tx << ",\"ty\":" << page.sr[j].ty << ",";
-		pgFile << "\t\t \"ww\":" << page.sr[j].ww << ",\"et\":" << page.sr[j].et << "}";
+		pgFile << "\"ww\":" << page.sr[j].ww << ",\"et\":" << page.sr[j].et << "}";
 	}
 
 	pgFile << "]\n\t};" << std::endl << std::endl;

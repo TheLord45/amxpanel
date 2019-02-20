@@ -822,7 +822,8 @@ void TouchPanel::writeIconTable(std::fstream& pgFile)
         if (i > 0)
             pgFile << ",\n";
 
-        pgFile << "\t\t{\"id\":" << ic->getID(i) << ",\"file\":\"" << ic->getFileName(i) << "\"}";
+        pgFile << "\t\t{\"id\":" << ic->getID(i) << ",\"file\":\"" << ic->getFileName(i) << "\",";
+        pgFile << "\"width\":" << ic->getWidth(i) << ",\"height\":" << ic->getHeight(i) << "}";
     }
 
     pgFile << "\n\t]};\n\n";

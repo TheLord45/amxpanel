@@ -362,8 +362,8 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 		ctx3.globalCompositeOperation = "source-atop";
 		ctx3.drawImage(canvas2, 0, 0);
 
-		var can = document.getElementById(name+'_canvas');
 		canvas3.id = name+"_canvas";
+		canvas3.className = name+"_canvas";
 		var div = document.getElementById(name);
 
 		try
@@ -373,6 +373,7 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 		catch(e)
 		{
 			div.appendChild(canvas3);
+			div.insertBefore(canvas3, div.firstChild);
 		}
 
 		canvas3.addEventListener('click', function(evt)
@@ -521,7 +522,7 @@ async function drawButton(uriRed, uriMask, name, width, height, col1, col2)
 
 		var div = document.getElementById(name);
 		canvas3.id = name+"_canvas";
-		var div = document.getElementById(name);
+		canvas3.className = name+"_canvas";
 
 		try
 		{
@@ -530,6 +531,7 @@ async function drawButton(uriRed, uriMask, name, width, height, col1, col2)
 		catch(e)
 		{
 			div.appendChild(canvas3);
+			div.insertBefore(canvas3, div.firstChild);
 		}
 	}
 	else
@@ -629,7 +631,7 @@ async function drawArea(uriRed, name, width, height, col1, col2)
 
 		var div = document.getElementById(name);
 		canvas2.id = name+"_canvas";
-		var div = document.getElementById(name);
+		canvas2.className = name+"_canvas";
 
 		try
 		{
@@ -638,6 +640,7 @@ async function drawArea(uriRed, name, width, height, col1, col2)
 		catch(e)
 		{
 			div.appendChild(canvas2);
+			div.insertBefore(canvas2, div.firstChild);
 		}
 	}
 	else

@@ -235,11 +235,15 @@ namespace amx
 		strings::String _do;
 		strings::String bs;     // Frame type (circle, ...)
 		strings::String mi;     // Chameleon image
+		int mi_width;           // Width of image
+		int mi_height;          // Height of image
 		strings::String cb;     // Border color
 		strings::String cf;     // Fill color
 		strings::String ct;     // Text Color
 		strings::String ec;     // Text effect color
 		strings::String bm;     // bitmap file name
+		int bm_width;           // Width of image
+		int bm_height;          // Height of image
 		bool dynamic;
 		int sb;
 		int ii;					// Icon index number
