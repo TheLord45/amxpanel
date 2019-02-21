@@ -673,6 +673,8 @@ function hideGroup(name)
 	var i;
 	group = popupGroups[name];
 
+	console.log("hideGroup("+name+")");
+
 	if (name == "")
 		return;
 
@@ -711,6 +713,7 @@ function showPopup(name)
 	var group;
 	var idx;
 
+	console.log("showPopup("+name+")");
 	pID = findPopupNumber(name);
 	group = findPageGroup(name);
 	pname = "Page_"+pID;
@@ -805,6 +808,7 @@ function hidePopup(name)
 	var pID;
 	var idx;
 
+	console.log("hidePopup("+name+")");
 	pID = findPopupNumber(name);
 	pname = "Page_"+pID;
 
@@ -834,6 +838,7 @@ function showPage(name)
 	var pname;
 	var pID;
 
+	console.log("showPage("+name+")");
 	pID = findPageNumber(name);
 
 	if (pID > 0)
@@ -876,6 +881,7 @@ function hidePage(name)
 	var pname;
 	var pID;
 
+	console.log("hidePage("+name+")");
 	pID = findPageNumber(name);
 
 	if (pID >= 0)
@@ -906,6 +912,8 @@ function hidePage(name)
 }
 function switchDisplay(name1, name2, dStat, cport, cnum)
 {
+	console.log("switchDisplay("+name1+","+name2+","+dStat+","+cport+","+cnum+")");
+
 	try
 	{
 		if (dStat == 1)
@@ -928,6 +936,7 @@ function switchDisplay(name1, name2, dStat, cport, cnum)
 }
 function pushButton(cport, cnum, stat)
 {
+	console("pushButton("+cport+","+cnum+","+stat+")");
 	writeText("PUSH:"+cport+":"+cnum+":"+stat+";");
 }
 function readText(port, channel)
@@ -1064,12 +1073,6 @@ function setON(msg)
 	if (bt.length == 0)
 	{
 		console.log('setON: Error button '+addr+' not found!');
-		return;
-	}
-
-	if (bt.length != 2)
-	{
-		console.log("setON: "+addr+" is not a button!");
 		return;
 	}
 
@@ -2215,17 +2218,18 @@ function connect()
 	parseMessage('1|^ICO-1072,0,24');
 	parseMessage('1|^ICO-1073,0,27');
 	parseMessage('1|^ICO-1078,0,1');
-	parseMessage("1|^TXT-2012,0,'Küche, Bad'");
-	parseMessage('1|@PPN-select_room');
-	parseMessage('1|^SHO-1031,1');
-	parseMessage('1|^SHO-1032,1');
-	parseMessage('1|^SHO-1033,1');
-	parseMessage('1|^SHO-1034,0');
-	parseMessage('1|^SHO-1035,0');
-	parseMessage('1|ON-1031');
-	parseMessage('1|^ICO-1031,0,1');
-	parseMessage('1|^ICO-1032,0,6');
-	parseMessage('1|^ICO-1033,0,15');
+//	parseMessage("1|^TXT-2012,0,'Küche, Bad'");
+//	parseMessage('1|@PPN-select_room');
+	parseMessage('1|@PPN-source_dreambox');
+//	parseMessage('1|^SHO-1031,1');
+//	parseMessage('1|^SHO-1032,1');
+//	parseMessage('1|^SHO-1033,1');
+//	parseMessage('1|^SHO-1034,0');
+//	parseMessage('1|^SHO-1035,0');
+//	parseMessage('1|ON-1031');
+//	parseMessage('1|^ICO-1031,0,1');
+//	parseMessage('1|^ICO-1032,0,6');
+//	parseMessage('1|^ICO-1033,0,15');
 }
 
 function writeTextOut(msg)
