@@ -376,9 +376,8 @@ function doDraw(pgKey, pageID, what)
 		{
 			try
 			{
-				var idim = getImageSize(makeURL("images/"+sr.mi));
-				var width = idim[0];
-				var height = idim[1];
+				var width = sr.mi_width;
+				var height = sr.mi_height;
 
 				if (sr.bm.length > 0)
 					drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),"Page_"+pageID,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
@@ -407,6 +406,7 @@ function doDraw(pgKey, pageID, what)
 		{
 			var bt = document.createElement('div');
 			bt.id = "Page_"+pageID+"_Button_"+button.bID;
+			page.appendChild(bt);
 			bt.style.position = "absolute";
 			bt.style.left = button.lt+"px";
 			bt.style.top = button.tp+"px";
@@ -416,50 +416,35 @@ function doDraw(pgKey, pageID, what)
 			if (button.hs == "bounding")
 				bt.style.overflow = "hidden";
 
-			if (button.cp > 0 && button.ch > 0)		// clickable?
+			if (button.cp > 0 && button.ch > 0 && button.sr.length == 2)		// clickable?
 			{
 				if (button.fb == FEEDBACK.FB_MOMENTARY)
 				{
-					bt.addEventListener('mousedown',switchDisplay(nm+button.sr[0].number,nm+button.sr[1].number,1,button.cp,button.ch));
-					bt.addEventListener('mouseup',switchDisplay(nm+button.sr[0].number,nm+button.sr[1].number,0,button.cp,button.ch));
-					console.log(bt.id+" Added FEEDBACK.FB_MOMENTARY");
+					var name1 = "Page_"+pageID+"_Button_"+button.bID+"_"+button.sr[0].number;
+					var name2 = "Page_"+pageID+"_Button_"+button.bID+"_"+button.sr[1].number;
+					bt.addEventListener('mousedown', switchDisplay.bind(null, name1,name2,1,button.cp,button.ch));
+					bt.addEventListener('mouseup', switchDisplay.bind(null, name1,name2,0,button.cp,button.ch));
 				}
 				else if (button.fb == FEEDBACK.FB_CHANNEL)
 				{
-					bt.addEventListener('mousedown',pushButton(button.cp,button.ch,1));
-					bt.addEventListener('mouseup',pushButton(button.cp,button.ch,0));
-					console.log(bt.id+" Added FEEDBACK.FB_CHANNEL");
+					bt.addEventListener('mousedown', pushButton.bind(null, button.cp,button.ch,1));
+					bt.addEventListener('mouseup', pushButton.bind(null, button.cp,button.ch,0));
 				}
 				else if (button.fb == FEEDBACK.FB_INV_CHANNEL)
 				{
-					bt.addEventListener('mousedown',pushButton(button.cp,button.ch,0));
-					bt.addEventListener('mouseup',pushButton(button.cp,button.ch,1));
-					console.log(bt.id+" Added FEEDBACK.FB_INV_CHANNEL");
+					bt.addEventListener('mousedown', pushButton.bind(null, button.cp,button.ch,0));
+					bt.addEventListener('mouseup', pushButton.bind(null, button.cp,button.ch,1));
 				}
 				else if (button.fb == FEEDBACK.FB_ALWAYS_ON)
-				{
-					bt.addEventListener('click',pushButton(button.cp,button.ch,1));
-					console.log(bt.id+" Added FEEDBACK.FB_ALWAYS_ON");
-				}
+					bt.addEventListener('click', pushButton.bind(null, button.cp,button.ch,1));
 			}
 
 			if (button.pfType == "sShow")			// show popup
-			{
-				bt.onclick = showPopup(button.pfName);
-				console.log(bt.id+" Added sShow");
-			}
+				bt.addEventListener('click', showPopup.bind(null, button.pfName));
 			else if (button.pfType == "sHide")		// hide popup
-			{
-				bt.onclick = hidePopup(button.pfName);
-				console.log(bt.id+" Added sHide");
-			}
+				bt.addEventListener('click', hidePopup.bind(null, button.pfName));
 			else if (button.pfType == "scGroup")	// hide group
-			{
-				bt.onclick = hideGroup(button.pfName);
-				console.log(bt.id+" Added scGroup");
-			}
-
-			page.appendChild(bt);
+				bt.addEventListener('click', hideGroup.bind(null, button.pfName));
 
 			for (j in button.sr)
 			{
@@ -641,7 +626,7 @@ function dropPage()
 		var div = document.getElementById('main');
 		// Delete all elements
 		while (div.hasChildNodes())
-			div.removeChild(div.firstChild());
+			div.removeChild(div.firstChild);
 	}
 	catch(e)
 	{
@@ -673,10 +658,12 @@ function dropPopup(name)
 
 	try
 	{
-		var div = documant.getElementById('Page_'+pageID);
+		var div = document.getElementById('Page_'+pageID);
 
 		while (div.hasChildNodes())
-			div.removeChild(div.firstChild());
+			div.removeChild(div.firstChild);
+
+		div.parentNode.removeChild(div);
 	}
 	catch(e)
 	{
