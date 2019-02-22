@@ -5,6 +5,8 @@ const sleep = (milliseconds) => {
 var curPort;		// The port number the currently processed command depends on
 var curCommand;		// The currently command stripped from the port number
 var z_index = 0;
+var __debug = false;
+
 var cmdArray =
 	{
 		"commands": [
@@ -215,14 +217,15 @@ function unsupported(msg)
 function newZIndex()
 {
 	z_index = z_index + 1;
-	console.log("+zIndex="+z_index);
+	debug("+zIndex="+z_index);
 	return z_index;
 }
 function freeZIndex()
 {
 	if (z_index > 0)
 		z_index = z_index - 1;
-	console.log("-zIndex="+z_index);
+
+	debug("-zIndex="+z_index);
 }
 function splittCmd(msg)
 {
@@ -673,7 +676,7 @@ function hideGroup(name)
 	var i;
 	group = popupGroups[name];
 
-	console.log("hideGroup("+name+")");
+	debug("hideGroup("+name+")");
 
 	if (name == "")
 		return;
@@ -713,7 +716,7 @@ function showPopup(name)
 	var group;
 	var idx;
 
-	console.log("showPopup("+name+")");
+	debug("showPopup("+name+")");
 	pID = findPopupNumber(name);
 	group = findPageGroup(name);
 	pname = "Page_"+pID;
@@ -808,7 +811,7 @@ function hidePopup(name)
 	var pID;
 	var idx;
 
-	console.log("hidePopup("+name+")");
+	debug("hidePopup("+name+")");
 	pID = findPopupNumber(name);
 	pname = "Page_"+pID;
 
@@ -838,7 +841,7 @@ function showPage(name)
 	var pname;
 	var pID;
 
-	console.log("showPage("+name+")");
+	debug("showPage("+name+")");
 	pID = findPageNumber(name);
 
 	if (pID > 0)
@@ -881,7 +884,7 @@ function hidePage(name)
 	var pname;
 	var pID;
 
-	console.log("hidePage("+name+")");
+	debug("hidePage("+name+")");
 	pID = findPageNumber(name);
 
 	if (pID >= 0)
@@ -912,7 +915,7 @@ function hidePage(name)
 }
 function switchDisplay(name1, name2, dStat, cport, cnum)
 {
-	console.log("switchDisplay("+name1+","+name2+","+dStat+","+cport+","+cnum+")");
+	debug("switchDisplay("+name1+","+name2+","+dStat+","+cport+","+cnum+")");
 
 	try
 	{
@@ -920,13 +923,13 @@ function switchDisplay(name1, name2, dStat, cport, cnum)
 		{
 			document.getElementById(name1).style.display = "none";
 			document.getElementById(name2).style.display = "inline";
-			writeText("PUSH:"+cport+":"+cnum+":1;");
+			writeTextOut("PUSH:"+cport+":"+cnum+":1;");
 		}
 		else
 		{
 			document.getElementById(name1).style.display = "inline";
 			document.getElementById(name2).style.display = "none";
-			writeText("PUSH:"+cport+":"+cnum+":0;");
+			writeTextOut("PUSH:"+cport+":"+cnum+":0;");
 		}
 	}
 	catch(e)
@@ -936,8 +939,8 @@ function switchDisplay(name1, name2, dStat, cport, cnum)
 }
 function pushButton(cport, cnum, stat)
 {
-	console("pushButton("+cport+","+cnum+","+stat+")");
-	writeText("PUSH:"+cport+":"+cnum+":"+stat+";");
+	debug("pushButton("+cport+","+cnum+","+stat+")");
+	writeTextOut("PUSH:"+cport+":"+cnum+":"+stat+";");
 }
 function readText(port, channel)
 {
@@ -1102,12 +1105,6 @@ function setOFF(msg)
 	if (bt.length == 0)
 	{
 		console.log('setOFF: Error button '+addr+' not found!');
-		return;
-	}
-
-	if (bt.length != 2)
-	{
-		console.log("setOFF: "+addr+" is not a button!");
 		return;
 	}
 
@@ -2089,7 +2086,7 @@ function imgCenter(img, name)
 	img.style.width = iw;
 	img.style.height = ih;
 }
-function posImage(img, name, code)
+function posImage(img, name, code, width, height)
 {
 	var pw;
 	var ph;
@@ -2105,21 +2102,15 @@ function posImage(img, name, code)
 		return;
 	}
 
-	pw = elem.clientWidth;
-	ph = elem.clientHeight;
+	pw = width;
+	ph = height;
 	iw = img.width;
 	ih = img.height;
 
-	if (pw == 0)
+	if (pw == 0 || ph == 0)
 	{
-		console.log("posImage: WARNING: Parent width is 0!");
+		console.log("posImage: WARNING: Parent width/height is 0!");
 		pw = iw;
-	}
-
-	if (ph == 0)
-	{
-		console.log("posImage: WARNING: Parent height is 0!");
-		ph = ih;
 	}
 
 	if (iw == 0 || ih == 0)
@@ -2205,7 +2196,7 @@ function connect()
 		wsocket.onopen = function() { wsocket.send('READY;'); }
 		wsocket.onerror = function(error) { console.log('WebSocket error: '+error); }
 		wsocket.onmessage = function(e) { parseMessage(e.data); }
-		wsocket.onclose = function() { console.log('WebSocket is closed!'); }
+		wsocket.onclose = function() { debug('WebSocket is closed!'); }
 	}
 	catch (exception)
 	{
@@ -2234,6 +2225,8 @@ function connect()
 
 function writeTextOut(msg)
 {
+	console.log("--> "+msg);
+
 	if (wsocket.readyState != WebSocket.OPEN)
 	{
 		console.log("WARNING: Socket not ready!");
@@ -2255,7 +2248,7 @@ navigator.getBattery().then(function(battery)
 	{
 		updateChargeInfo();
 		updateLevelInfo();
-		console.log("navigator.getBattery()");
+		debug("navigator.getBattery()");
 	}
 
 	updateAllBatteryInfo();
@@ -2294,7 +2287,7 @@ navigator.getBattery().then(function(battery)
 	function updateLevelInfo()
 	{
 		// FIXME: Add code (canvas?) to draw the level of the bargraph.
-		console.log("Battery level: " + battery.level * 100 + "%");
+		debug("Battery level: " + battery.level * 100 + "%");
 	}
 });
 function setWiFi()
@@ -2322,8 +2315,8 @@ function setWiFi()
 
 		connection.addEventListener('change', function (event)
 		{
-			console.log("Band width value: "+connection.bandwidth);
-			console.log("Metered value:"+(connection.metered ? '' : 'not ') + 'metered');
+			debug("Band width value: "+connection.bandwidth);
+			debug("Metered value:"+(connection.metered ? '' : 'not ') + 'metered');
 		});
 
 		connection.dispatchEvent(new Event('change'));
@@ -2339,9 +2332,16 @@ function setWiFi()
 
 		connection.addEventListener('typechange', function (event)
 		{
-			console.log("Connection type: "+connection.type);
+			debug("Connection type: "+connection.type);
 		});
 
 		connection.dispatchEvent(new Event('typechange'));
 	}
+}
+function debug(text)
+{
+	if (!__debug)
+		return;
+
+	console.log(text);
 }

@@ -435,10 +435,35 @@ bool amx::Page::parsePage()
 				else if (name.caseCompare("ec") == 0 && reader.has_value())
 					page.sr.back().ec = reader.get_value();
 				else if (name.caseCompare("mi") == 0 && reader.has_value())
-					page.sr.back().mi = reader.get_value();
+                {
+					String mi = reader.get_value().c_str();
+					page.sr.back().mi = mi;
+
+					if (!mi.empty())
+					{
+						int width, height;
+
+						if (PushButton::getImageDimensions(Configuration->getHTTProot()+"/images/"+mi, &width, &height))
+						{
+							page.sr.back().mi_width = width;
+							page.sr.back().mi_height = height;
+						}
+						else
+						{
+							page.sr.back().mi_width = 0;
+							page.sr.back().mi_height = 0;
+						}
+					}
+					else
+					{
+						page.sr.back().mi_width = 0;
+						page.sr.back().mi_height = 0;
+					}
+                }
 				else if (name.caseCompare("bm") == 0 && reader.has_value())
 				{
-					page.sr.back().bm = reader.get_value();
+					String bm = reader.get_value().c_str();
+					page.sr.back().bm = bm;
 
 					if (reader.has_attributes())
 					{
@@ -446,6 +471,27 @@ bool amx::Page::parsePage()
 							page.sr.back().dynamic = false;
 						else
 							page.sr.back().dynamic = true;
+					}
+
+					if (!bm.empty())
+					{
+						int width, height;
+
+						if (PushButton::getImageDimensions(Configuration->getHTTProot()+"/images/"+bm, &width, &height))
+						{
+							page.sr.back().bm_width = width;
+							page.sr.back().bm_height = height;
+						}
+						else
+						{
+							page.sr.back().bm_width = 0;
+							page.sr.back().bm_height = 0;
+						}
+					}
+					else
+					{
+						page.sr.back().bm_width = 0;
+						page.sr.back().bm_height = 0;
 					}
 				}
 				else if (name.caseCompare("ii") == 0 && reader.has_value())
@@ -559,7 +605,7 @@ void Page::serializeToFile()
 		pgFile << "]\n\t\t}";
 	}
 
-	pgFile << "],\"sr\":[" << std::endl;
+	pgFile << "],\"sr\":[";
 
 	for (size_t j = 0; j < page.sr.size(); j++)
 	{
@@ -568,6 +614,8 @@ void Page::serializeToFile()
 
 		pgFile << "\n\t\t{\"number\":" << page.sr[j].number << ",\"do\":\"" << page.sr[j]._do << "\",\"bs\":\"" << page.sr[j].bs << "\"," << std::endl;
 		pgFile << "\t\t \"mi\":\"" << page.sr[j].mi << "\",\"cb\":\"" << page.sr[j].cb << "\",\"cf\":\"" << page.sr[j].cf << "\"," << std::endl;
+        pgFile << "\t\t \"mi_width\":" << page.sr[j].mi_width << ",\"mi_height\":" << page.sr[j].mi_height << ",\"bm_width\":" << page.sr[j].bm_width << ",";
+		pgFile << "\"bm_height\":" << page.sr[j].bm_height << "," << std::endl;
 		pgFile << "\t\t \"ct\":\"" << page.sr[j].ct << "\",\"ec\":\"" << page.sr[j].ec << "\",\"bm\":\"" << page.sr[j].bm << "\"," << std::endl;
 		pgFile << "\t\t \"dynamic\":" << ((page.sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.sr[j].sb << ",\"ii\":" << page.sr[j].ii << "," << std::endl;
 		pgFile << "\t\t \"ji\":" << page.sr[j].ji << ",\"jb\":" << page.sr[j].jb << ",\"ix\":" << page.sr[j].ix << "," << std::endl;
