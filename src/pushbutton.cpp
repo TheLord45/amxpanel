@@ -79,7 +79,7 @@ String PushButton::getStyle()
 		if (button.ap == 0 && isSystemReserved(button.ad))
 			style += String(".")+btName+button.sr[i].number+" {\n";
 		else	// Name: .button<number>_b<id>_<name>
-			style += String(".Page_")+pageID+"_"+btName+"_"+button.sr[i].number" {\n";
+			style += String(".Page_")+pageID+"_"+btName+"_"+button.sr[i].number+" {\n";
 
 		style += "  position: absolute;\n";
 		style += String("  left: ")+String(button.lt)+"px;\n";
@@ -135,7 +135,7 @@ String PushButton::getStyle()
 
 		FONT_T font = fontClass->findFont(button.sr[i].fi);
 
-		if (font.number == button.sr[i].fi)
+/*		if (font.number == button.sr[i].fi)
 		{
 			if (button.ap == 0 && isSystemReserved(button.ad))
 				style += String(".")+btName+button.sr[i].number+"_font {\n";
@@ -165,8 +165,8 @@ String PushButton::getStyle()
 			style += String("  font-style: ")+fontClass->getFontStyle(font.subfamilyName)+";\n";
 			style += String("  font-weight: ")+fontClass->getFontWeight(font.subfamilyName)+";\n";
 
-			if (!button.sr[i].ww && (button.sr[i].jt == ORI_CENTER_LEFT || button.sr[i].jt == ORI_CENTER_MIDDLE || button.sr[i].jt == ORI_CENTER_RIGHT))
-				style += String("  line-height: ")+button.ht+"px;\n";
+//			if (!button.sr[i].ww && (button.sr[i].jt == ORI_CENTER_LEFT || button.sr[i].jt == ORI_CENTER_MIDDLE || button.sr[i].jt == ORI_CENTER_RIGHT))
+//				style += String("  line-height: ")+button.ht+"px;\n";
 
 			switch(button.sr[i].jt)
 			{
@@ -187,7 +187,7 @@ String PushButton::getStyle()
 			}
 
 			style += "}\n";
-		}
+		} */
 	}
 
 	return style;

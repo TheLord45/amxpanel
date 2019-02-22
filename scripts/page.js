@@ -219,10 +219,15 @@ function getBorderStyle(name)
 }
 function setCSSclass(name, content)
 {
-    var style = document.createElement('style');
-    style.type = 'text/css';
-    style.innerHTML = "."+name+" {"+content+"}";
-    document.getElementsByTagName('head')[0].appendChild(style);
+	var element = document.querySelector('.'+name);
+
+	if (element !== null)
+		return;
+
+	var style = document.createElement('style');;
+	style.type = 'text/css';
+	style.innerHTML = "."+name+" {"+content+"}";
+	document.getElementsByTagName('head')[0].appendChild(style);
 }
 function changePageText(num, port, channel, text)
 {
@@ -362,7 +367,7 @@ function doDraw(pgKey, pageID, what)
 	page.style.width = pgKey.width+"px";
 	page.style.height = pgKey.height+"px";
 
-	for (i in pgKey.sr)
+	for (i in pgKey.sr)        // Page background and color
 	{
 		var sr = pgKey.sr[i];
 
@@ -372,7 +377,7 @@ function doDraw(pgKey, pageID, what)
 		if (sr.ct.length > 0)
 			page.style.color = getWebColor(sr.ct);
 
-		if (sr.mi.length > 0)	// chameleon image?
+		if (sr.mi.length > 0 && sr.bm.length > 0)	// chameleon image?
 		{
 			try
 			{
@@ -425,7 +430,7 @@ function doDraw(pgKey, pageID, what)
 					bt.addEventListener('mousedown', switchDisplay.bind(null, name1,name2,1,button.cp,button.ch));
 					bt.addEventListener('mouseup', switchDisplay.bind(null, name1,name2,0,button.cp,button.ch));
 				}
-				else if (button.fb == FEEDBACK.FB_CHANNEL)
+				else if (button.fb == FEEDBACK.FB_CHANNEL || button.fb == 0)
 				{
 					bt.addEventListener('mousedown', pushButton.bind(null, button.cp,button.ch,1));
 					bt.addEventListener('mouseup', pushButton.bind(null, button.cp,button.ch,0));
@@ -525,7 +530,16 @@ function doDraw(pgKey, pageID, what)
 						img.id = nm+sr.number+'_img';
 						img.width = dim[0];
 						img.height = dim[1];
-						img.onload = posImage(img, nm+sr.number, sr.ji);
+						img.style.position = "absolute";
+
+						if (sr.ji == 0)
+						{
+							img.style.left = sr.ix+'px';
+							img.style.top = sr.iy+'px';
+						}
+						else
+							posImage(img, nm+sr.number, sr.ji, dim[0], dim[1]);
+
 						img.style.display = "flex";
 						img.style.order = 2;
 						bsr.appendChild(img);
@@ -539,19 +553,24 @@ function doDraw(pgKey, pageID, what)
 					var fnt = document.createElement('span');
 					fnt.id = nm+sr.number+'_font';
 					fnt.style.position = "absolute";
-					fnt.style.left = "0px";
-					fnt.style.top = "0px";
-					fnt.style.width = bsr.style.width;
-					fnt.style.height = bsr.style.height;
+
+					if (sr.jt != TEXT_ORIENTATION.ORI_ABSOLUT)
+					{
+						fnt.style.left = "0px";
+						fnt.style.top = "0px";
+						fnt.style.width = bsr.style.width;
+						fnt.style.height = bsr.style.height;
+					}
+
 					fnt.style.fontFamily = font.name;
 					fnt.style.fontSize = font.size+"pt";
 					fnt.style.fontStyle = getFontStyle(font.subfamilyName);
 					fnt.style.fontWeight = getFontWeight(font.subfamilyName);
-					fnt.style.display = "flex";
-					fnt.style.order = 3;
+//					fnt.style.display = "flex";
+//					fnt.style.order = 3;
 					bsr.appendChild(fnt);
 
-					if (sr.ww  == 0 && (sr.jt == TEXT_ORIENTATION.ORI_CENTER_LEFT || sr.jt == TEXT_ORIENTATION.ORI_CENTER_MIDDLE || sr.jt == TEXT_ORIENTATION.ORI_CENTER_RIGHT))
+					if (sr.ww == 0 && (sr.jt == TEXT_ORIENTATION.ORI_CENTER_LEFT || sr.jt == TEXT_ORIENTATION.ORI_CENTER_MIDDLE || sr.jt == TEXT_ORIENTATION.ORI_CENTER_RIGHT))
 						fnt.style.lineHeight = button.ht+"px";
 
 					switch(sr.jt)
@@ -559,6 +578,8 @@ function doDraw(pgKey, pageID, what)
 						case TEXT_ORIENTATION.ORI_ABSOLUT:
 							fnt.style.left = sr.tx+"px";
 							fnt.style.top = sr.ty+"px";
+							fnt.style.width = (bsr.style.width - sr.tx)+'px';
+							fnt.style.height = (bsr.style.height - sr.ty)+'px';
 						break;
 						case TEXT_ORIENTATION.ORI_TOP_LEFT:
 							fnt.style.textAlign = "left";
