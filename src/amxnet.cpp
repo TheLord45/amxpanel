@@ -70,6 +70,7 @@ AMXNet::~AMXNet()
 
 void AMXNet::init()
 {
+	identified = false;
 	sendCounter = 0;
 	write_busy = false;
 	serial = "201812XTHE74201";
@@ -395,6 +396,12 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.level.system = makeWord(buff_[4], buff_[5]);
 						comm.data.level.level = makeWord(buff_[6], buff_[7]);
 						comm.checksum = buff_[8];
+						s.channel = false;
+						s.level = 0;
+						s.port = 0;
+						s.value = 0;
+						s.MC = 0x000e;
+						sendCommand(s);
 					break;
 
 					case 0x000f:	// request output channel status
@@ -403,6 +410,12 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.channel.system = makeWord(buff_[4], buff_[5]);
 						comm.data.channel.channel = makeWord(buff_[6], buff_[7]);
 						comm.checksum = buff_[8];
+						s.channel = false;
+						s.level = 0;
+						s.port = 0;
+						s.value = 0;
+						s.MC = 0x000f;
+						sendCommand(s);
 					break;
 
 					case 0x0010:	// request port count
@@ -410,6 +423,12 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.reqPortCount.device = makeWord(buff_[0], buff_[1]);
 						comm.data.reqPortCount.system = makeWord(buff_[2], buff_[3]);
 						comm.checksum = buff_[4];
+						s.channel = false;
+						s.level = 0;
+						s.port = 0;
+						s.value = 0;
+						s.MC = comm.MC;
+						sendCommand(s);
 					break;
 
 					case 0x0011:	// request output channel count
@@ -421,6 +440,12 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.reqOutpChannels.port = makeWord(buff_[2], buff_[3]);
 						comm.data.reqOutpChannels.system = makeWord(buff_[4], buff_[5]);
 						comm.checksum = buff_[6];
+						s.channel = false;
+						s.level = 0;
+						s.port = comm.data.reqOutpChannels.port;
+						s.value = 0;
+						s.MC = comm.MC;
+						sendCommand(s);
 					break;
 
 					case 0x0015:	// request level size
@@ -429,7 +454,13 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.reqLevels.system = makeWord(buff_[4], buff_[5]);
 						comm.data.reqLevels.level = makeWord(buff_[6], buff_[7]);
 						comm.checksum = buff_[8];
-					break;
+						s.channel = false;
+						s.level = comm.data.reqLevels.level;
+						s.port = comm.data.reqLevels.port;
+						s.value = 0;
+						s.MC = 0x0015;
+						sendCommand(s);
+						break;
 
 					case 0x0097:	// receive device info
 						comm.data.srDeviceInfo.device = makeWord(buff_[0], buff_[1]);
@@ -620,8 +651,12 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			memcpy(com.data.srDeviceInfo.info, buf, pos);
 			pos++;
 			com.hlen = 0x0016 - 3 + 31 + pos;
-			comStack.push_back(com);
+
+			if (!identified)
+				comStack.push_back(com);
+
 			status = true;
+			identified = true;
 		break;
 
 		case 0x0098:
@@ -969,8 +1004,8 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 			pos++;
 			*(buf+pos) = s.data.srDeviceInfo.fwid;
 			pos++;
-			memcpy(buf+pos, s.data.srDeviceInfo.info, s.hlen + 3 - pos);
-			*(buf+s.hlen+2) = calcChecksum(buf, s.hlen + 3);
+			memcpy(buf+pos, s.data.srDeviceInfo.info, s.hlen + 2 - pos);
+			*(buf+s.hlen+2) = calcChecksum(buf, s.hlen + 2);
 			valid = true;
 		break;
 
