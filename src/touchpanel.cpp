@@ -422,7 +422,28 @@ void TouchPanel::readPages()
 bool TouchPanel::parsePages()
 {
 	sysl->TRACE(std::string("TouchPanel::parsePages()"));
+
 	fstream pgFile, cssFile, jsFile;
+	// Did we've already parsed?
+	try
+	{
+		std::string nm = Configuration->getHTTProot().toString()+"/.parsed";
+		pgFile.open(nm, ios::in);
+
+		if (pgFile.is_open())
+		{
+			sysl->log(Syslog::INFO, String("TouchPanel::parsePages: Pages are already parsed. Skipping!"));
+			pgFile.close();
+			return true;
+		}
+
+		pgFile.close();
+	}
+	catch(const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+	}
+
 	std::string fname = Configuration->getHTTProot().toString()+"/index.html";
 	std::string cssname = Configuration->getHTTProot().toString()+"/amxpanel.css";
 
@@ -682,6 +703,22 @@ bool TouchPanel::parsePages()
 	}
 */
 	pgFile << "</body>\n</html>\n";
+	pgFile.close();
+	// Mark as parsed
+	try
+	{
+		std::string nm = Configuration->getHTTProot().toString()+"/.parsed";
+		pgFile.open(nm, ios::in | ios::out | ios::trunc | ios::binary);
+		DateTime dt;
+		pgFile << dt.toString();
+		pgFile.close();
+	}
+	catch(const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		return false;
+	}
+
 	return true;
 }
 

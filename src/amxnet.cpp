@@ -70,7 +70,7 @@ AMXNet::~AMXNet()
 
 void AMXNet::init()
 {
-	identified = false;
+	identStatus = 0;
 	sendCounter = 0;
 	write_busy = false;
 	serial = "201812XTHE74201";
@@ -427,7 +427,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						s.level = 0;
 						s.port = 0;
 						s.value = 0;
-						s.MC = comm.MC;
+						s.MC = 0x0098;
 						sendCommand(s);
 					break;
 
@@ -444,7 +444,16 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						s.level = 0;
 						s.port = comm.data.reqOutpChannels.port;
 						s.value = 0;
-						s.MC = comm.MC;
+
+						switch (comm.MC)
+						{
+							case 0x0011: s.MC = 0x0091; break;
+							case 0x0012: s.MC = 0x0092; break;
+							case 0x0013: s.MC = 0x0093; break;
+							case 0x0014: s.MC = 0x0094; break;
+							case 0x0016: s.MC = 0x0098; break;
+						}
+
 						sendCommand(s);
 					break;
 
@@ -497,7 +506,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 		if (tk == RT_DATA)
 		{
-			sysl->TRACE(strings::String("AMXNet::handle_read: Received: ")+comm.MC);
+			sysl->TRACE(strings::String("AMXNet::handle_read: Received message type: ")+NameFormat::toHex(comm.MC, 2));
 
 			if (!ignore && !stopped_ && callback != 0)
 				callback(comm);
@@ -622,41 +631,16 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.srDeviceInfo.objectID = 0;
 			com.data.srDeviceInfo.parentID = 0;
 			com.data.srDeviceInfo.herstID = 1;
-			com.data.srDeviceInfo.deviceID = 0x0123;
-			memcpy(com.data.srDeviceInfo.serial, serial.data(), 16);
-			com.data.srDeviceInfo.fwid = 0x0135;
-			unsigned char buf[128];
-			memset(buf, 0, sizeof(buf));
-			memcpy(buf, version.data(), version.length());
-			pos = version.length() + 1;
-			memcpy(buf+pos, Configuration->getAMXPanelType().data(), Configuration->getAMXPanelType().length());
-			pos += Configuration->getAMXPanelType().length() + 1;
-			memcpy(buf+pos, manufacturer.data(), manufacturer.length());
-			pos += manufacturer.length()+1;
-			*(buf+pos) = 0x02;	// type IP address
-			pos++;
-			*(buf+pos) = 0x04;	// field length: 4 bytes
-			// Now the IP Address
-			{
-				strings::String addr = socket_.local_endpoint().address().to_string();
-				std::vector<strings::String> parts = addr.split('.');
 
-				for (size_t i = 0; i < parts.size(); i++)
-				{
-					pos++;
-					*(buf+pos) = (unsigned char)atoi(parts[i].data());
-				}
+			switch (identStatus)
+			{
+				case 0: msg97fill1(&com); break;
+				case 1: msg97fill2(&com); break;
+				case 2: msg97fill3(&com); break;
 			}
 
-			memcpy(com.data.srDeviceInfo.info, buf, pos);
-			pos++;
-			com.hlen = 0x0016 - 3 + 31 + pos;
-
-			if (!identified)
-				comStack.push_back(com);
-
 			status = true;
-			identified = true;
+			identStatus++;
 		break;
 
 		case 0x0098:
@@ -669,6 +653,144 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 	}
 
 	return status;
+}
+
+int AMXNet::msg97fill1(ANET_COMMAND *com)
+{
+	int pos = 0;
+	unsigned char buf[128];
+
+	memset(buf, 0, sizeof(buf));
+	com->data.srDeviceInfo.deviceID = 0x0123;
+	memcpy(com->data.srDeviceInfo.serial, serial.data(), 16);
+	com->data.srDeviceInfo.fwid = 0x0135;
+	memcpy(buf, version.data(), version.length());
+	pos = version.length() + 1;
+	memcpy(buf+pos, Configuration->getAMXPanelType().data(), Configuration->getAMXPanelType().length());
+	pos += Configuration->getAMXPanelType().length() + 1;
+	memcpy(buf+pos, manufacturer.data(), manufacturer.length());
+	pos += manufacturer.length()+1;
+	*(buf+pos) = 0x02;	// type IP address
+	pos++;
+	*(buf+pos) = 0x04;	// field length: 4 bytes
+	// Now the IP Address
+	strings::String addr = socket_.local_endpoint().address().to_string();
+	std::vector<strings::String> parts = addr.split('.');
+
+	for (size_t i = 0; i < parts.size(); i++)
+	{
+		pos++;
+		*(buf+pos) = (unsigned char)atoi(parts[i].data());
+	}
+
+	pos++;
+	com->data.srDeviceInfo.len = pos;
+	memcpy(com->data.srDeviceInfo.info, buf, pos);
+	com->hlen = 0x0016 - 3 + 31 + pos;
+	comStack.push_back(*com);
+	return pos;
+}
+
+int AMXNet::msg97fill2(ANET_COMMAND *com)
+{
+	int pos = 0;
+	unsigned char buf[128];
+
+	memset(buf, 0, sizeof(buf));
+	com->data.srDeviceInfo.deviceID = 0x0123;
+	memcpy(com->data.srDeviceInfo.serial, "N/A             ", 16);
+	com->data.srDeviceInfo.fwid = 0x0137;
+	memcpy(buf, version.data(), version.length());
+	pos = version.length() + 1;
+	memcpy(buf+pos, "Root File System", 16);
+	pos += 17;
+	memcpy(buf+pos, manufacturer.data(), manufacturer.length());
+	pos += manufacturer.length()+1;
+	*(buf+pos) = 0x02;	// type IP address
+	pos++;
+	*(buf+pos) = 0x04;	// field length: 4 bytes
+	// Now the IP Address
+	strings::String addr = socket_.local_endpoint().address().to_string();
+	std::vector<strings::String> parts = addr.split('.');
+
+	for (size_t i = 0; i < parts.size(); i++)
+	{
+		pos++;
+		*(buf+pos) = (unsigned char)atoi(parts[i].data());
+	}
+
+	pos++;
+	com->data.srDeviceInfo.len = pos;
+	memcpy(com->data.srDeviceInfo.info, buf, pos);
+	com->hlen = 0x0016 - 3 + 31 + pos;
+	comStack.push_back(*com);
+	return pos;
+}
+
+int AMXNet::msg97fill3(ANET_COMMAND *com)
+{
+	int pos = 0;
+	unsigned char buf[128];
+
+	com->data.srDeviceInfo.deviceID = 0x0123;
+	memcpy(com->data.srDeviceInfo.serial, "N/A             ", 16);
+
+	for (int i = 0; i < 3; i++)
+	{
+		memset(buf, 0, sizeof(buf));
+		memcpy(buf, version.data(), version.length());
+		pos = version.length() + 1;
+
+		switch (i)
+		{
+			case 0:
+				com->data.srDeviceInfo.fwid = 0x0138;
+				memcpy(buf+pos, "Bootrom", 7);
+				pos += 8;
+			break;
+
+			case 1:
+				com->data.srDeviceInfo.fwid = 0x0139;
+				memcpy(buf+pos, "Sensor", 6);
+				pos += 7;
+			break;
+
+			case 2:
+				com->data.srDeviceInfo.fwid = 0x013a;
+				memcpy(buf+pos, "Opt File System", 15);
+				pos += 16;
+			break;
+
+			case 3:
+				com->data.srDeviceInfo.fwid = 0x013f;
+				memcpy(buf+pos, "Fpga", 4);
+				pos += 5;
+			break;
+		}
+
+		memcpy(buf+pos, manufacturer.data(), manufacturer.length());
+		pos += manufacturer.length()+1;
+		*(buf+pos) = 0x02;	// type IP address
+		pos++;
+		*(buf+pos) = 0x04;	// field length: 4 bytes
+		// Now the IP Address
+		strings::String addr = socket_.local_endpoint().address().to_string();
+		std::vector<strings::String> parts = addr.split('.');
+
+		for (size_t i = 0; i < parts.size(); i++)
+		{
+			pos++;
+			*(buf+pos) = (unsigned char)atoi(parts[i].data());
+		}
+
+		pos++;
+		com->data.srDeviceInfo.len = pos;
+		memcpy(com->data.srDeviceInfo.info, buf, pos);
+		com->hlen = 0x0016 - 3 + 31 + pos;
+		comStack.push_back(*com);
+	}
+
+	return pos;
 }
 
 void AMXNet::start_write()
@@ -700,9 +822,6 @@ void AMXNet::start_write()
 	}
 
 	write_busy = false;
-	// Start an asynchronous operation to send a heartbeat message.
-//	asio::async_write(socket_, asio::buffer("\n", 1),
-//			std::bind(&AMXNet::handle_write, this, _1));
 }
 
 void AMXNet::handle_write(const std::error_code& error)
@@ -1004,8 +1123,9 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 			pos++;
 			*(buf+pos) = s.data.srDeviceInfo.fwid;
 			pos++;
-			memcpy(buf+pos, s.data.srDeviceInfo.info, s.hlen + 2 - pos);
-			*(buf+s.hlen+2) = calcChecksum(buf, s.hlen + 2);
+			memcpy(buf+pos, s.data.srDeviceInfo.info, s.data.srDeviceInfo.len);
+			pos += s.data.srDeviceInfo.len;
+			*(buf+pos) = calcChecksum(buf, pos);
 			valid = true;
 		break;
 

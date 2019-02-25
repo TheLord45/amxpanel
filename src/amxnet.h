@@ -144,6 +144,7 @@ namespace amx
 		unsigned char serial[16]; // serial number
 		uint16_t fwid;			// firmware ID
 		unsigned char info[256];// several NULL terminated informations
+		int len;				// length of field info
 	}ANET_ADEVINFO;
 
 	typedef struct				// Answer to "master status"
@@ -254,6 +255,9 @@ namespace amx
 			uint16_t makeWord(unsigned char b1, unsigned char b2);
 			uint32_t makeDWord(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4);
 			unsigned char *makeBuffer(const ANET_COMMAND& s);
+			int msg97fill1(ANET_COMMAND *com);
+			int msg97fill2(ANET_COMMAND *com);
+			int msg97fill3(ANET_COMMAND *com);
 
 			bool stopped_ = false;
 			asio::ip::tcp::resolver::results_type endpoints_;
@@ -273,7 +277,7 @@ namespace amx
 			strings::String version;
 			strings::String manufacturer;
 			bool write_busy;
-			bool identified;
+			int identStatus;	// Counter for message ID 0x97
 	};
 }
 
