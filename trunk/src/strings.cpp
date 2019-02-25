@@ -1752,16 +1752,16 @@ void String::copyString(const char* s, size_t len)
 
     for (size_t i = 0; i < len; i++)
     {
-        if (*(s+i) != 0)
-        {
+//        if (*(s+i) != 0)
+//        {
             *(_string+i) = *(s+i);
             pos++;
-        }
-        else
-        {
-            *(_string+i) = 0;
-            break;
-        }
+//        }
+//        else
+//        {
+//            *(_string+i) = 0;
+//            break;
+//        }
     }
 
     *(_string+pos) = 0;

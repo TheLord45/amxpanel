@@ -76,7 +76,7 @@ bool TouchPanel::startClient()
 		amxnet = &c;
 		c.setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
 
-		c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getPort()).toString()));
+		c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()));
 
 		io_context.run();
 	}
@@ -167,6 +167,8 @@ String TouchPanel::getPageStyle(const String& name)
 
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 {
+	sysl->TRACE(String("TouchPanel::setCommand(const ANET_COMMAND& cmd)"));
+
 	commands.push_back(cmd);
 
 	if (busy)

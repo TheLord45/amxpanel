@@ -226,6 +226,56 @@ String NameFormat::toHex(int num, int width)
 	return ret;
 }
 
+String NameFormat::strToHex(String str, int width, bool format)
+{
+	int len = 0, pos = 0, old = 0;
+	int w = (format) ? 1 : width;
+	String out, left, right;
+
+	for (size_t i = 0; i < str.length(); i++)
+	{
+		if (len >= w)
+		{
+			left.append(" ");
+			len = 0;
+		}
+
+		if (format && i > 0 && (pos % width) == 0)
+		{
+			out += toHex(old, 4)+": "+left + " | " + right + "\n";
+			left.clear();
+			right.clear();
+			old = pos;
+		}
+
+		char c = str.at(i);
+		left.append(toHex((int)(c & 0x000000ff), 2));
+
+		if (format)
+		{
+			if (std::isprint(c))
+				right.append(c);
+			else
+				right.append('.');
+		}
+
+		len++;
+		pos++;
+	}
+
+	if (!format)
+		return left;
+	else if (pos > 0)
+	{
+		for (int i = 0; i < (pos % width); i++)
+			left.append("   ");
+
+		out += toHex(old, 4)+": "+left + "  | " + right;
+	}
+
+	return out;
+}
+
 String NameFormat::latin1ToUTF8(const String& str)
 {
 	sysl->TRACE(String("NameFormat::latin1ToUTF8(const String& str)"));
