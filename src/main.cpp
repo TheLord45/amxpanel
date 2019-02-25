@@ -60,7 +60,7 @@ int main(int /* argc */, const char **argv)
 	// Create the panel
 	pTouchPanel = new amx::TouchPanel();
 	pTouchPanel->parsePages();
-//	pTouchPanel->startClient();		// Connect to controller and listen
+	pTouchPanel->startClient();		// Connect to controller and listen
 
 //	server.run();
 

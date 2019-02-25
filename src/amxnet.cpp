@@ -38,6 +38,7 @@
 #include "config.h"
 #include "amxnet.h"
 #include <asio/read.hpp>
+#include "nameformat.h"
 
 #ifdef __APPLE__
 using namespace boost;
@@ -69,7 +70,6 @@ AMXNet::~AMXNet()
 
 void AMXNet::init()
 {
-	readToken = RT_NONE;
 	sendCounter = 0;
 	write_busy = false;
 	serial = "201812XTHE74201";
@@ -100,9 +100,11 @@ void AMXNet::stop()
 
 void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)
 {
+	sysl->TRACE(std::string("start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
+
 	if (endpoint_iter != endpoints_.end())
 	{
-		sysl->TRACE(std::string("AMXNet::start_connect: Trying ")+endpoint_iter->endpoint().address().to_string()+" ...\n");
+		sysl->TRACE(strings::String("AMXNet::start_connect: Trying ")+endpoint_iter->endpoint().address().to_string()+":"+endpoint_iter->endpoint().port()+" ...\n");
 
 		// Set a deadline for the connect operation.
 		deadline_.expires_after(std::chrono::seconds(60));
@@ -121,6 +123,8 @@ void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpo
 
 void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter)
 {
+	sysl->TRACE(std::string("handle_connect(const std::error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
+
 	if (stopped_)
 		return;
 
@@ -138,7 +142,7 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 	// Check if the connect operation failed before the deadline expired.
 	else if (error)
 	{
-		sysl->errlog("AMXNet::handle_connect: Connect error: "+error.message());
+		sysl->errlog(std::string("AMXNet::handle_connect: Connect error: ")+error.message());
 
 		// We need to close the socket used in the previous connection attempt
 		// before starting a new one.
@@ -149,62 +153,116 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 	}
 	else
 	{
-		sysl->log(Syslog::INFO, "AMXNet::handle_connect: Connected to "+endpoint_iter->endpoint().address().to_string());
+		sysl->log(Syslog::INFO, strings::String("AMXNet::handle_connect: Connected to ")+endpoint_iter->endpoint().address().to_string()+":"+endpoint_iter->endpoint().port());
 
-		// Start the input actor.
-		start_read();
+		while (!stopped_)
+		{
+			// Start the input actor.
+			start_read();
 
-		// Start the heartbeat actor.
-		start_write();
+			// Start the heartbeat actor.
+			start_write();
+		}
 	}
 }
 
 void AMXNet::start_read()
 {
+	sysl->TRACE(std::string("start_read()"));
+
 	// Set a deadline for the read operation.
 	deadline_.expires_after(std::chrono::seconds(60));
+//	input_buffer_.clear();
 	protError = false;
 	comm.clear();
+	asio::error_code error;
 
 	// Start an asynchronous operation to read a newline-delimited message.
 	// Read the first byte. It should be 0x02
-	readToken = RT_ID;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 1), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_LEN;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 2), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_SEP1;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 1), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_TYPE;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 1), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_WORD1;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 2), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_DEVICE;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 2), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_WORD2;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 2), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_WORD3;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 2), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_WORD4;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 2), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_WORD5;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 2), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_SEP2;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 1), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_COUNT;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 2), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_MC;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, 2), std::bind(&AMXNet::handle_read, this, _1, _2));
-	readToken = RT_DATA;
+	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
+		handle_read(error, 1, RT_ID);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+		handle_read(error, 2, RT_LEN);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
+		handle_read(error, 1, RT_SEP1);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
+		handle_read(error, 1, RT_TYPE);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+		handle_read(error, 2, RT_WORD1);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+		handle_read(error, 2, RT_DEVICE);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+		handle_read(error, 2, RT_WORD2);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+		handle_read(error, 2, RT_WORD3);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+		handle_read(error, 2, RT_WORD4);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+		handle_read(error, 2, RT_WORD5);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
+		handle_read(error, 1, RT_SEP2);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+		handle_read(error, 2, RT_COUNT);
+	else
+		throw std::invalid_argument(error.message());
+
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+		handle_read(error, 2, RT_MC);
+	else
+		throw std::invalid_argument(error.message());
+
 	// Calculate the length of the data block. This is the rest of the total length
 	size_t len = (comm.hlen + 3) - 0x0015;
-	asio::async_read(socket_, asio::dynamic_buffer(input_buffer_, len), std::bind(&AMXNet::handle_read, this, _1, _2));
-//	asio::async_read_until(socket_,
-//				asio::dynamic_buffer(input_buffer_), '\n',
-//				std::bind(&AMXNet::handle_read, this, _1, _2));
+
+	if (len >= 2048)
+	{
+		sysl->errlog(strings::String("AMXnet::start_read: Length to read is ")+len+" bytes, but the buffer is only 2048 bytes!");
+		return;
+	}
+
+	if (asio::read(socket_, asio::buffer(buff_, len), asio::transfer_exactly(len), error) == len)
+		handle_read(error, len, RT_DATA);
+	else
+		throw std::invalid_argument(error.message());
 }
 
-void AMXNet::handle_read(const std::error_code& error, std::size_t n)
+void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 {
+	sysl->TRACE(std::string("handle_read(const std::error_code& error, std::size_t n, R_TOKEN tk)"));
+
 	if (stopped_)
 		return;
 
@@ -212,48 +270,53 @@ void AMXNet::handle_read(const std::error_code& error, std::size_t n)
 	int val, pos;
 	size_t len;
 	bool ignore = false;
+	ANET_SEND s;		// Used to answer system requests
 
 	if (!error)
 	{
-		// Extract the newline-delimited message from the buffer.
-		std::string line(input_buffer_.substr(0, n));
-		input_buffer_.erase(0, n);
+		len = (n < 2048) ? n : 2047;
+		input_buffer_.assign((char *)&buff_[0], len);
 
-		switch (readToken)
+		if (len >= 8)
+			sysl->DebugMsg(strings::String("AMXNet::handle_read: read:\n")+NameFormat::strToHex(input_buffer_, 8, true)+", Token: "+tk+", "+len+" bytes");
+		else
+			sysl->DebugMsg(strings::String("AMXNet::handle_read: read: ")+NameFormat::strToHex(input_buffer_, 1)+", Token: "+tk+", "+len+" bytes");
+
+		switch (tk)
 		{
 			case RT_ID:
-				if (line[0] != 0x02)
+				if (buff_[0] != 0x02)
 					protError = true;
 				else
-					comm.ID = line[0];
+					comm.ID = buff_[0];
 			break;
 
-			case RT_LEN: 	comm.hlen = makeWord(line[0], line[1]); break;
+			case RT_LEN: 	comm.hlen = makeWord(buff_[0], buff_[1]); break;
 
 			case RT_SEP1:
-				if (line[0] != 0x02)
+				if (buff_[0] != 0x02)
 					protError = true;
 				else
-					comm.sep1 = line[0];
+					comm.sep1 = buff_[0];
 			break;
 
-			case RT_TYPE: 	comm.type = line[0]; break;
-			case RT_WORD1:	comm.unk1 = makeWord(line[0], line[1]); break;
-			case RT_DEVICE:	comm.device1 = makeWord(line[0], line[1]); break;
-			case RT_WORD2:	comm.port1 = makeWord(line[0], line[1]); break;
-			case RT_WORD3:	comm.system = makeWord(line[0], line[1]); break;
-			case RT_WORD4:	comm.device2 = makeWord(line[0], line[1]); break;
-			case RT_WORD5:	comm.port2 = makeWord(line[0], line[1]); break;
+			case RT_TYPE: 	comm.type = buff_[0]; break;
+			case RT_WORD1:	comm.unk1 = makeWord(buff_[0], buff_[1]); break;
+			case RT_DEVICE:	comm.device1 = makeWord(buff_[0], buff_[1]); break;
+			case RT_WORD2:	comm.port1 = makeWord(buff_[0], buff_[1]); break;
+			case RT_WORD3:	comm.system = makeWord(buff_[0], buff_[1]); break;
+			case RT_WORD4:	comm.device2 = makeWord(buff_[0], buff_[1]); break;
+			case RT_WORD5:	comm.port2 = makeWord(buff_[0], buff_[1]); break;
 
 			case RT_SEP2:
-				if (line[0] != 0x0f)
+				if (buff_[0] != 0x0f)
 					protError = true;
 				else
-					comm.unk6 = line[0];
+					comm.unk6 = buff_[0];
 			break;
 
-			case RT_COUNT:	comm.count = makeWord(line[0], line[1]); break;
-			case RT_MC:		comm.MC = makeWord(line[0], line[1]); break;
+			case RT_COUNT:	comm.count = makeWord(buff_[0], buff_[1]); break;
+			case RT_MC:		comm.MC = makeWord(buff_[0], buff_[1]); break;
 
 			case RT_DATA:
 				if (protError)
@@ -263,7 +326,7 @@ void AMXNet::handle_read(const std::error_code& error, std::size_t n)
 				{
 					case 0x0001:	// ACK
 					case 0x0002:	// NAK
-						comm.checksum = line[0];
+						comm.checksum = buff_[0];
 					break;
 
 					case 0x0084:	// input channel ON
@@ -276,38 +339,38 @@ void AMXNet::handle_read(const std::error_code& error, std::size_t n)
 					case 0x0089:	// input/output channel OFF status
 					case 0x0018:	// feedback channel ON
 					case 0x0019:	// feedback channel OFF
-						comm.data.chan_state.device = makeWord(line[0], line[1]);
-						comm.data.chan_state.port = makeWord(line[2], line[3]);
-						comm.data.chan_state.system = makeWord(line[4], line[5]);
-						comm.data.chan_state.channel = makeWord(line[6], line[7]);
-						comm.checksum = line[8];
+						comm.data.chan_state.device = makeWord(buff_[0], buff_[1]);
+						comm.data.chan_state.port = makeWord(buff_[2], buff_[3]);
+						comm.data.chan_state.system = makeWord(buff_[4], buff_[5]);
+						comm.data.chan_state.channel = makeWord(buff_[6], buff_[7]);
+						comm.checksum = buff_[8];
 					break;
 
 					case 0x000a:	// level value change
 					case 0x008a:
-						comm.data.message_value.device = makeWord(line[0], line[1]);
-						comm.data.message_value.port = makeWord(line[2], line[3]);
-						comm.data.message_value.system = makeWord(line[4], line[5]);
-						comm.data.message_value.value = makeWord(line[6], line[7]);
-						comm.data.message_value.type = line[8];
-						val = (int)line[8];
+						comm.data.message_value.device = makeWord(buff_[0], buff_[1]);
+						comm.data.message_value.port = makeWord(buff_[2], buff_[3]);
+						comm.data.message_value.system = makeWord(buff_[4], buff_[5]);
+						comm.data.message_value.value = makeWord(buff_[6], buff_[7]);
+						comm.data.message_value.type = buff_[8];
+						val = (int)buff_[8];
 
 						switch (val)
 						{
-							case 0x010: comm.data.message_value.content.byte = line[9]; comm.checksum = line[10]; break;
-							case 0x011: comm.data.message_value.content.ch = line[9]; comm.checksum = line[10]; break;
-							case 0x020: comm.data.message_value.content.integer = makeWord(line[9], line[10]); comm.checksum = line[11]; break;
-							case 0x021: comm.data.message_value.content.sinteger = makeWord(line[9], line[10]); comm.checksum = line[11]; break;
-							case 0x040: comm.data.message_value.content.dword = makeDWord(line[9], line[10], line[11], line[12]); comm.checksum = line[13]; break;
-							case 0x041: comm.data.message_value.content.sdword = makeDWord(line[9], line[10], line[11], line[12]); comm.checksum = line[13]; break;
+							case 0x010: comm.data.message_value.content.byte = buff_[9]; comm.checksum = buff_[10]; break;
+							case 0x011: comm.data.message_value.content.ch = buff_[9]; comm.checksum = buff_[10]; break;
+							case 0x020: comm.data.message_value.content.integer = makeWord(buff_[9], buff_[10]); comm.checksum = buff_[11]; break;
+							case 0x021: comm.data.message_value.content.sinteger = makeWord(buff_[9], buff_[10]); comm.checksum = buff_[11]; break;
+							case 0x040: comm.data.message_value.content.dword = makeDWord(buff_[9], buff_[10], buff_[11], buff_[12]); comm.checksum = buff_[13]; break;
+							case 0x041: comm.data.message_value.content.sdword = makeDWord(buff_[9], buff_[10], buff_[11], buff_[12]); comm.checksum = buff_[13]; break;
 
 							case 0x04f:
-								dw = makeDWord(line[9], line[10], line[11], line[12]);
+								dw = makeDWord(buff_[9], buff_[10], buff_[11], buff_[12]);
 								memcpy(&comm.data.message_value.content.fvalue, &dw, 4);
-								comm.checksum = line[13];
+								comm.checksum = buff_[13];
 							break;
 
-							case 0x08f: memcpy(&comm.data.message_value.content.dvalue, &line[9], 8); comm.checksum = line[17]; break;	// FIXME: wrong byte order on Intel CPU
+							case 0x08f: memcpy(&comm.data.message_value.content.dvalue, &buff_[9], 8); comm.checksum = buff_[17]; break;	// FIXME: wrong byte order on Intel CPU
 						}
 					break;
 
@@ -315,38 +378,38 @@ void AMXNet::handle_read(const std::error_code& error, std::size_t n)
 					case 0x008b:
 					case 0x000c:	// command string
 					case 0x008c:
-						comm.data.message_string.device = makeWord(line[0], line[1]);
-						comm.data.message_string.port = makeWord(line[2], line[3]);
-						comm.data.message_string.system = makeWord(line[4], line[5]);
-						comm.data.message_string.type = line[6];
-						comm.data.message_string.length = makeWord(line[7], line[8]);
-						len = (line[6] == 0x01) ? comm.data.message_string.length : comm.data.message_string.length * 2;
-						memcpy(&comm.data.message_string.content[0], &line[9], len);
+						comm.data.message_string.device = makeWord(buff_[0], buff_[1]);
+						comm.data.message_string.port = makeWord(buff_[2], buff_[3]);
+						comm.data.message_string.system = makeWord(buff_[4], buff_[5]);
+						comm.data.message_string.type = buff_[6];
+						comm.data.message_string.length = makeWord(buff_[7], buff_[8]);
+						len = (buff_[6] == 0x01) ? comm.data.message_string.length : comm.data.message_string.length * 2;
+						memcpy(&comm.data.message_string.content[0], &buff_[9], len);
 						pos = len + 10;
-						comm.checksum = line[pos];
+						comm.checksum = buff_[pos];
 					break;
 
 					case 0x000e:	// request level value
-						comm.data.level.device = makeWord(line[0], line[1]);
-						comm.data.level.port = makeWord(line[2], line[3]);
-						comm.data.level.system = makeWord(line[4], line[5]);
-						comm.data.level.level = makeWord(line[6], line[7]);
-						comm.checksum = line[8];
+						comm.data.level.device = makeWord(buff_[0], buff_[1]);
+						comm.data.level.port = makeWord(buff_[2], buff_[3]);
+						comm.data.level.system = makeWord(buff_[4], buff_[5]);
+						comm.data.level.level = makeWord(buff_[6], buff_[7]);
+						comm.checksum = buff_[8];
 					break;
 
 					case 0x000f:	// request output channel status
-						comm.data.channel.device = makeWord(line[0], line[1]);
-						comm.data.channel.port = makeWord(line[2], line[3]);
-						comm.data.channel.system = makeWord(line[4], line[5]);
-						comm.data.channel.channel = makeWord(line[6], line[7]);
-						comm.checksum = line[8];
+						comm.data.channel.device = makeWord(buff_[0], buff_[1]);
+						comm.data.channel.port = makeWord(buff_[2], buff_[3]);
+						comm.data.channel.system = makeWord(buff_[4], buff_[5]);
+						comm.data.channel.channel = makeWord(buff_[6], buff_[7]);
+						comm.checksum = buff_[8];
 					break;
 
 					case 0x0010:	// request port count
 					case 0x0017:	// request device info
-						comm.data.reqPortCount.device = makeWord(line[0], line[1]);
-						comm.data.reqPortCount.system = makeWord(line[2], line[3]);
-						comm.checksum = line[4];
+						comm.data.reqPortCount.device = makeWord(buff_[0], buff_[1]);
+						comm.data.reqPortCount.system = makeWord(buff_[2], buff_[3]);
+						comm.checksum = buff_[4];
 					break;
 
 					case 0x0011:	// request output channel count
@@ -354,37 +417,45 @@ void AMXNet::handle_read(const std::error_code& error, std::size_t n)
 					case 0x0013:	// request string size
 					case 0x0014:	// request command size
 					case 0x0016:	// request status code
-						comm.data.reqOutpChannels.device = makeWord(line[0], line[1]);
-						comm.data.reqOutpChannels.port = makeWord(line[2], line[3]);
-						comm.data.reqOutpChannels.system = makeWord(line[4], line[5]);
-						comm.checksum = line[6];
+						comm.data.reqOutpChannels.device = makeWord(buff_[0], buff_[1]);
+						comm.data.reqOutpChannels.port = makeWord(buff_[2], buff_[3]);
+						comm.data.reqOutpChannels.system = makeWord(buff_[4], buff_[5]);
+						comm.checksum = buff_[6];
 					break;
 
 					case 0x0015:	// request level size
-						comm.data.reqLevels.device = makeWord(line[0], line[1]);
-						comm.data.reqLevels.port = makeWord(line[2], line[3]);
-						comm.data.reqLevels.system = makeWord(line[4], line[5]);
-						comm.data.reqLevels.level = makeWord(line[6], line[7]);
-						comm.checksum = line[8];
+						comm.data.reqLevels.device = makeWord(buff_[0], buff_[1]);
+						comm.data.reqLevels.port = makeWord(buff_[2], buff_[3]);
+						comm.data.reqLevels.system = makeWord(buff_[4], buff_[5]);
+						comm.data.reqLevels.level = makeWord(buff_[6], buff_[7]);
+						comm.checksum = buff_[8];
 					break;
 
 					case 0x0097:	// receive device info
-						comm.data.srDeviceInfo.device = makeWord(line[0], line[1]);
-						comm.data.srDeviceInfo.system = makeWord(line[2], line[3]);
-						comm.data.srDeviceInfo.flag = makeWord(line[4], line[5]);
-						comm.data.srDeviceInfo.objectID = line[6];
-						comm.data.srDeviceInfo.parentID = line[7];
-						comm.data.srDeviceInfo.herstID = makeWord(line[8], line[9]);
-						comm.data.srDeviceInfo.deviceID = makeWord(line[10], line[11]);
-						memcpy(comm.data.srDeviceInfo.serial, &line[12], 16);
-						comm.data.srDeviceInfo.fwid = makeWord(line[28], line[29]);
-						memcpy(comm.data.srDeviceInfo.info, &line[30], comm.hlen - 0x0015 - 29);
-						comm.checksum = line[comm.hlen + 3];
+						comm.data.srDeviceInfo.device = makeWord(buff_[0], buff_[1]);
+						comm.data.srDeviceInfo.system = makeWord(buff_[2], buff_[3]);
+						comm.data.srDeviceInfo.flag = makeWord(buff_[4], buff_[5]);
+						comm.data.srDeviceInfo.objectID = buff_[6];
+						comm.data.srDeviceInfo.parentID = buff_[7];
+						comm.data.srDeviceInfo.herstID = makeWord(buff_[8], buff_[9]);
+						comm.data.srDeviceInfo.deviceID = makeWord(buff_[10], buff_[11]);
+						memcpy(comm.data.srDeviceInfo.serial, &buff_[12], 16);
+						comm.data.srDeviceInfo.fwid = makeWord(buff_[28], buff_[29]);
+						memcpy(comm.data.srDeviceInfo.info, &buff_[30], comm.hlen - 0x0015 - 29);
+						comm.checksum = buff_[comm.hlen + 3];
+						// Prepare answer
+						s.channel = false;
+						s.level = 0;
+						s.port = 0;
+						s.value = 0;
+						s.MC = 0x0097;
+						sendCommand(s);
+						sysl->TRACE(strings::String("AMXNet::handle_read: S/N: ")+(char *)&comm.data.srDeviceInfo.serial[0]+" | "+(char *)&comm.data.srDeviceInfo.info[0]);
 					break;
 
 					case 0x00a1:	// request status
-						reqDevStatus = makeWord(line[0], line[1]);
-						comm.checksum = line[2];
+						reqDevStatus = makeWord(buff_[0], buff_[1]);
+						comm.checksum = buff_[2];
 					break;
 				}
 			break;
@@ -393,22 +464,27 @@ void AMXNet::handle_read(const std::error_code& error, std::size_t n)
 				ignore = true;
 		}
 
-		sysl->TRACE(strings::String("AMXNet::handle_read: Received: ")+comm.MC);
+		if (tk == RT_DATA)
+		{
+			sysl->TRACE(strings::String("AMXNet::handle_read: Received: ")+comm.MC);
 
-		if (!ignore && !stopped_ && callback != 0)
-			callback(comm);
+			if (!ignore && !stopped_ && callback != 0)
+				callback(comm);
+		}
 
-		start_read();
+//		start_read();
 	}
 	else
 	{
-		sysl->errlog("AMXNet::handle_read: Error on receive: "+error.message());
+		sysl->errlog(std::string("AMXNet::handle_read: Error on receive: ")+error.message());
 		stop();
 	}
 }
 
 bool AMXNet::sendCommand (const ANET_SEND& s)
 {
+	sysl->TRACE(std::string("sendCommand (const ANET_SEND& s)"));
+
 	int pos;
 	bool status = false;
 	ANET_COMMAND com;
@@ -541,6 +617,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 				}
 			}
 
+			memcpy(com.data.srDeviceInfo.info, buf, pos);
 			pos++;
 			com.hlen = 0x0016 - 3 + 31 + pos;
 			comStack.push_back(com);
@@ -561,6 +638,8 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 
 void AMXNet::start_write()
 {
+	sysl->TRACE(std::string("start_write()"));
+
 	if (stopped_)
 		return;
 
@@ -593,6 +672,8 @@ void AMXNet::start_write()
 
 void AMXNet::handle_write(const std::error_code& error)
 {
+	sysl->TRACE(std::string("handle_write(const std::error_code& error)"));
+
 	if (stopped_)
 		return;
 
@@ -612,6 +693,8 @@ void AMXNet::handle_write(const std::error_code& error)
 
 void AMXNet::check_deadline()
 {
+	sysl->TRACE(std::string("check_deadline()"));
+
 	if (stopped_)
 		return;
 
@@ -650,12 +733,14 @@ uint32_t AMXNet::swapDWord(uint32_t dw)
 
 unsigned char AMXNet::calcChecksum(const unsigned char* buffer, size_t len)
 {
-	unsigned long sum;
+	sysl->TRACE(std::string("AMXNet::calcChecksum(const unsigned char* buffer, size_t len)"));
+	unsigned long sum = 0;
 
 	for (size_t i = 0; i < len; i++)
-		sum += (unsigned long)*(buffer+i);
+		sum += (unsigned long)(*(buffer+i)) & 0x000000ff;
 
 	sum &= 0x000000ff;
+	sysl->TRACE(strings::String("AMXNet::calcChecksum: Checksum=")+NameFormat::toHex((int)sum, 2)+", "+len+" bytes.");
 	return (unsigned char)sum;
 }
 
@@ -671,9 +756,11 @@ uint32_t AMXNet::makeDWord ( unsigned char b1, unsigned char b2, unsigned char b
 
 unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 {
+	sysl->TRACE(std::string("AMXNet::makeBuffer (const ANET_COMMAND& s)"));
+
 	int pos = 0;
 	bool valid = false;
-	unsigned char *buf = new unsigned char[s.hlen+4];
+	unsigned char *buf = new unsigned char[s.hlen+5];
 	*buf = s.ID;
 	*(buf+1) = s.hlen >> 8;
 	*(buf+2) = s.hlen;
@@ -883,7 +970,7 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 			*(buf+pos) = s.data.srDeviceInfo.fwid;
 			pos++;
 			memcpy(buf+pos, s.data.srDeviceInfo.info, s.hlen + 3 - pos);
-			*(buf+pos) = calcChecksum(buf, s.hlen + 3);
+			*(buf+s.hlen+2) = calcChecksum(buf, s.hlen + 3);
 			valid = true;
 		break;
 
@@ -903,5 +990,7 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 		return 0;
 	}
 
+	strings::String b((char *)buf, s.hlen+3);
+	sysl->TRACE(strings::String("AMXNet::makeBuffer:\n")+NameFormat::strToHex(b, 8, true));
 	return buf;
 }

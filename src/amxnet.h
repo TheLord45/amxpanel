@@ -221,21 +221,6 @@ namespace amx
 			bool sendCommand(const ANET_SEND& s);
 
 		private:
-			void init();
-			void start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter);
-			void handle_connect(const std::error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter);
-			void start_read();
-			void handle_read(const std::error_code& error, std::size_t n);
-			void start_write();
-			void handle_write(const std::error_code& error);
-			void check_deadline();
-			uint16_t swapWord(uint16_t w);
-			uint32_t swapDWord(uint32_t dw);
-			unsigned char calcChecksum(const unsigned char *buffer, size_t len);
-			uint16_t makeWord(unsigned char b1, unsigned char b2);
-			uint32_t makeDWord(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4);
-			unsigned char *makeBuffer(const ANET_COMMAND& s);
-
 			enum R_TOKEN
 			{
 				RT_NONE,
@@ -255,14 +240,29 @@ namespace amx
 				RT_DATA
 			};
 
+			void init();
+			void start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter);
+			void handle_connect(const std::error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter);
+			void start_read();
+			void handle_read(const asio::error_code& error, size_t n, R_TOKEN tk);
+			void start_write();
+			void handle_write(const std::error_code& error);
+			void check_deadline();
+			uint16_t swapWord(uint16_t w);
+			uint32_t swapDWord(uint32_t dw);
+			unsigned char calcChecksum(const unsigned char *buffer, size_t len);
+			uint16_t makeWord(unsigned char b1, unsigned char b2);
+			uint32_t makeDWord(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4);
+			unsigned char *makeBuffer(const ANET_COMMAND& s);
+
 			bool stopped_ = false;
 			asio::ip::tcp::resolver::results_type endpoints_;
 			asio::ip::tcp::socket socket_;
-			std::string input_buffer_;
+			strings::String input_buffer_;
+			unsigned char buff_[2048];
 			asio::steady_timer deadline_;
 			asio::steady_timer heartbeat_timer_;
 			std::function<void(const ANET_COMMAND&)> callback;
-			R_TOKEN readToken;
 			bool protError;				// true = error on receive --> disconnect
 			uint16_t reqDevStatus;
 			ANET_COMMAND comm;				// received command
