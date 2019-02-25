@@ -273,6 +273,7 @@ namespace amx
 			strings::String version;
 			strings::String manufacturer;
 			bool write_busy;
+			bool identified;
 	};
 }
 
