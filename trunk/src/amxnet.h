@@ -31,7 +31,7 @@ namespace amx
 		uint16_t MC;			// message command number
 		uint16_t port;			// port number
 		uint16_t level;			// level number (if any)
-		bool channel;			// channel status
+		uint16_t channel;		// channel status
 		uint16_t value;			// level value
 		strings::String msg;	// message string
 	}ANET_SEND;
@@ -76,6 +76,16 @@ namespace amx
 		unsigned char type;		// Definnes the type of content (0x01 = 8 bit chars, 0x02 = 16 bit chars --> wide chars)
 		uint16_t length;		// length of following content
 	}ANET_ASIZE;
+
+	typedef struct
+	{
+		uint16_t device;		// device number
+		uint16_t port;			// port number
+		uint16_t system;		// system number
+		uint16_t level;			// level number
+		unsigned char num;		// number of supported types
+		unsigned char types[6];	// Type codes
+	}ANET_LEVSUPPORT;
 
 	typedef struct
 	{
@@ -168,6 +178,7 @@ namespace amx
 		ANET_ASTATCODE sendStatusCode;
 		ANET_ASIZE sendSize;
 		ANET_LEVEL reqLevels;
+		ANET_LEVSUPPORT sendLevSupport;
 		ANET_ADEVINFO srDeviceInfo;		// send/receive device info
 	}ANET_DATA;
 
@@ -208,6 +219,23 @@ namespace amx
 			checksum = 0;
 		}
 	}ANET_COMMAND;
+
+	typedef struct DEVICE_INFO
+	{
+		unsigned char objectID;		// Unique 8-bit identifier that identifies this structure of information
+		unsigned char parentID;		// Refers to an existing object ID. If 0, has this object to any parent object (parent).
+		uint16_t manufacturerID;	// Value that uniquely identifies the manufacture of the device.
+		uint16_t deviceID;			// Value that uniquely identifies the device type.
+		char serialNum[16];			// Fixed length of 16 bytes.
+		uint16_t firmwareID;		// Value that uniquely identifies the object code that the device requires.
+		// NULL terminated text field
+		char versionInfo[16];		// A closed with NULL text string that specifies the version of the reprogrammable component.
+		char deviceInfo[32];		// A closed with NULL text string that specifies the name or model number of the device.
+		char manufacturerInfo[32];	// A closed with NULL text string that specifies the name of the device manufacturer.
+		unsigned char format;		// Value that indicates the type of device specific addressing information following.
+		unsigned char len;			// Value that indicates the length of the following device-specific addressing information.
+		unsigned char addr[8];		// Extended address as indicated by the type and length of the extended address.
+	}DEVICE_INFO;
 
 	class AMXNet
 	{
@@ -255,9 +283,7 @@ namespace amx
 			uint16_t makeWord(unsigned char b1, unsigned char b2);
 			uint32_t makeDWord(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4);
 			unsigned char *makeBuffer(const ANET_COMMAND& s);
-			int msg97fill1(ANET_COMMAND *com);
-			int msg97fill2(ANET_COMMAND *com);
-			int msg97fill3(ANET_COMMAND *com);
+			int msg97fill(ANET_COMMAND *com);
 
 			bool stopped_ = false;
 			asio::ip::tcp::resolver::results_type endpoints_;
@@ -273,11 +299,10 @@ namespace amx
 			ANET_COMMAND send;				// answer / request
 			uint16_t sendCounter;		// Counter increment on every send
 			std::vector<ANET_COMMAND> comStack;	// commands to answer
-			strings::String serial;
-			strings::String version;
-			strings::String manufacturer;
+			bool initSend;				// TRUE = all init messages are send.
+			bool ready;					// TRUE = ready for communication
 			bool write_busy;
-			int identStatus;	// Counter for message ID 0x97
+			std::vector<DEVICE_INFO> devInfo;
 	};
 }
 

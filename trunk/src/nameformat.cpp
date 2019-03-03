@@ -267,7 +267,7 @@ String NameFormat::strToHex(String str, int width, bool format)
 		return left;
 	else if (pos > 0)
 	{
-		for (int i = 0; i < (pos % width); i++)
+		for (int i = 0; i < (width - (pos % width)); i++)
 			left.append("   ");
 
 		out += toHex(old, 4)+": "+left + "  | " + right;

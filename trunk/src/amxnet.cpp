@@ -70,12 +70,69 @@ AMXNet::~AMXNet()
 
 void AMXNet::init()
 {
-	identStatus = 0;
 	sendCounter = 0;
+	initSend = false;
+	ready = false;
 	write_busy = false;
-	serial = "201812XTHE74201";
-	version = "v1.00.00";
-	manufacturer = "TheoSys";
+	// Initialize the devive info structure
+	DEVICE_INFO di;
+	// Answer to MC = 0x0017 --> MC = 0x0097
+	di.objectID = 0;
+	di.parentID = 0;
+	di.manufacturerID = 1;
+	di.deviceID = 0x0149;
+	memset(di.serialNum, 0x20, sizeof(di.serialNum));
+	memcpy(di.serialNum, "201903XTHE74201", 15);
+	di.firmwareID = 0x0311;
+	memset(di.versionInfo, 0, sizeof(di.versionInfo));
+	strncpy(di.versionInfo, "v1.00.00", 8);
+	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
+	strncpy(di.deviceInfo, Configuration->getAMXPanelType().data(), ((Configuration->getAMXPanelType().length() < sizeof(di.deviceInfo))?Configuration->getAMXPanelType().length():(sizeof(di.deviceInfo)-1)));
+	memset(di.manufacturerInfo, 0, sizeof(di.manufacturerInfo));
+//	strncpy(di.manufacturerInfo, "TheoSys", 7);
+	strncpy(di.manufacturerInfo, "AMX LLC", 7);
+	di.format = 2;
+	di.len = 4;
+	memset(di.addr, 0, sizeof(di.addr));
+	devInfo.push_back(di);
+	// Kernel info
+	di.objectID = 2;
+	di.firmwareID = 0x0312;
+	memset(di.serialNum, 0x20, sizeof(di.serialNum));
+	memcpy(di.serialNum, "N/A", 3);
+	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
+	strncpy(di.deviceInfo, "Kernel", 6);
+	devInfo.push_back(di);
+	// Root file system
+	di.objectID = 3;
+	di.firmwareID = 0x0313;
+	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
+	strncpy(di.deviceInfo, "Root File System", 16);
+	devInfo.push_back(di);
+	// Bootrom
+	di.objectID = 4;
+	di.firmwareID = 0x0314;
+	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
+	strncpy(di.deviceInfo, "Bootrom", 7);
+	devInfo.push_back(di);
+	// Sensor
+	di.objectID = 5;
+	di.firmwareID = 0x0315;
+	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
+	strncpy(di.deviceInfo, "Sensor", 6);
+	devInfo.push_back(di);
+	// File System
+	di.objectID = 6;
+	di.firmwareID = 0x0316;
+	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
+	strncpy(di.deviceInfo, "File System", 11);
+	devInfo.push_back(di);
+	// Fpga
+	di.objectID = 8;
+	di.firmwareID = 0x0319;
+	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
+	strncpy(di.deviceInfo, "Fpga", 4);
+	devInfo.push_back(di);
 }
 
 void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints)
@@ -279,7 +336,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 		input_buffer_.assign((char *)&buff_[0], len);
 
 		if (len >= 8)
-			sysl->DebugMsg(strings::String("AMXNet::handle_read: read:\n")+NameFormat::strToHex(input_buffer_, 8, true)+", Token: "+tk+", "+len+" bytes");
+			sysl->DebugMsg(strings::String("AMXNet::handle_read: read:\n")+NameFormat::strToHex(input_buffer_, 8, true)+"\n\t\t\t\t\tToken: "+tk+", "+len+" bytes");
 		else
 			sysl->DebugMsg(strings::String("AMXNet::handle_read: read: ")+NameFormat::strToHex(input_buffer_, 1)+", Token: "+tk+", "+len+" bytes");
 
@@ -345,6 +402,19 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.chan_state.system = makeWord(buff_[4], buff_[5]);
 						comm.data.chan_state.channel = makeWord(buff_[6], buff_[7]);
 						comm.checksum = buff_[8];
+
+						s.channel = comm.data.chan_state.channel;
+						s.level = 0;
+						s.port = comm.data.chan_state.port;
+						s.value = 0;
+
+						switch(comm.MC)
+						{
+							case 0x0006: s.MC = 0x0086; break;
+							case 0x0007: s.MC = 0x0087; break;
+						}
+
+						sendCommand(s);
 					break;
 
 					case 0x000a:	// level value change
@@ -426,16 +496,26 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						s.channel = false;
 						s.level = 0;
 						s.port = 0;
-						s.value = 0;
-						s.MC = 0x0098;
-						sendCommand(s);
+						s.value = 0x0015;
+						s.MC = (comm.MC == 0x0010) ? 0x0090 : 0x0097;
+
+						if (s.MC == 0x0097)
+						{
+							comm.data.srDeviceInfo.device = comm.device2;
+							comm.data.srDeviceInfo.system = comm.system;
+							comm.data.srDeviceInfo.flag = 0x0000;
+							comm.data.srDeviceInfo.parentID = 0;
+							comm.data.srDeviceInfo.herstID = 1;
+							msg97fill(&comm);
+						}
+						else
+							sendCommand(s);
 					break;
 
 					case 0x0011:	// request output channel count
 					case 0x0012:	// request level count
 					case 0x0013:	// request string size
 					case 0x0014:	// request command size
-					case 0x0016:	// request status code
 						comm.data.reqOutpChannels.device = makeWord(buff_[0], buff_[1]);
 						comm.data.reqOutpChannels.port = makeWord(buff_[2], buff_[3]);
 						comm.data.reqOutpChannels.system = makeWord(buff_[4], buff_[5]);
@@ -447,11 +527,22 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 						switch (comm.MC)
 						{
-							case 0x0011: s.MC = 0x0091; break;
-							case 0x0012: s.MC = 0x0092; break;
-							case 0x0013: s.MC = 0x0093; break;
-							case 0x0014: s.MC = 0x0094; break;
-							case 0x0016: s.MC = 0x0098; break;
+							case 0x0011:
+								s.MC = 0x0091;
+								s.value = 0x0f75;	// # channels
+							break;
+							case 0x0012:
+								s.MC = 0x0092;
+								s.value = 0x000d;	// # levels
+							break;
+							case 0x0013:
+								s.MC = 0x0093;
+								s.value = 0x00c7;	// string size
+							break;
+							case 0x0014:
+								s.MC = 0x0094;
+								s.value = 0x00c7;	// command size
+							break;
 						}
 
 						sendCommand(s);
@@ -467,9 +558,26 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						s.level = comm.data.reqLevels.level;
 						s.port = comm.data.reqLevels.port;
 						s.value = 0;
-						s.MC = 0x0015;
+						s.MC = 0x0095;
 						sendCommand(s);
-						break;
+					break;
+
+					case 0x0016:	// request status code
+						comm.data.sendStatusCode.device = makeWord(buff_[0], buff_[1]);
+						comm.data.sendStatusCode.port = makeWord(buff_[2], buff_[3]);
+						comm.data.sendStatusCode.system = makeWord(buff_[4], buff_[5]);
+						comm.data.sendStatusCode.status = 0;
+						comm.data.sendStatusCode.type = 0x11;	// Char string
+						comm.data.sendStatusCode.length = 2;
+						comm.data.sendStatusCode.str[0] = 'O';
+						comm.data.sendStatusCode.str[1] = 'K';
+						s.channel = false;
+						s.level = 0;
+						s.port = comm.data.sendStatusCode.port;
+						s.value = 0;
+						s.MC = 0x0096;
+						sendCommand(s);
+					break;
 
 					case 0x0097:	// receive device info
 						comm.data.srDeviceInfo.device = makeWord(buff_[0], buff_[1]);
@@ -488,8 +596,38 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						s.level = 0;
 						s.port = 0;
 						s.value = 0;
-						s.MC = 0x0097;
+
+						if (!initSend)
+						{
+							s.MC = 0x0097;
+							initSend = true;
+						}
+						else if (!ready)
+						{
+							// Send counts
+							s.MC = 0x0090;
+							s.value = 0x0015;	// # ports
+							sendCommand(s);
+							s.MC = 0x0091;
+							s.value = 0x0f75;	// # channels
+							sendCommand(s);
+							s.MC = 0x0092;
+							s.value = 0x000d;	// # levels
+							sendCommand(s);
+							s.MC = 0x0093;
+							s.value = 0x00c7;	// string size
+							sendCommand(s);
+							s.MC = 0x0094;
+							s.value = 0x00c7;	// command size
+							sendCommand(s);
+							s.MC = 0x0098;
+							ready = true;
+						}
+						else
+							break;
+
 						sendCommand(s);
+
 						sysl->TRACE(strings::String("AMXNet::handle_read: S/N: ")+(char *)&comm.data.srDeviceInfo.serial[0]+" | "+(char *)&comm.data.srDeviceInfo.info[0]);
 					break;
 
@@ -560,8 +698,27 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			status = true;
 		break;
 
+		case 0x0086:
+			com.data.channel.device = com.device2;
+			com.data.channel.port = s.port;
+			com.data.channel.system = com.system;
+			com.data.channel.channel = s.channel;
+			com.hlen = 0x0016 - 0x0003 + sizeof(ANET_CHANNEL);
+			comStack.push_back(com);
+			status = true;
+		break;
+
+		case 0x0087:
+			com.data.channel.device = com.device2;
+			com.data.channel.port = s.port;
+			com.data.channel.system = com.system;
+			com.data.channel.channel = s.channel;
+			com.hlen = 0x0016 - 0x0003 + sizeof(ANET_CHANNEL);
+			comStack.push_back(com);
+			status = true;
+			break;
+
 		case 0x008a:		// level value changed
-		case 0x0095:		// level size
 			com.data.message_value.device = com.device2;
 			com.data.message_value.port = s.port;
 			com.data.message_value.system = com.system;
@@ -624,6 +781,35 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			status = true;
 		break;
 
+		case 0x0095:		// suported level types
+			com.data.sendLevSupport.device = com.device2;
+			com.data.sendLevSupport.port = s.port;
+			com.data.sendLevSupport.system = com.system;
+			com.data.sendLevSupport.level = s.level;
+			com.data.sendLevSupport.num = 6;
+			com.data.sendLevSupport.types[0] = 0x10;
+			com.data.sendLevSupport.types[1] = 0x11;
+			com.data.sendLevSupport.types[2] = 0x20;
+			com.data.sendLevSupport.types[3] = 0x21;
+			com.data.sendLevSupport.types[4] = 0x40;
+			com.data.sendLevSupport.types[5] = 0x41;
+			com.hlen = 0x0016 - 0x0003 + sizeof(ANET_LEVSUPPORT);
+			comStack.push_back(com);
+		break;
+
+		case 0x0096:		// Status code
+			com.data.sendStatusCode.device = com.device2;
+			com.data.sendStatusCode.port = s.port;
+			com.data.sendStatusCode.system = com.system;
+			com.data.sendStatusCode.status = 0;
+			com.data.sendStatusCode.type = 0x11;
+			com.data.sendStatusCode.length = 2;
+			com.data.sendStatusCode.str[0] = 'O';
+			com.data.sendStatusCode.str[1] = 'K';
+			com.hlen = 0x0016 - 3 + 13;
+			comStack.push_back(com);
+		break;
+
 		case 0x0097:		// device info
 			com.data.srDeviceInfo.device = com.device2;
 			com.data.srDeviceInfo.system = com.system;
@@ -631,16 +817,8 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.srDeviceInfo.objectID = 0;
 			com.data.srDeviceInfo.parentID = 0;
 			com.data.srDeviceInfo.herstID = 1;
-
-			switch (identStatus)
-			{
-				case 0: msg97fill1(&com); break;
-				case 1: msg97fill2(&com); break;
-				case 2: msg97fill3(&com); break;
-			}
-
+			msg97fill(&com);
 			status = true;
-			identStatus++;
 		break;
 
 		case 0x0098:
@@ -655,121 +833,33 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 	return status;
 }
 
-int AMXNet::msg97fill1(ANET_COMMAND *com)
+int AMXNet::msg97fill(ANET_COMMAND *com)
 {
-	int pos = 0;
+	int pos;
 	unsigned char buf[128];
 
-	memset(buf, 0, sizeof(buf));
-	com->data.srDeviceInfo.deviceID = 0x0123;
-	memcpy(com->data.srDeviceInfo.serial, serial.data(), 16);
-	com->data.srDeviceInfo.fwid = 0x0135;
-	memcpy(buf, version.data(), version.length());
-	pos = version.length() + 1;
-	memcpy(buf+pos, Configuration->getAMXPanelType().data(), Configuration->getAMXPanelType().length());
-	pos += Configuration->getAMXPanelType().length() + 1;
-	memcpy(buf+pos, manufacturer.data(), manufacturer.length());
-	pos += manufacturer.length()+1;
-	*(buf+pos) = 0x02;	// type IP address
-	pos++;
-	*(buf+pos) = 0x04;	// field length: 4 bytes
-	// Now the IP Address
-	strings::String addr = socket_.local_endpoint().address().to_string();
-	std::vector<strings::String> parts = addr.split('.');
-
-	for (size_t i = 0; i < parts.size(); i++)
+	for (size_t i = 0; i < devInfo.size(); i++)
 	{
-		pos++;
-		*(buf+pos) = (unsigned char)atoi(parts[i].data());
-	}
+		pos = 0;
 
-	pos++;
-	com->data.srDeviceInfo.len = pos;
-	memcpy(com->data.srDeviceInfo.info, buf, pos);
-	com->hlen = 0x0016 - 3 + 31 + pos;
-	comStack.push_back(*com);
-	return pos;
-}
+		if (i == 0)
+			com->sep1 = 0x12;
+		else
+			com->sep1 = 0x02;
 
-int AMXNet::msg97fill2(ANET_COMMAND *com)
-{
-	int pos = 0;
-	unsigned char buf[128];
-
-	memset(buf, 0, sizeof(buf));
-	com->data.srDeviceInfo.deviceID = 0x0123;
-	memcpy(com->data.srDeviceInfo.serial, "N/A             ", 16);
-	com->data.srDeviceInfo.fwid = 0x0137;
-	memcpy(buf, version.data(), version.length());
-	pos = version.length() + 1;
-	memcpy(buf+pos, "Root File System", 16);
-	pos += 17;
-	memcpy(buf+pos, manufacturer.data(), manufacturer.length());
-	pos += manufacturer.length()+1;
-	*(buf+pos) = 0x02;	// type IP address
-	pos++;
-	*(buf+pos) = 0x04;	// field length: 4 bytes
-	// Now the IP Address
-	strings::String addr = socket_.local_endpoint().address().to_string();
-	std::vector<strings::String> parts = addr.split('.');
-
-	for (size_t i = 0; i < parts.size(); i++)
-	{
-		pos++;
-		*(buf+pos) = (unsigned char)atoi(parts[i].data());
-	}
-
-	pos++;
-	com->data.srDeviceInfo.len = pos;
-	memcpy(com->data.srDeviceInfo.info, buf, pos);
-	com->hlen = 0x0016 - 3 + 31 + pos;
-	comStack.push_back(*com);
-	return pos;
-}
-
-int AMXNet::msg97fill3(ANET_COMMAND *com)
-{
-	int pos = 0;
-	unsigned char buf[128];
-
-	com->data.srDeviceInfo.deviceID = 0x0123;
-	memcpy(com->data.srDeviceInfo.serial, "N/A             ", 16);
-
-	for (int i = 0; i < 3; i++)
-	{
 		memset(buf, 0, sizeof(buf));
-		memcpy(buf, version.data(), version.length());
-		pos = version.length() + 1;
-
-		switch (i)
-		{
-			case 0:
-				com->data.srDeviceInfo.fwid = 0x0138;
-				memcpy(buf+pos, "Bootrom", 7);
-				pos += 8;
-			break;
-
-			case 1:
-				com->data.srDeviceInfo.fwid = 0x0139;
-				memcpy(buf+pos, "Sensor", 6);
-				pos += 7;
-			break;
-
-			case 2:
-				com->data.srDeviceInfo.fwid = 0x013a;
-				memcpy(buf+pos, "Opt File System", 15);
-				pos += 16;
-			break;
-
-			case 3:
-				com->data.srDeviceInfo.fwid = 0x013f;
-				memcpy(buf+pos, "Fpga", 4);
-				pos += 5;
-			break;
-		}
-
-		memcpy(buf+pos, manufacturer.data(), manufacturer.length());
-		pos += manufacturer.length()+1;
+		com->data.srDeviceInfo.objectID = devInfo[i].objectID;
+		com->data.srDeviceInfo.parentID = devInfo[i].parentID;
+		com->data.srDeviceInfo.herstID = devInfo[i].manufacturerID;
+		com->data.srDeviceInfo.deviceID = devInfo[i].deviceID;
+		memcpy(com->data.srDeviceInfo.serial, devInfo[i].serialNum, 16);
+		com->data.srDeviceInfo.fwid = devInfo[i].firmwareID;
+		memcpy(buf, devInfo[i].versionInfo, strlen(devInfo[i].versionInfo));
+		pos = strlen(devInfo[i].versionInfo) + 1;
+		memcpy(buf+pos, devInfo[i].deviceInfo, strlen(devInfo[i].deviceInfo));
+		pos += strlen(devInfo[i].deviceInfo) + 1;
+		memcpy(buf+pos, devInfo[i].manufacturerInfo, strlen(devInfo[i].manufacturerInfo));
+		pos += strlen(devInfo[i].manufacturerInfo)+1;
 		*(buf+pos) = 0x02;	// type IP address
 		pos++;
 		*(buf+pos) = 0x04;	// field length: 4 bytes
@@ -786,7 +876,7 @@ int AMXNet::msg97fill3(ANET_COMMAND *com)
 		pos++;
 		com->data.srDeviceInfo.len = pos;
 		memcpy(com->data.srDeviceInfo.info, buf, pos);
-		com->hlen = 0x0016 - 3 + 31 + pos;
+		com->hlen = 0x0016 - 3 + 31 + pos - 1;
 		comStack.push_back(*com);
 	}
 
@@ -817,7 +907,7 @@ void AMXNet::start_write()
 			continue;
 		}
 
-		asio::async_write(socket_, asio::buffer(buf, send.hlen + 3), std::bind(&AMXNet::handle_write, this, _1));
+		asio::async_write(socket_, asio::buffer(buf, send.hlen + 4), std::bind(&AMXNet::handle_write, this, _1));
 		delete[] buf;
 	}
 
@@ -914,7 +1004,19 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 
 	int pos = 0;
 	bool valid = false;
-	unsigned char *buf = new unsigned char[s.hlen+5];
+	unsigned char *buf;
+
+	try
+	{
+		buf = new unsigned char[s.hlen+5];
+		memset(buf, 0, s.hlen+5);
+	}
+	catch(std::exception& e)
+	{
+		sysl->errlog(std::string("AMXNet::makeBuffer: Error allocating memory: ")+e.what());
+		return 0;
+	}
+
 	*buf = s.ID;
 	*(buf+1) = s.hlen >> 8;
 	*(buf+2) = s.hlen;
@@ -965,7 +1067,6 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 
 		case 0x000a:
 		case 0x008a:
-		case 0x0095:
 			*(buf+22) = s.data.message_value.device >> 8;
 			*(buf+23) = s.data.message_value.device;
 			*(buf+24) = s.data.message_value.port >> 8;
@@ -1084,6 +1185,26 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 			valid = true;
 		break;
 
+		case 0x0095:
+			*(buf+22) = s.data.sendLevSupport.device >> 8;
+			*(buf+23) = s.data.sendLevSupport.device;
+			*(buf+24) = s.data.sendLevSupport.port >> 8;
+			*(buf+25) = s.data.sendLevSupport.port;
+			*(buf+26) = s.data.sendLevSupport.system >> 8;
+			*(buf+27) = s.data.sendLevSupport.system;
+			*(buf+28) = s.data.sendLevSupport.level >> 8;
+			*(buf+29) = s.data.sendLevSupport.level;
+			*(buf+30) = s.data.sendLevSupport.num;
+			*(buf+31) = s.data.sendLevSupport.types[0];
+			*(buf+32) = s.data.sendLevSupport.types[1];
+			*(buf+33) = s.data.sendLevSupport.types[2];
+			*(buf+34) = s.data.sendLevSupport.types[3];
+			*(buf+35) = s.data.sendLevSupport.types[4];
+			*(buf+36) = s.data.sendLevSupport.types[5];
+			*(buf+37) = calcChecksum(buf, 37);
+			valid = true;
+		break;
+
 		case 0x0096:
 			*(buf+22) = s.data.sendStatusCode.device >> 8;
 			*(buf+23) = s.data.sendStatusCode.device;
@@ -1145,7 +1266,7 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 		return 0;
 	}
 
-	strings::String b((char *)buf, s.hlen+3);
+	strings::String b((char *)buf, s.hlen+4);
 	sysl->TRACE(strings::String("AMXNet::makeBuffer:\n")+NameFormat::strToHex(b, 8, true));
 	return buf;
 }
