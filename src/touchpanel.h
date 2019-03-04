@@ -74,6 +74,7 @@ namespace amx
 			void setCommand(const struct ANET_COMMAND& cmd);
 			void webMsg(std::string& msg);
 			bool startClient();
+			void stopClient();
 
 		private:
 			void writeStyles(std::fstream& pgFile);

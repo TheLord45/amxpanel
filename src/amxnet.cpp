@@ -14,6 +14,7 @@
  * from Andreas Theofilu.
  */
 
+#include <sys/utsname.h>
 #ifdef __APPLE__
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/io_context.hpp>
@@ -74,6 +75,7 @@ void AMXNet::init()
 	initSend = false;
 	ready = false;
 	write_busy = false;
+	strings::String version = "v1.00.00";
 	// Initialize the devive info structure
 	DEVICE_INFO di;
 	// Answer to MC = 0x0017 --> MC = 0x0097
@@ -83,55 +85,52 @@ void AMXNet::init()
 	di.deviceID = 0x0149;
 	memset(di.serialNum, 0x20, sizeof(di.serialNum));
 	memcpy(di.serialNum, "201903XTHE74201", 15);
-	di.firmwareID = 0x0311;
+	di.firmwareID = 0x0310;
 	memset(di.versionInfo, 0, sizeof(di.versionInfo));
-	strncpy(di.versionInfo, "v1.00.00", 8);
+	strncpy(di.versionInfo, version.data(), version.length());
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
 	strncpy(di.deviceInfo, Configuration->getAMXPanelType().data(), ((Configuration->getAMXPanelType().length() < sizeof(di.deviceInfo))?Configuration->getAMXPanelType().length():(sizeof(di.deviceInfo)-1)));
 	memset(di.manufacturerInfo, 0, sizeof(di.manufacturerInfo));
-//	strncpy(di.manufacturerInfo, "TheoSys", 7);
-	strncpy(di.manufacturerInfo, "AMX LLC", 7);
+	strncpy(di.manufacturerInfo, "TheoSys", 7);
 	di.format = 2;
 	di.len = 4;
 	memset(di.addr, 0, sizeof(di.addr));
 	devInfo.push_back(di);
 	// Kernel info
 	di.objectID = 2;
-	di.firmwareID = 0x0312;
+	di.firmwareID = 0x0311;
 	memset(di.serialNum, 0x20, sizeof(di.serialNum));
 	memcpy(di.serialNum, "N/A", 3);
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
 	strncpy(di.deviceInfo, "Kernel", 6);
+	memset(di.versionInfo, 0, sizeof(di.versionInfo));
+#ifdef __linux__
+	struct utsname kinfo;
+	uname(&kinfo);
+	strncpy (di.versionInfo, kinfo.release, sizeof(di.versionInfo));
+#else
+	strncpy(di.versionInfo, "2.16.00", 7);
+#endif
 	devInfo.push_back(di);
+	memset(di.versionInfo, 0, sizeof(di.versionInfo));
+	strncpy(di.versionInfo, version.data(), version.length());
 	// Root file system
 	di.objectID = 3;
-	di.firmwareID = 0x0313;
+	di.firmwareID = 0x0312;
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
 	strncpy(di.deviceInfo, "Root File System", 16);
 	devInfo.push_back(di);
 	// Bootrom
 	di.objectID = 4;
-	di.firmwareID = 0x0314;
+	di.firmwareID = 0x0313;
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
 	strncpy(di.deviceInfo, "Bootrom", 7);
 	devInfo.push_back(di);
-	// Sensor
-	di.objectID = 5;
-	di.firmwareID = 0x0315;
-	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
-	strncpy(di.deviceInfo, "Sensor", 6);
-	devInfo.push_back(di);
 	// File System
 	di.objectID = 6;
-	di.firmwareID = 0x0316;
+	di.firmwareID = 0x0315;
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
 	strncpy(di.deviceInfo, "File System", 11);
-	devInfo.push_back(di);
-	// Fpga
-	di.objectID = 8;
-	di.firmwareID = 0x0319;
-	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
-	strncpy(di.deviceInfo, "Fpga", 4);
 	devInfo.push_back(di);
 }
 
@@ -414,7 +413,10 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 							case 0x0007: s.MC = 0x0087; break;
 						}
 
-						sendCommand(s);
+						if (comm.MC < 0x0020)
+							callback(comm);
+						else
+							sendCommand(s);
 					break;
 
 					case 0x000a:	// level value change
@@ -443,6 +445,8 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 							case 0x08f: memcpy(&comm.data.message_value.content.dvalue, &buff_[9], 8); comm.checksum = buff_[17]; break;	// FIXME: wrong byte order on Intel CPU
 						}
+
+						callback(comm);
 					break;
 
 					case 0x000b:	// string value change
@@ -458,6 +462,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						memcpy(&comm.data.message_string.content[0], &buff_[9], len);
 						pos = len + 10;
 						comm.checksum = buff_[pos];
+						callback(comm);
 					break;
 
 					case 0x000e:	// request level value
@@ -466,12 +471,13 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.level.system = makeWord(buff_[4], buff_[5]);
 						comm.data.level.level = makeWord(buff_[6], buff_[7]);
 						comm.checksum = buff_[8];
-						s.channel = false;
+						callback(comm);
+/*						s.channel = false;
 						s.level = 0;
 						s.port = 0;
 						s.value = 0;
 						s.MC = 0x000e;
-						sendCommand(s);
+						sendCommand(s); */
 					break;
 
 					case 0x000f:	// request output channel status
@@ -480,12 +486,13 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.channel.system = makeWord(buff_[4], buff_[5]);
 						comm.data.channel.channel = makeWord(buff_[6], buff_[7]);
 						comm.checksum = buff_[8];
-						s.channel = false;
+						callback(comm);
+/*						s.channel = false;
 						s.level = 0;
 						s.port = 0;
 						s.value = 0;
 						s.MC = 0x000f;
-						sendCommand(s);
+						sendCommand(s); */
 					break;
 
 					case 0x0010:	// request port count
@@ -566,17 +573,18 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.sendStatusCode.device = makeWord(buff_[0], buff_[1]);
 						comm.data.sendStatusCode.port = makeWord(buff_[2], buff_[3]);
 						comm.data.sendStatusCode.system = makeWord(buff_[4], buff_[5]);
-						comm.data.sendStatusCode.status = 0;
-						comm.data.sendStatusCode.type = 0x11;	// Char string
-						comm.data.sendStatusCode.length = 2;
-						comm.data.sendStatusCode.str[0] = 'O';
-						comm.data.sendStatusCode.str[1] = 'K';
-						s.channel = false;
+//						comm.data.sendStatusCode.status = 0;
+//						comm.data.sendStatusCode.type = 0x11;	// Char string
+//						comm.data.sendStatusCode.length = 2;
+//						comm.data.sendStatusCode.str[0] = 'O';
+//						comm.data.sendStatusCode.str[1] = 'K';
+						callback(comm);
+/*						s.channel = false;
 						s.level = 0;
 						s.port = comm.data.sendStatusCode.port;
 						s.value = 0;
 						s.MC = 0x0096;
-						sendCommand(s);
+						sendCommand(s); */
 					break;
 
 					case 0x0097:	// receive device info
@@ -634,6 +642,17 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 					case 0x00a1:	// request status
 						reqDevStatus = makeWord(buff_[0], buff_[1]);
 						comm.checksum = buff_[2];
+					break;
+
+					case 0x0501:    // ping
+						comm.data.chan_state.device = makeWord(buff_[0], buff_[1]);
+						comm.data.chan_state.system = makeWord(buff_[2], buff_[3]);
+						s.channel = 0;
+						s.level = 0;
+						s.port = 0;
+						s.value = 0;
+						s.MC = 0x0581;
+						sendCommand(s);
 					break;
 				}
 			break;
@@ -825,6 +844,27 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.reqPortCount.device = com.device2;
 			com.data.reqPortCount.system = com.system;
 			com.hlen = 0x0016 - 3 + 4;
+			comStack.push_back(com);
+			status = true;
+		break;
+
+		case 0x0581:		// Pong
+			com.data.srDeviceInfo.device = Configuration->getAMXChannel();
+			com.data.srDeviceInfo.system = Configuration->getAMXSystem();
+			com.data.srDeviceInfo.herstID = devInfo[0].manufacturerID;
+			com.data.srDeviceInfo.deviceID = devInfo[0].deviceID;
+			com.data.srDeviceInfo.info[0] = 2;	// Type: IPv4 address
+			com.data.srDeviceInfo.info[1] = 4;	// length of following data
+
+			{
+				strings::String addr = socket_.local_endpoint().address().to_string();
+				std::vector<strings::String> parts = addr.split('.');
+
+				for (size_t i = 0; i < parts.size(); i++)
+					com.data.srDeviceInfo.info[i+2] = (unsigned char)atoi(parts[i].data());
+			}
+
+			com.hlen = 0x0016 - 3 + 14;
 			comStack.push_back(com);
 			status = true;
 		break;
@@ -1256,6 +1296,25 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 			*(buf+24) = s.data.reqPortCount.system >> 8;
 			*(buf+25) = s.data.reqPortCount.system;
 			*(buf+26) = calcChecksum(buf, 26);
+			valid = true;
+		break;
+
+		case 0x0581:	// Pong
+			*(buf+22) = s.data.srDeviceInfo.device >> 8;
+			*(buf+23) = s.data.srDeviceInfo.device;
+			*(buf+24) = s.data.srDeviceInfo.system >> 8;
+			*(buf+25) = s.data.srDeviceInfo.system;
+			*(buf+26) = s.data.srDeviceInfo.herstID >> 8;
+			*(buf+27) = s.data.srDeviceInfo.herstID;
+			*(buf+28) = s.data.srDeviceInfo.deviceID >> 8;
+			*(buf+29) = s.data.srDeviceInfo.deviceID;
+			*(buf+30) = s.data.srDeviceInfo.info[0];
+			*(buf+31) = s.data.srDeviceInfo.info[1];
+			*(buf+32) = s.data.srDeviceInfo.info[2];
+			*(buf+33) = s.data.srDeviceInfo.info[3];
+			*(buf+34) = s.data.srDeviceInfo.info[4];
+			*(buf+35) = s.data.srDeviceInfo.info[5];
+			*(buf+36) = calcChecksum(buf, 36);
 			valid = true;
 		break;
 	}

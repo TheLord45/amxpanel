@@ -54,15 +54,11 @@ int main(int /* argc */, const char **argv)
 	Daemonize daemon;
 	daemon.daemon_start(true);
 	daemon.changeToUser(Configuration->getUser().toString(), Configuration->getGroup().toString());
-	sysl->TRACE(String("Starting up Server ..."));
-//	http::server::Server server(Configuration->getListen().toString(), Configuration->getPort(), Configuration->getHTTProot().toString());
 	sysl->log(Syslog::INFO, pName + " v" + VERSION + ": Startup finished. All components should run now.");
 	// Create the panel
 	pTouchPanel = new amx::TouchPanel();
 	pTouchPanel->parsePages();
 	pTouchPanel->startClient();		// Connect to controller and listen
-
-//	server.run();
 
 	// Upon the previous function exits, clean up end exit.
 	sysl->TRACE(Syslog::EXIT, std::string("main(int /* argc */, const char **argv)"));
