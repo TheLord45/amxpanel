@@ -32,7 +32,9 @@ namespace amx
 	static server sock_server;
 	static bool connected = false;
 	static bool cbInit = false;
+    static bool cbInitStop = false;
 	static std::function<void(std::string&)> fcall;
+	static std::function<void()> fcallStop;
 
 	class WebSocket
 	{
@@ -41,6 +43,7 @@ namespace amx
 			~WebSocket();
 
 			static void regCallback(std::function<void(std::string&)> func) { fcall = func; cbInit = true; }
+			static void regCallbackStop(std::function<void()> func) { fcallStop = func; cbInitStop = true; }
 			void run();
 			bool send(strings::String& msg);
 			static server& getServer() { return sock_server; }

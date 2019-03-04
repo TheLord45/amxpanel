@@ -47,10 +47,11 @@ TouchPanel::TouchPanel()
 	openPage = 0;
 	busy = false;
 	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1));
+	regCallbackStop(bind(&TouchPanel::stopClient, this));
 	readPages();
 	amxnet = 0;
 	// Start thread for websocket
-/*	try
+	try
 	{
 		thread thr = thread([=] { run(); });
 		thr.detach();
@@ -58,7 +59,7 @@ TouchPanel::TouchPanel()
 	catch (std::exception &e)
 	{
 		sysl->errlog(std::string("TouchPanel::TouchPanel: Error creating a thread: ")+e.what());
-	} */
+	}
 }
 
 TouchPanel::~TouchPanel()
@@ -76,9 +77,16 @@ bool TouchPanel::startClient()
 		amxnet = &c;
 		c.setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
 
-		c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()));
-
-		io_context.run();
+		while (1)
+		{
+			if (getConStatus())
+			{
+				c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()));
+				io_context.run();
+			}
+			else
+				sleep(1);
+		}
 	}
 	catch (std::exception& e)
 	{
@@ -261,6 +269,14 @@ void TouchPanel::webMsg(std::string& msg)
 		else
 			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
 	}
+}
+
+void TouchPanel::stopClient()
+{
+	sysl->TRACE(String("TouchPanel::stopClient()"));
+
+	if (amxnet != 0)
+		amxnet->stop();
 }
 
 int TouchPanel::findPage(const String& name)

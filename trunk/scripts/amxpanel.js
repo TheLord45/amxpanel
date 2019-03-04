@@ -1088,6 +1088,7 @@ function setON(msg)
 
 			document.getElementById(name1).style.display = 'none';
 			document.getElementById(name2).style.display = 'inline';
+			writeTextOut("ON:"+bt[b].cp+":"+bt[b].ch+";");
 		}
 		catch(e)
 		{
@@ -1117,6 +1118,7 @@ function setOFF(msg)
 
 			document.getElementById(name1).style.display = 'inline';
 			document.getElementById(name2).style.display = 'none';
+			writeTextOut("OFF:"+bt[b].cp+":"+bt[b].ch+";");
 		}
 		catch(e)
 		{
@@ -1909,7 +1911,6 @@ function doSHO(msg)
 		{
 			for (z = 1; z <= bt[b].instances; z++)
 			{
-//				name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
 				name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 				try
@@ -2203,15 +2204,15 @@ function connect()
 		console.error("Error initializing: "+exception);
 	}
 
-	setWiFi();
-	parseMessage('1|@PPN-topmenu');
-	parseMessage('1|^ICO-1071,0,23');
-	parseMessage('1|^ICO-1072,0,24');
-	parseMessage('1|^ICO-1073,0,27');
-	parseMessage('1|^ICO-1078,0,1');
+//	setWiFi();
+//	parseMessage('1|@PPN-topmenu');
+//	parseMessage('1|^ICO-1071,0,23');
+//	parseMessage('1|^ICO-1072,0,24');
+//	parseMessage('1|^ICO-1073,0,27');
+//	parseMessage('1|^ICO-1078,0,1');
 //	parseMessage("1|^TXT-2012,0,'Küche, Bad'");
 //	parseMessage('1|@PPN-select_room');
-	parseMessage('1|@PPN-source_dreambox');
+//	parseMessage('1|@PPN-source_dreambox');
 //	parseMessage('1|^SHO-1031,1');
 //	parseMessage('1|^SHO-1032,1');
 //	parseMessage('1|^SHO-1033,1');

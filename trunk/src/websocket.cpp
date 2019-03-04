@@ -69,17 +69,31 @@ void WebSocket::run()
 	{
 		sysl->errlog(std::string("WebSocket::run: ")+e.what());
 		setConStatus(false);
+
+		if (cbInitStop)
+			fcallStop();
 	}
 	catch (const std::exception & e)
 	{
 		sysl->errlog(std::string("WebSocket::run: ")+e.what());
 		setConStatus(false);
+
+		if (cbInitStop)
+			fcallStop();
 	}
 	catch (...)
 	{
 		sysl->errlog(std::string("WebSocket::run: Other exception!"));
 		setConStatus(false);
+
+		if (cbInitStop)
+			fcallStop();
 	}
+
+	setConStatus(false);
+
+	if (cbInitStop)
+		fcallStop();
 }
 
 WebSocket::~WebSocket()
