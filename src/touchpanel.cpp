@@ -69,6 +69,8 @@ TouchPanel::~TouchPanel()
 
 bool TouchPanel::startClient()
 {
+	sysl->TRACE(String("TouchPanel::startClient()"));
+
 	try
 	{
 		asio::io_context io_context;
@@ -81,6 +83,7 @@ bool TouchPanel::startClient()
 		{
 			if (getConStatus())
 			{
+				sysl->TRACE(String("TouchPanel::startClient: Starting connection to controller ..."));
 				c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()));
 				io_context.run();
 			}
@@ -250,7 +253,8 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
  */
 void TouchPanel::webMsg(std::string& msg)
 {
-	// FIXME: Add code here!
+	sysl->TRACE(String("TouchPanel::webMsg(std::string& msg)"));
+
 	if (msg.find("PUSH:") != std::string::npos)
 	{
 		std::vector<String> parts = String(msg).split(":");

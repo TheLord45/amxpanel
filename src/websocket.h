@@ -42,8 +42,8 @@ namespace amx
 			WebSocket();
 			~WebSocket();
 
-			static void regCallback(std::function<void(std::string&)> func) { fcall = func; cbInit = true; }
-			static void regCallbackStop(std::function<void()> func) { fcallStop = func; cbInitStop = true; }
+			static void regCallback(std::function<void(std::string&)> func);
+			static void regCallbackStop(std::function<void()> func);
 			void run();
 			bool send(strings::String& msg);
 			static server& getServer() { return sock_server; }

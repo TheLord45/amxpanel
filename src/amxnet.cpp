@@ -136,9 +136,16 @@ void AMXNet::init()
 
 void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints)
 {
+	sysl->TRACE(std::string("AMXNet::start(asio::ip::tcp::resolver::results_type endpoints)"));
 	endpoints_ = endpoints;
 	start_connect(endpoints_.begin());
 	deadline_.async_wait(std::bind(&AMXNet::check_deadline, this));
+}
+
+bool AMXNet::isConnected()
+{
+	sysl->TRACE(std::string("AMXNet::isConnected() --> ")+((socket_.is_open())?"TRUE":"FALSE"));
+	return socket_.is_open();
 }
 
 void AMXNet::stop()
@@ -157,7 +164,7 @@ void AMXNet::stop()
 
 void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)
 {
-	sysl->TRACE(std::string("start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
+	sysl->TRACE(std::string("AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
 
 	if (endpoint_iter != endpoints_.end())
 	{
@@ -680,7 +687,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 bool AMXNet::sendCommand (const ANET_SEND& s)
 {
-	sysl->TRACE(std::string("sendCommand (const ANET_SEND& s)"));
+	sysl->TRACE(std::string("AMXNet::sendCommand (const ANET_SEND& s)"));
 
 	int pos;
 	bool status = false;

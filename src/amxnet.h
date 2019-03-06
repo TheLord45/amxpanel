@@ -248,6 +248,8 @@ namespace amx
 
 			void setCallback(std::function<void(const ANET_COMMAND&)> func) { callback = func; }
 			bool sendCommand(const ANET_SEND& s);
+			bool isConnected();
+			asio::ip::tcp::socket& getSocket() { return socket_; }
 
 		private:
 			enum R_TOKEN
