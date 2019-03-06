@@ -33,6 +33,20 @@ WebSocket::WebSocket()
 	setConStatus(false);
 }
 
+void WebSocket::regCallback(std::function<void(std::string&)> func)
+{
+	sysl->TRACE(std::string("WebSocket::regCallback(std::function<void(std::string&)> func)"));
+	fcall = func;
+	cbInit = true;
+}
+
+void WebSocket::regCallbackStop(std::function<void()> func)
+{
+	sysl->TRACE(std::string("WebSocket::regCallbackStop(std::function<void()> func)"));
+	fcallStop = func;
+	cbInitStop = true;
+}
+
 void WebSocket::run()
 {
 	sysl->TRACE(std::string("WebSocket::run()"));
@@ -154,6 +168,7 @@ void WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_p
 {
 	sysl->TRACE(std::string("WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg)"));
 
+	setConStatus(true);
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message: Called with hdl: message: ")+send);
 
@@ -211,13 +226,16 @@ context_ptr WebSocket::on_tls_init(tls_mode mode, websocketpp::connection_hdl)
 		if (!Configuration->getSSHPassword().empty())
 			ctx->set_password_callback(bind(&getPassword));
 
+		sysl->TRACE(std::string("WebSocket::on_tls_init: Reading certificate chain file: ")+Configuration->getSSHServerFile().toString());
 		ctx->use_certificate_chain_file(Configuration->getSSHServerFile().toString());
+		sysl->TRACE(std::string("WebSocket::on_tls_init: Reading private key file: ")+Configuration->getSSHServerFile().toString());
 		ctx->use_private_key_file(Configuration->getSSHServerFile().toString(), asio::ssl::context::pem);
 
 		// Example method of generating this file:
 		// `openssl dhparam -out dh.pem 2048`
 		// Mozilla Intermediate suggests 1024 as the minimum size to use
 		// Mozilla Modern suggests 2048 as the minimum size to use.
+		sysl->TRACE(std::string("WebSocket::on_tls_init: DH parameter file: ")+Configuration->getSSHDHFile().toString());
 		ctx->use_tmp_dh_file(Configuration->getSSHDHFile().toString());
 
 		std::string ciphers;
