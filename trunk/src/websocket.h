@@ -32,9 +32,11 @@ namespace amx
 	static server sock_server;
 	static bool connected = false;
 	static bool cbInit = false;
-    static bool cbInitStop = false;
+	static bool cbInitStop = false;
+	static bool cbInitCon = false;
 	static std::function<void(std::string&)> fcall;
 	static std::function<void()> fcallStop;
+	static std::function<void(bool)> fcallConn;
 
 	class WebSocket
 	{
@@ -44,11 +46,12 @@ namespace amx
 
 			static void regCallback(std::function<void(std::string&)> func);
 			static void regCallbackStop(std::function<void()> func);
+			static void regCallbackConnected(std::function<void(bool)> func);
 			void run();
 			bool send(strings::String& msg);
 			static server& getServer() { return sock_server; }
 			static bool getConStatus() { return connected; }
-			static void setConStatus(bool s) { connected = s; }
+			static void setConStatus(bool s);
 
 			enum tls_mode
 			{

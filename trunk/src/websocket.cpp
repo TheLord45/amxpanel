@@ -47,6 +47,24 @@ void WebSocket::regCallbackStop(std::function<void()> func)
 	cbInitStop = true;
 }
 
+void WebSocket::regCallbackConnected(std::function<void (bool)> func)
+{
+	sysl->TRACE(std::string("WebSocket::regCallbackConnected(std::function<void (bool)> func)"));
+	fcallConn = func;
+	cbInitCon = true;
+}
+
+void WebSocket::setConStatus(bool s)
+{
+	sysl->TRACE(std::string("WebSocket::setConStatus(bool s) [")+((s)?"TRUE":"FALSE")+"]");
+	connected = s;
+
+	if (cbInitCon)
+		fcallConn(s);
+	else
+		sysl->warnlog(std::string("WebSocket::setConStatus: Callback function to indicate connection status was not set!"));
+}
+
 void WebSocket::run()
 {
 	sysl->TRACE(std::string("WebSocket::run()"));
@@ -76,7 +94,6 @@ void WebSocket::run()
 		sock_server.start_accept();
 
 		// Start the ASIO io_service run loop
-		setConStatus(true);
 		sock_server.run();
 	}
 	catch (websocketpp::exception const & e)
@@ -235,7 +252,7 @@ context_ptr WebSocket::on_tls_init(tls_mode mode, websocketpp::connection_hdl)
 		// `openssl dhparam -out dh.pem 2048`
 		// Mozilla Intermediate suggests 1024 as the minimum size to use
 		// Mozilla Modern suggests 2048 as the minimum size to use.
-		sysl->TRACE(std::string("WebSocket::on_tls_init: DH parameter file: ")+Configuration->getSSHDHFile().toString());
+		sysl->TRACE(std::string("WebSocket::on_tls_init: Reading DH parameter file: ")+Configuration->getSSHDHFile().toString());
 		ctx->use_tmp_dh_file(Configuration->getSSHDHFile().toString());
 
 		std::string ciphers;

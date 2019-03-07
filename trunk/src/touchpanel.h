@@ -75,6 +75,8 @@ namespace amx
 			void webMsg(std::string& msg);
 			bool startClient();
 			void stopClient();
+			void setWebConnect(bool s) { webConnected = s; }
+			bool getWebConnect() { return webConnected; }
 
 		private:
 			void writeStyles(std::fstream& pgFile);
@@ -98,6 +100,7 @@ namespace amx
 			std::vector<ST_PAGE> stPages;
 			std::vector<ST_POPUP> stPopups;
 			bool busy;
+			bool webConnected;
 
 			std::vector<ANET_COMMAND> commands;		// Commands from controller
 	};

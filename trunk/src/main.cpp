@@ -15,11 +15,13 @@
  */
 
 #include <string>
+#include <utility>
 #include <unistd.h>
+#include <thread>
+#include <exception>
 #include "config.h"
 #include "syslog.h"
 #include "daemonize.h"
-//#include "server.h"
 #include "touchpanel.h"
 #include "websocket.h"
 
@@ -27,15 +29,18 @@ Config *Configuration;
 std::string pName;
 Syslog *sysl;
 amx::TouchPanel *pTouchPanel;
+bool killed;
 
 #define VERSION		"1.0"
 
 using namespace strings;
+using namespace std;
 
 int main(int /* argc */, const char **argv)
 {
 	std::string prog(*argv);
 	size_t pos;
+	killed = false;
 
 	if ((pos = prog.find_last_of("/")) != std::string::npos)
 		pName = prog.substr(pos+1);
@@ -58,7 +63,22 @@ int main(int /* argc */, const char **argv)
 	// Create the panel
 	pTouchPanel = new amx::TouchPanel();
 	pTouchPanel->parsePages();
-	pTouchPanel->startClient();		// Connect to controller and listen
+	// Start thread for AMX communication
+/*	try
+	{
+		thread thr = thread([=] { pTouchPanel->startClient(); });	// Connect to controller and listen
+		thr.detach();
+	}
+	catch (std::exception &e)
+	{
+		sysl->errlog(std::string("main: Error creating a thread: ")+e.what());
+	}
+*/
+	while (!killed)
+	{
+		pTouchPanel->startClient();	// Connect to controller and listen
+		sleep (2);
+	}
 
 	// Upon the previous function exits, clean up end exit.
 	sysl->TRACE(Syslog::EXIT, std::string("main(int /* argc */, const char **argv)"));

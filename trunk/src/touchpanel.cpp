@@ -29,6 +29,7 @@
 #include "fontlist.h"
 #include "touchpanel.h"
 #include "panelstruct.h"
+#include "nameformat.h"
 
 #ifdef __APPLE__
 using namespace boost;
@@ -46,8 +47,10 @@ TouchPanel::TouchPanel()
 	sysl->TRACE(Syslog::ENTRY, String("TouchPanel::TouchPanel()"));
 	openPage = 0;
 	busy = false;
+	webConnected = false;
 	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1));
 	regCallbackStop(bind(&TouchPanel::stopClient, this));
+	regCallbackConnected(bind(&TouchPanel::setWebConnect, this, placeholders::_1));
 	readPages();
 	amxnet = 0;
 	// Start thread for websocket
@@ -70,6 +73,7 @@ TouchPanel::~TouchPanel()
 bool TouchPanel::startClient()
 {
 	sysl->TRACE(String("TouchPanel::startClient()"));
+	webConnected = false;
 
 	try
 	{
@@ -78,10 +82,11 @@ bool TouchPanel::startClient()
 		AMXNet c(io_context);
 		amxnet = &c;
 		c.setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
+		c.setCallbackConn(bind(&TouchPanel::getWebConnect, this));
 
 		while (1)
 		{
-			if (getConStatus())
+			if (webConnected)
 			{
 				sysl->TRACE(String("TouchPanel::startClient: Starting connection to controller ..."));
 				c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()));
@@ -253,7 +258,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
  */
 void TouchPanel::webMsg(std::string& msg)
 {
-	sysl->TRACE(String("TouchPanel::webMsg(std::string& msg)"));
+	sysl->TRACE(String("TouchPanel::webMsg(std::string& msg) [")+msg+"]");
 
 	if (msg.find("PUSH:") != std::string::npos)
 	{
@@ -267,6 +272,8 @@ void TouchPanel::webMsg(std::string& msg)
 			as.MC = 0x0084;
 		else
 			as.MC = 0x0085;
+
+		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", value: "+value+", MC: 0x"+NameFormat::toHex(as.MC, 4));
 
 		if (amxnet != 0)
 			amxnet->sendCommand(as);

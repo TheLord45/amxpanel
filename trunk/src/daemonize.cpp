@@ -37,6 +37,7 @@ using namespace std;
 extern Config *Configuration;
 extern string pName;
 extern Syslog *sysl;
+extern bool killed;
 
 #ifndef SIGCLD
 #   define SIGCLD SIGCHLD
@@ -211,6 +212,8 @@ void sig_handler(int sig)
 	if (sig == SIGTERM || sig == SIGKILL)
 	{
 		sysl->log(Syslog::INFO, "Terminating program! Killed by signal " + std::to_string(sig));
+		killed = true;
+		sleep(3);
 		exit(0);
 	}
 }
