@@ -24,6 +24,8 @@
 using namespace boost;
 #endif
 
+extern bool killed;
+
 namespace amx
 {
 	typedef struct
@@ -247,6 +249,7 @@ namespace amx
 			void stop();
 
 			void setCallback(std::function<void(const ANET_COMMAND&)> func) { callback = func; }
+			void setCallbackConn(std::function<bool()> func) { cbWebConn = func; }
 			bool sendCommand(const ANET_SEND& s);
 			bool isConnected();
 			asio::ip::tcp::socket& getSocket() { return socket_; }
@@ -295,6 +298,7 @@ namespace amx
 			asio::steady_timer deadline_;
 			asio::steady_timer heartbeat_timer_;
 			std::function<void(const ANET_COMMAND&)> callback;
+            std::function<bool()> cbWebConn;
 			bool protError;				// true = error on receive --> disconnect
 			uint16_t reqDevStatus;
 			ANET_COMMAND comm;				// received command

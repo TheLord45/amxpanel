@@ -60,6 +60,8 @@ AMXNet::AMXNet(asio::io_context& io_context)
 				  heartbeat_timer_(io_context)
 {
 	sysl->TRACE(Syslog::ENTRY, std::string("AMXNet::AMXNet(asio::io_context& io_context)"));
+	callback = 0;
+	cbWebConn = 0;
     init();
 }
 
@@ -151,6 +153,10 @@ bool AMXNet::isConnected()
 void AMXNet::stop()
 {
 	sysl->TRACE(std::string("AMXNet::stop: Stopping the client..."));
+
+	if (stopped_)
+		return;
+
 	stopped_ = true;
 #ifdef __APPLE__
 	system::error_code ignored_error;
@@ -219,20 +225,32 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 	{
 		sysl->log(Syslog::INFO, strings::String("AMXNet::handle_connect: Connected to ")+endpoint_iter->endpoint().address().to_string()+":"+endpoint_iter->endpoint().port());
 
-		while (!stopped_)
+		while (!stopped_ && !killed)
 		{
+			if (cbWebConn && !cbWebConn())
+			{
+				stop();
+				break;
+			}
+
 			// Start the input actor.
 			start_read();
 
 			// Start the heartbeat actor.
 			start_write();
 		}
+
+		if (!stopped_ && killed)
+			stop();
 	}
 }
 
 void AMXNet::start_read()
 {
 	sysl->TRACE(std::string("start_read()"));
+
+	if (stopped_)
+		return;
 
 	// Set a deadline for the read operation.
 	deadline_.expires_after(std::chrono::seconds(60));
@@ -329,6 +347,12 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 	if (stopped_)
 		return;
+
+	if ((cbWebConn && !cbWebConn()) || killed)
+	{
+		stop();
+		return;
+	}
 
 	uint32_t dw;
 	int val, pos;
@@ -450,7 +474,10 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 								comm.checksum = buff_[13];
 							break;
 
-							case 0x08f: memcpy(&comm.data.message_value.content.dvalue, &buff_[9], 8); comm.checksum = buff_[17]; break;	// FIXME: wrong byte order on Intel CPU
+							case 0x08f:
+								memcpy(&comm.data.message_value.content.dvalue, &buff_[9], 8);	// FIXME: wrong byte order on Intel CPU?
+								comm.checksum = buff_[17];
+							break;
 						}
 
 						callback(comm);
@@ -670,13 +697,11 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 		if (tk == RT_DATA)
 		{
-			sysl->TRACE(strings::String("AMXNet::handle_read: Received message type: ")+NameFormat::toHex(comm.MC, 2));
+			sysl->TRACE(strings::String("AMXNet::handle_read: Received message type: 0x")+NameFormat::toHex(comm.MC, 4));
 
 			if (!ignore && !stopped_ && callback != 0)
 				callback(comm);
 		}
-
-//		start_read();
 	}
 	else
 	{
@@ -689,7 +714,6 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 {
 	sysl->TRACE(std::string("AMXNet::sendCommand (const ANET_SEND& s)"));
 
-	int pos;
 	bool status = false;
 	ANET_COMMAND com;
 	com.clear();
@@ -877,6 +901,9 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 		break;
 	}
 
+	if (status)
+		start_write();
+
 	return status;
 }
 
@@ -932,9 +959,9 @@ int AMXNet::msg97fill(ANET_COMMAND *com)
 
 void AMXNet::start_write()
 {
-	sysl->TRACE(std::string("start_write()"));
+	sysl->TRACE(std::string("AMXNet::start_write()"));
 
-	if (stopped_)
+	if (stopped_ || killed)
 		return;
 
 	if (write_busy)
