@@ -709,6 +709,15 @@ bool TouchPanel::parsePages()
 	// Add some special script functions
 	pgFile << "<script>\n";
 	pgFile << scrBuffer << "\n";
+	// This is the WebSocket connection function
+	pgFile << "function connect()\n{\n";
+	pgFile << "\ttry\n\t{\n";
+	pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
+	pgFile << "\t\twsocket.onopen = function() { wsocket.send('READY;'); }\n";
+	pgFile << "\t\twsocket.onerror = function(error) { console.log('WebSocket error: '+error); }\n";
+	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
+	pgFile << "\t\twsocket.onclose = function() { debug('WebSocket is closed!'); }\n\t}\n\tcatch (exception)\n";
+	pgFile << "\t{\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
