@@ -277,7 +277,7 @@ function setColor(img1, img2, col1, col2, level, dir)
  * Boolean option to set the direction of the bargraph. FALSE means vertical
  * and TRUE means horizontal.
  */
-async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, col2, dir)
+async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, col2, dir, feedback = false)
 {
 	var readyPic1 = false;
 	var readyPic2 = false;
@@ -376,18 +376,21 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 			div.insertBefore(canvas3, div.firstChild);
 		}
 
-		canvas3.addEventListener('click', function(evt)
-		{
-			var mousePos = getMousePos(canvas3, evt);
-			var lev = 0;
+		if (feedback)
+        {
+            canvas3.addEventListener('click', function(evt)
+            {
+                var mousePos = getMousePos(canvas3, evt);
+                var lev = 0;
 
-			if (dir)
-				lev = 100 - ~~(100.0 / height * mousePos.y);
-			else
-				lev = ~~(100.0 / width * mousePos.x);
+                if (dir)
+                    lev = 100 - ~~(100.0 / height * mousePos.y);
+                else
+                    lev = ~~(100.0 / width * mousePos.x);
 
-			drawBargraph(uriRed, uriMask, name, lev, width, height, col1, col2, dir);
-		}, false);
+                drawBargraph(uriRed, uriMask, name, lev, width, height, col1, col2, dir);
+            }, false);
+        }
 	}
 	else
 	{
