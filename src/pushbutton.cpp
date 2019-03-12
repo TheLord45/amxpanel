@@ -151,7 +151,7 @@ String PushButton::getStyle()
 				style += "  border: none;\n";
 
 			style += "  position: absolute;\n";
-			
+
 			if (button.sr[i].jt != ORI_ABSOLUT)
 			{
 				style += String("  left: 0px;\n");
@@ -233,7 +233,7 @@ String PushButton::getWebCode()
 		else
 			nm = String("Page")+pageID+"_"+btName;
 
-		sBargraph += String("\t{\"name\":\"")+nm+"\",\"ap\":"+button.ap+",\"ac\":"+button.ad;
+		sBargraph += String("\t{\"name\":\"")+nm+"\",\"pnum\":"+pageID+", \"bi\":"+button.bi+",\"ap\":"+button.ap+",\"ac\":"+button.ad;
 		sBargraph += String(",\"cp\":")+button.cp+",\"ch\":"+button.ch+",\"lp\":"+button.lp+",\"lc\":"+button.lv;
 		sBargraph += String(",\"rl\":")+button.rl+",\"rh\":"+button.rh+",\"lv\":"+level;
 		sBargraph += String(",\"dr\":\"")+button.dr+"\",\"states\":[\n";
@@ -243,8 +243,26 @@ String PushButton::getWebCode()
 			if (i > 0)
 				sBargraph += ",\n";
 
-			sBargraph += String("\t\t{\"mi\":\"")+button.sr[i].mi+"\",\"cb\":\""+button.sr[i].cb+"\"";
-			sBargraph += String(",\"cf\":\"")+button.sr[i].cf+"\",\"bm\":\""+button.sr[i].bm+"\"}";
+			int mi_width, mi_height, bm_width, bm_height;
+
+			if (button.sr[i].mi.length() > 0)
+				getImageDimensions(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, &mi_width, &mi_height);
+			else
+			{
+				mi_width = 0;
+				mi_height = 0;
+			}
+
+			if (button.sr[i].bm.length() > 0)
+				getImageDimensions(Configuration->getHTTProot()+"/images/"+button.sr[i].bm, &bm_width, &bm_height);
+			else
+			{
+				bm_width = 0;
+				bm_height = 0;
+			}
+
+			sBargraph += String("\t\t{\"mi\":\"")+button.sr[i].mi+"\",\"mi_width\":"+mi_width+",\"mi_height\":"+mi_height+",\"cb\":\""+button.sr[i].cb+"\"";
+			sBargraph += String(",\"cf\":\"")+button.sr[i].cf+"\",\"bm\":\""+button.sr[i].bm+"\",\"bm_width\":"+bm_width+",\"bm_height\":"+bm_height+"}";
 		}
 
 		sBargraph += "]}";

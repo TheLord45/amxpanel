@@ -30,6 +30,7 @@ typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> conte
 namespace amx
 {
 	static server sock_server;
+	static websocketpp::connection_hdl server_hdl;
 	static bool connected = false;
 	static bool cbInit = false;
 	static bool cbInitStop = false;
@@ -64,8 +65,8 @@ namespace amx
 			static void on_fail(server* s, websocketpp::connection_hdl hdl);
 			static void on_close(websocketpp::connection_hdl);
 			static void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg);
-			static std::string getPassword();
 			static context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl);
+			static std::string getPassword();
 	};
 }
 

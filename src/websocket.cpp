@@ -134,7 +134,7 @@ WebSocket::~WebSocket()
 	websocketpp::lib::error_code ec;
 	server& echo_server = getServer();
 	echo_server.stop_listening(ec);
-	
+
 	if (ec)
 	{
 		sysl->errlog(std::string("WebSocket::~WebSocket: Error stopping listening: ")+ec.message());
@@ -151,14 +151,22 @@ bool WebSocket::send(strings::String& msg)
 	if (!getConStatus())
 		return false;
 
-	server& echo_server = getServer();
-	server::connection_ptr pcon = echo_server.get_connection();
-	websocketpp::lib::error_code ec;
-	echo_server.send(pcon, msg.toString(), websocketpp::frame::opcode::text, ec);
-
-	if (ec)
+	try
 	{
-		sysl->errlog(std::string("WebSocket::send: Error sending a message: ")+ec.message());
+//		server& echo_server = getServer();
+//		server::connection_ptr pcon = echo_server.get_connection();
+//		websocketpp::lib::error_code ec;
+		sock_server.send(server_hdl, msg.toString(), websocketpp::frame::opcode::text);
+
+/*		if (ec)
+		{
+			sysl->errlog(std::string("WebSocket::send: Error sending a message: ")+ec.message());
+			return false;
+		} */
+	}
+	catch (websocketpp::exception const & e)
+	{
+		sysl->errlog(std::string("WebSocket::send: Error sending a message: ")+e.what());
 		return false;
 	}
 
@@ -186,6 +194,7 @@ void WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_p
 	sysl->TRACE(std::string("WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg)"));
 
 	setConStatus(true);
+	server_hdl = hdl;
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message: Called with hdl: message: ")+send);
 
@@ -212,10 +221,11 @@ void WebSocket::on_close(websocketpp::connection_hdl)
 	setConStatus(false);
 }
 
-context_ptr WebSocket::on_tls_init(tls_mode mode, websocketpp::connection_hdl)
+context_ptr WebSocket::on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl)"));
 	namespace asio = websocketpp::lib::asio;
+	server_hdl = hdl;
 
 	sysl->TRACE(std::string("WebSocket::on_tls_init: Using TLS mode: ")+(mode == MOZILLA_MODERN ? "Mozilla Modern" : "Mozilla Intermediate"));
 

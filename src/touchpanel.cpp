@@ -203,6 +203,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 
 		switch (bef.MC)
 		{
+			case 0x0006:
 			case 0x0018:	// feedback channel on
 				com = bef.data.chan_state.port;
 				com.append("|ON-");
@@ -210,6 +211,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				send(com);
 			break;
 
+			case 0x0007:
 			case 0x0019:	// feedback channel off
 				com = bef.data.chan_state.port;
 				com.append("|OFF-");
