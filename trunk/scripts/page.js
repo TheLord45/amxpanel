@@ -334,6 +334,7 @@ function doDraw(pgKey, pageID, what)
 {
 	var page;
 	var i, j;
+	var btArray;
 
 	try
 	{
@@ -406,6 +407,18 @@ function doDraw(pgKey, pageID, what)
 	for (i in pgKey.buttons)
 	{
 		var button = pgKey.buttons[i];
+		btArray = null;
+
+		for (i in buttonArray.buttons)
+		{
+			var but = buttonArray.buttons[i];
+
+			if (but.pnum == pageID && but.bi == button.bID)
+			{
+				btArray = but;
+				break;
+			}
+		}
 
 		try
 		{
@@ -511,6 +524,21 @@ function doDraw(pgKey, pageID, what)
 						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 					else
 						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+				}
+				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0)
+				{
+					var width = sr.mi_width;
+					var height = sr.mi_height;
+					var can;
+					setCSSclass(nm + sr.number + "_canvas", "position: absolute; left: 0px; top: 0px; width: " + width + "px; height: " + height + "px; display: flex; order: 1;");
+
+					if (sr.bm.length > 0)
+					{
+						var level = parseInt(100.0 / button.rh * button.lv);
+						drawBargraph(makeURL("images/" + sr.mi), makeURL("images/" + sr.bm), nm + sr.number, level, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+					}
+					else
+						drawArea(makeURL("images/" + sr.mi), nm + sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 				}
 				else if (sr.bm.length > 0)
 				{
@@ -623,12 +651,24 @@ function doDraw(pgKey, pageID, what)
 						fnt.innerHTML = sr.te;
 				}
 
-				if (j == 0 && button.fb != FEEDBACK.FB_INV_CHANNEL && button.fb != FEEDBACK.FB_ALWAYS_ON)
-					bsr.style.display = "inline";
-				else if (j == 1 && button.fb == FEEDBACK.FB_INV_CHANNEL && button.fb == FEEDBACK.FB_ALWAYS_ON)
-					bsr.style.display = "inline";
+				if (btArray !== null)
+				{
+					var comp = parseInt(j) + 1;
+					console.log("doDraw: pnum="+btArray.pnum+", bi="+btArray.bi+", ion="+btArray.ion+" ["+comp+"], visible="+btArray.visible);
+					if (comp == btArray.ion && btArray.visible == 1)
+						bsr.style.display = "inline";
+					else
+						bsr.style.display = "none";
+				}
 				else
-					bsr.style.display = "none";
+				{
+					if (j == 0 && button.fb != FEEDBACK.FB_INV_CHANNEL && button.fb != FEEDBACK.FB_ALWAYS_ON)
+						bsr.style.display = "inline";
+					else if (j == 1 && (button.fb == FEEDBACK.FB_INV_CHANNEL || button.fb == FEEDBACK.FB_ALWAYS_ON))
+						bsr.style.display = "inline";
+					else
+						bsr.style.display = "none";
+				}
 			}
 		}
 		catch(e)

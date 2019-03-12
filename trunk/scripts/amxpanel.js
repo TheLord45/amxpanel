@@ -669,6 +669,20 @@ function getIconDim(id)
 
 	return -1;
 }
+function setButtonOnline(pnum, id, stat)
+{
+	var i;
+
+	for (i in buttonArray.buttons)
+	{
+		if (buttonArray.buttons[i].pnum == pnum && buttonArray.buttons[i].bi == id)
+		{
+			buttonArray.buttons[i].ion = stat;
+			console.log("setButtonOnline: ion="+buttonArray.buttons[i].ion);
+			break;
+		}
+	}
+}
 function hideGroup(name)
 {
 	var nm;
@@ -1086,6 +1100,7 @@ function setON(msg)
 			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_1';
 			var name2 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_2';
 
+			setButtonOnline(bt[b].pnum, bt[b].bi, 2);
 			document.getElementById(name1).style.display = 'none';
 			document.getElementById(name2).style.display = 'inline';
 			writeTextOut("ON:"+bt[b].cp+":"+bt[b].ch+";");
@@ -1116,6 +1131,7 @@ function setOFF(msg)
 			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_1';
 			var name2 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_2';
 
+			setButtonOnline(bt[b].pnum, bt[b].bi, 1);
 			document.getElementById(name1).style.display = 'inline';
 			document.getElementById(name2).style.display = 'none';
 			writeTextOut("OFF:"+bt[b].cp+":"+bt[b].ch+";");
@@ -1129,10 +1145,45 @@ function setOFF(msg)
 }
 function setLEVEL(msg)
 {
+	var i;
+
 	var addr = getField(msg, 0, ',');
 	var level = getField(msg, 1, ',');
 	var bgArray = findBargraphs(curPort, addr);
 	// FIXME: Insert code to draw a bargraph
+	for (i in bgArray)
+	{
+		var value = parseInt(100.0 / bgArray[i].rh * level);
+		var name = "Page_" + bgArray[i].pnum + "_Button_" + bgArray[i].bi + "_1";
+		var width, height, dir;
+
+		if (bgArray[i].states[0].mi.length > 0)
+		{
+			width = bgArray[i].states[0].mi_width;
+			height = bgArray[i].states[0].mi_height;
+		}
+		else if (bgArray[i].states[0].bm.length > 0)
+		{
+			width = bgArray[i].states[0].bm_width;
+			height = bgArray[i].states[0].bm_height;
+		}
+		else
+		{
+			width = 0;
+			height = 0;
+		}
+
+		if (bgArray[i].dr == "horizontal")
+			dir = false;
+		else
+			dir = true;
+
+		if (bgArray[i].states[0].mi.length > 0 && bgArray[i].states[1].bm.length > 0)
+		{
+			console.log("setLEVEL: name=" + name + ", mi=" + bgArray[i].states[0].mi + ", bm=" + bgArray[i].states[1].bm+", width="+width+", height="+height);
+			drawBargraph(makeURL("images/"+bgArray[i].states[0].mi), makeURL("images/"+bgArray[i].states[1].bm), name, value, width, height, getAMXColor(bgArray[i].states[0].cf), getAMXColor(bgArray[i].states[0].cb), dir);
+		}
+	}
 }
 function doAPG(msg)
 {
@@ -1670,7 +1721,6 @@ function doBSP(msg)
 
 		for (b = 0; b < bt.length; b++)
 		{
-//			name = 'Page'+bt[b].pnum+'_b'+z+'_Button_'+bt[b].bi;
 			name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 
 			try
@@ -1752,6 +1802,8 @@ function doENA(msg)
 
 			try
 			{
+				bt[b].visible = val;
+
 				if (val == 0)
 					document.getElementById(name).style.display = 'none';
 				else
@@ -1915,6 +1967,7 @@ function doSHO(msg)
 
 				try
 				{
+					bt[b].visible = stat;
 					document.getElementById(name).style.display = ((stat == 0) ? 'none' : 'inline');
 				}
 				catch(e)
@@ -1973,7 +2026,7 @@ async function doTXT(msg)
 							var cnt = 0;
 							var err = "";
 
-							while(!hasParent && cnt < 20)
+							while(!hasParent && cnt < 5)
 							{
 								try
 								{
@@ -2028,6 +2081,7 @@ function parseMessage(msg)
 {
 	var i;
 
+	console.log("parseMessage: msg="+msg);
 	splittCmd(msg);
 
 	for (i in cmdArray.commands)
@@ -2243,54 +2297,7 @@ function checkTime(i)
 
 	return i;
 }
-navigator.getBattery().then(function(battery)
-{
-	function updateAllBatteryInfo()
-	{
-		updateChargeInfo();
-		updateLevelInfo();
-		debug("navigator.getBattery()");
-	}
 
-	updateAllBatteryInfo();
-
-	battery.addEventListener('chargingchange', function()
-	{
-		updateChargeInfo();
-	});
-
-	function updateChargeInfo()
-	{
-		try
-		{
-			if (battery.charging)
-			{
-				document.getElementById('batCharge1').style.display = "none";
-				document.getElementById('batCharge2').style.display = "inline";
-			}
-			else
-			{
-				document.getElementById('batCharge1').style.display = "inline";
-				document.getElementById('batCharge2').style.display = "none";
-			}
-		}
-		catch(e)
-		{
-			console.log("updateChargeInfo: "+e);
-		}
-	}
-
-	battery.addEventListener('levelchange', function()
-	{
-		updateLevelInfo();
-	});
-
-	function updateLevelInfo()
-	{
-		// FIXME: Add code (canvas?) to draw the level of the bargraph.
-		debug("Battery level: " + battery.level * 100 + "%");
-	}
-});
 function setWiFi()
 {
 	var connection = window.navigator.connection ||

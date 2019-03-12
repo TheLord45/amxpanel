@@ -650,13 +650,24 @@ void amx::Page::generateButtons()
 		{
 			if (page.buttons[i].ad > 0 || page.buttons[i].ch > 0)
 			{
+				int on = 1;
+
 				if (!btArray.empty())
 					btArray += ",";
+
+				// Find which instance is on
+				if (i == 0 && page.buttons[i].fb != FB_INV_CHANNEL && page.buttons[i].fb != FB_ALWAYS_ON)
+					on = 1;
+				else if (i == 1 && (page.buttons[i].fb == FB_INV_CHANNEL || page.buttons[i].fb == FB_ALWAYS_ON))
+					on = 2;
+				else
+					on = 1;
 
 				btArray += String("\n\t\t{\"pnum\":")+page.pageID+",\"bi\":"+page.buttons[i].bi+",";
 				btArray += String("\"instances\":")+page.buttons[i].sr.size()+",";
 				btArray += String("\"ap\":")+page.buttons[i].ap+",\"ac\":"+page.buttons[i].ad;
-				btArray += String(",\"cp\":")+page.buttons[i].cp+",\"ch\":"+page.buttons[i].ch+"}";
+				btArray += String(",\"cp\":")+page.buttons[i].cp+",\"ch\":"+page.buttons[i].ch;
+				btArray += String(",\"ion\":")+on+",\"visible\":1}";
 			}
 
 			PushButton pbt(page.buttons[i], paletteClass->getPalette());
