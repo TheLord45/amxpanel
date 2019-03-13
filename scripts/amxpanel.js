@@ -244,6 +244,58 @@ function splittCmd(msg)
 		curCommand = msg;
 	}
 }
+function getBargraphLevel(pnum, id)
+{
+	var i;
+
+	for (i in bargraphs.bargraphs)
+	{
+		var bg = bargraphs.bargraphs[i];
+
+		if (bg.pnum == pnum && bg.bi == id)
+			return bg.lv;
+	}
+
+	return 0;
+}
+function getBargraphPC(pnum, id)
+{
+	var i;
+
+	for (i in bargraphs.bargraphs)
+	{
+		var bg = bargraphs.bargraphs[i];
+
+		if (bg.pnum == pnum && bg.bi == id)
+			return [bg.ap, bg.ac];
+	}
+
+	return -1;
+}
+function setBargraphLevel(pnum, id, level)
+{
+	var i;
+	var PC = getBargraphPC(pnum, id);
+
+	if (PC === -1)
+		return;
+
+	for (i in bargraphs.bargraphs)
+	{
+		var bg = bargraphs.bargraphs[i];
+
+		if (bg.ap >= 0 && bg.ac >= 0)
+		{
+			if (bg.ap == PC[0] && bg.ac == PC[1])
+				bargraphs.bargraphs[i].lv = level;
+		}
+		else if (bg.pnum == pnum && bg.bi == id)
+		{
+			bargraphs.bargraphs[i].lv = level;
+			break;
+		}
+	}
+}
 function getField(msg, field, sep)
 {
 	var flds = [];
@@ -678,7 +730,6 @@ function setButtonOnline(pnum, id, stat)
 		if (buttonArray.buttons[i].pnum == pnum && buttonArray.buttons[i].bi == id)
 		{
 			buttonArray.buttons[i].ion = stat;
-			console.log("setButtonOnline: ion="+buttonArray.buttons[i].ion);
 			break;
 		}
 	}
@@ -1145,7 +1196,7 @@ function setOFF(msg)
 }
 function setLEVEL(msg)
 {
-	var i;
+	var i, j;
 
 	var addr = getField(msg, 0, ',');
 	var level = getField(msg, 1, ',');
@@ -1180,13 +1231,14 @@ function setLEVEL(msg)
 
 		if (bgArray[i].states[0].mi.length > 0 && bgArray[i].states[1].bm.length > 0)
 		{
-//			console.log("setLEVEL: name=" + name + ", mi=" + bgArray[i].states[0].mi + ", bm=" + bgArray[i].states[1].bm+", width="+width+", height="+height);
+			setBargraphLevel(bgArray[i].pnum, bgArray[i].bi, value);
+
 			try
 			{
 				var cv = document.getElementById(name+'_canvas');
 
 				if (cv !== null)
-					document.removeChild(cv);
+					cv.parentNode.removeChild(cv);
 
 				drawBargraph(makeURL("images/"+bgArray[i].states[0].mi), makeURL("images/"+bgArray[i].states[1].bm), name, value, width, height, getAMXColor(bgArray[i].states[0].cf), getAMXColor(bgArray[i].states[0].cb), dir);
 			}

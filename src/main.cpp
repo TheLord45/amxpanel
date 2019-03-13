@@ -64,16 +64,6 @@ int main(int /* argc */, const char **argv)
 	pTouchPanel = new amx::TouchPanel();
 	pTouchPanel->parsePages();
 	// Start thread for AMX communication
-/*	try
-	{
-		thread thr = thread([=] { pTouchPanel->startClient(); });	// Connect to controller and listen
-		thr.detach();
-	}
-	catch (std::exception &e)
-	{
-		sysl->errlog(std::string("main: Error creating a thread: ")+e.what());
-	}
-*/
 	while (!killed)
 	{
 		pTouchPanel->startClient();	// Connect to controller and listen

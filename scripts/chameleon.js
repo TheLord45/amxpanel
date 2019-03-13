@@ -279,6 +279,12 @@ function setColor(img1, img2, col1, col2, level, dir)
  */
 async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, col2, dir, feedback = false)
 {
+	if (width <= 0 || height <= 0 || uriRed.length == 0 || uriMask.length == 0)
+	{
+		console.log("drawBargraph: name="+name+", uriRed="+uriRed+", uriMask="+uriMask+", width="+width+", height="+height+", level="+level);
+		return;
+	}
+
 	var readyPic1 = false;
 	var readyPic2 = false;
 	var canvas1 = document.createElement('canvas');
@@ -368,7 +374,7 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 
 		try
 		{
-			div.replaceChild(canvas3, can);
+			div.replaceChild(canvas3, document.getElementById(name+"_canvas"));
 		}
 		catch(e)
 		{
@@ -529,7 +535,7 @@ async function drawButton(uriRed, uriMask, name, width, height, col1, col2)
 
 		try
 		{
-			div.replaceChild(canvas3, can);
+			div.replaceChild(canvas3, document.getElementById(name+"_canvas"));
 		}
 		catch(e)
 		{
@@ -638,7 +644,7 @@ async function drawArea(uriRed, name, width, height, col1, col2)
 
 		try
 		{
-			div.replaceChild(canvas2, can);
+			div.replaceChild(canvas2, document.getElementById(name+"_canvas"));
 		}
 		catch(e)
 		{
