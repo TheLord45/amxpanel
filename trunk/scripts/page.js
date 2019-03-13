@@ -513,7 +513,9 @@ function doDraw(pgKey, pageID, what)
 				else
 					bsr.style.border = "none";
 
-				if (!(button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2) && sr.mi.length > 0)	// chameleon image?
+				var idx = parseInt(j);
+
+				if ((button.btype != BUTTONTYPE.BARGRAPH || button.sr.length != 2) && sr.mi.length > 0)	// chameleon image?
 				{
 					var width = sr.mi_width;
 					var height = sr.mi_height;
@@ -525,20 +527,28 @@ function doDraw(pgKey, pageID, what)
 					else
 						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 				}
-				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0)
+				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
 				{
 					var width = sr.mi_width;
 					var height = sr.mi_height;
-					var can;
 					setCSSclass(nm + sr.number + "_canvas", "position: absolute; left: 0px; top: 0px; width: " + width + "px; height: " + height + "px; display: flex; order: 1;");
 
-					if (sr.bm.length > 0)
+					if (button.sr[idx+1].bm.length > 0)
 					{
-						var level = parseInt(100.0 / button.rh * button.lv);
-						drawBargraph(makeURL("images/" + sr.mi), makeURL("images/" + sr.bm), nm + sr.number, level, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+						var lev = getBargraphLevel(btArray.pnum, button.bID);
+						var level = parseInt(100.0 / button.rh * lev);
+						var dir = false;
+
+						if (button.dr == "horizontal")
+							dir = false;
+						else
+							dir = true;
+			
+						console.log("doDraw: name="+nm+sr.number+", level="+level+", j="+j+", idx="+idx);
+						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb), dir);
 					}
 					else
-						drawArea(makeURL("images/" + sr.mi), nm + sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+						drawArea(makeURL("images/"+sr.mi), nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 				}
 				else if (sr.bm.length > 0)
 				{
@@ -654,7 +664,7 @@ function doDraw(pgKey, pageID, what)
 				if (btArray !== null)
 				{
 					var comp = parseInt(j) + 1;
-					console.log("doDraw: pnum="+btArray.pnum+", bi="+btArray.bi+", ion="+btArray.ion+" ["+comp+"], visible="+btArray.visible);
+
 					if (comp == btArray.ion && btArray.visible == 1)
 						bsr.style.display = "inline";
 					else
