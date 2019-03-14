@@ -407,8 +407,10 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 			case RT_MC:		comm.MC = makeWord(buff_[0], buff_[1]); break;
 
 			case RT_DATA:
-				if (protError)
+				if (protError || stopped_ || killed)
 					break;
+
+				sysl->TRACE(strings::String("AMXNet::handle_read: Received message type: 0x")+NameFormat::toHex(comm.MC, 4));
 
 				switch (comm.MC)
 				{
@@ -445,7 +447,10 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						}
 
 						if (comm.MC < 0x0020)
-							callback(comm);
+						{
+							if (callback)
+								callback(comm);
+						}
 						else
 							sendCommand(s);
 					break;
@@ -480,7 +485,8 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 							break;
 						}
 
-						callback(comm);
+						if (callback)
+							callback(comm);
 					break;
 
 					case 0x000b:	// string value change
@@ -496,7 +502,9 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						memcpy(&comm.data.message_string.content[0], &buff_[9], len);
 						pos = len + 10;
 						comm.checksum = buff_[pos];
-						callback(comm);
+
+						if (callback)
+							callback(comm);
 					break;
 
 					case 0x000e:	// request level value
@@ -505,13 +513,9 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.level.system = makeWord(buff_[4], buff_[5]);
 						comm.data.level.level = makeWord(buff_[6], buff_[7]);
 						comm.checksum = buff_[8];
-						callback(comm);
-/*						s.channel = false;
-						s.level = 0;
-						s.port = 0;
-						s.value = 0;
-						s.MC = 0x000e;
-						sendCommand(s); */
+
+						if (callback)
+							callback(comm);
 					break;
 
 					case 0x000f:	// request output channel status
@@ -520,13 +524,9 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.channel.system = makeWord(buff_[4], buff_[5]);
 						comm.data.channel.channel = makeWord(buff_[6], buff_[7]);
 						comm.checksum = buff_[8];
-						callback(comm);
-/*						s.channel = false;
-						s.level = 0;
-						s.port = 0;
-						s.value = 0;
-						s.MC = 0x000f;
-						sendCommand(s); */
+
+						if (callback)
+							callback(comm);
 					break;
 
 					case 0x0010:	// request port count
@@ -607,18 +607,9 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.sendStatusCode.device = makeWord(buff_[0], buff_[1]);
 						comm.data.sendStatusCode.port = makeWord(buff_[2], buff_[3]);
 						comm.data.sendStatusCode.system = makeWord(buff_[4], buff_[5]);
-//						comm.data.sendStatusCode.status = 0;
-//						comm.data.sendStatusCode.type = 0x11;	// Char string
-//						comm.data.sendStatusCode.length = 2;
-//						comm.data.sendStatusCode.str[0] = 'O';
-//						comm.data.sendStatusCode.str[1] = 'K';
-						callback(comm);
-/*						s.channel = false;
-						s.level = 0;
-						s.port = comm.data.sendStatusCode.port;
-						s.value = 0;
-						s.MC = 0x0096;
-						sendCommand(s); */
+
+						if (callback)
+							callback(comm);
 					break;
 
 					case 0x0097:	// receive device info
@@ -693,14 +684,6 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 			default:		// should never happen and is only to satisfy the compiler
 				ignore = true;
-		}
-
-		if (tk == RT_DATA)
-		{
-			sysl->TRACE(strings::String("AMXNet::handle_read: Received message type: 0x")+NameFormat::toHex(comm.MC, 4));
-
-			if (!ignore && !stopped_ && callback != 0)
-				callback(comm);
 		}
 	}
 	else
