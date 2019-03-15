@@ -281,7 +281,7 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 {
 	if (width <= 0 || height <= 0 || uriRed.length == 0 || uriMask.length == 0)
 	{
-		console.log("drawBargraph: name="+name+", uriRed="+uriRed+", uriMask="+uriMask+", width="+width+", height="+height+", level="+level);
+		debug("drawBargraph: name="+name+", uriRed="+uriRed+", uriMask="+uriMask+", width="+width+", height="+height+", level="+level);
 		return;
 	}
 
@@ -349,13 +349,13 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 
 		if (!readyPic1)
 		{
-			console.log("drawBargraph: WARNING: "+uriRed+" not loaded!");
+			errlog("drawBargraph: WARNING: "+uriRed+" not loaded!");
 			ctx1.drawImage(img, 0, 0);
 		}
 
 		if (!readyPic2)
 		{
-			console.log("drawBargraph: WARNING: "+uriMask+" not loaded!");
+			errlog("drawBargraph: WARNING: "+uriMask+" not loaded!");
 			ctx2.drawImage(imgCham, 0, 0);
 		}
 
@@ -400,7 +400,7 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 	}
 	else
 	{
-		console.log("drawBargraph: Error getting context for canvas "+name+"!");
+		errlog("drawBargraph: Error getting context for canvas "+name+"!");
 		return false;
 	}
 
@@ -510,13 +510,13 @@ async function drawButton(uriRed, uriMask, name, width, height, col1, col2)
 
 		if (!readyPic1)
 		{
-			console.log("drawButton: WARNING: "+uriRed+" not loaded!");
+			errlog("drawButton: WARNING: "+uriRed+" not loaded!");
 			ctx1.drawImage(img, 0, 0);
 		}
 
 		if (!readyPic2)
 		{
-			console.log("drawButton: WARNING: "+uriMask+" not loaded!");
+			errlog("drawButton: WARNING: "+uriMask+" not loaded!");
 			ctx2.drawImage(imgCham, 0, 0);
 		}
 
@@ -545,7 +545,7 @@ async function drawButton(uriRed, uriMask, name, width, height, col1, col2)
 	}
 	else
 	{
-		console.log("drawButton: Error getting context for canvas "+name+"!");
+		errlog("drawButton: Error getting context for canvas "+name+"!");
 		return false;
 	}
 
@@ -628,7 +628,7 @@ async function drawArea(uriRed, name, width, height, col1, col2)
 
 		if (!readyPic1)
 		{
-			console.log("drawArea: WARNING: "+uriRed+" not loaded!");
+			errlog("drawArea: WARNING: "+uriRed+" not loaded!");
 			ctx1.drawImage(img, 0, 0);
 		}
 
@@ -654,7 +654,7 @@ async function drawArea(uriRed, name, width, height, col1, col2)
 	}
 	else
 	{
-		console.log("drawArea: Error getting context for canvas "+name+"!");
+		errlog("drawArea: Error getting context for canvas "+name+"!");
 		return false;
 	}
 
