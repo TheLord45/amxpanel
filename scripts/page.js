@@ -149,7 +149,7 @@ function isSystemReserved(channel)
 	}
 	catch(e)
 	{
-		console.log("isSystemReserved: Error: "+e);
+		errlog("isSystemReserved: Error: "+e);
 	}
 
 	return false;
@@ -168,7 +168,7 @@ function getSystemReservedFunc(channel)
 	}
 	catch(e)
 	{
-		console.log("getSystemReservedFunc: Error: "+e);
+		errlog("getSystemReservedFunc: Error: "+e);
 	}
 
 	return -1;
@@ -187,7 +187,7 @@ function getSystemReservedName(channel)
 	}
 	catch(e)
 	{
-		console.log("getSystemReservedName: Error: "+e);
+		errlog("getSystemReservedName: Error: "+e);
 	}
 
 	return -1;
@@ -254,30 +254,7 @@ function changePageText(num, port, channel, text)
 	}
 	catch(e)
 	{
-		console.log("changePageText: Error: "+e);
-	}
-}
-function changePageTextInst(num, port, channel, inst, text)
-{
-	try
-	{
-		var pgKey = eval("structPage"+num);
-		var i;
-
-		for (i in pgKey.buttons)
-		{
-			button = pgKey.buttons[i];
-
-			if (button.ap == port && button.ad == channel)
-			{
-				if (inst < button.sr.length)
-					button.sr[inst].te = text;
-			}
-		}
-	}
-	catch(e)
-	{
-		console.log("changePageText: Error: "+e);
+		errlog("changePageText: Error: "+e);
 	}
 }
 function drawPage(name)
@@ -296,7 +273,7 @@ function drawPage(name)
 
 	if (pageID == 0)
 	{
-		console.log("drawPage: Couldn't find a page with the name "+name+"!");
+		errlog("drawPage: Couldn't find a page with the name "+name+"!");
 		return false;
 	}
 
@@ -323,7 +300,7 @@ function drawPopup(name)
 
 	if (pageID == 0)
 	{
-		console.log("drawPopup: Couldn't find a popup with the name "+name+"!");
+		errlog("drawPopup: Couldn't find a popup with the name "+name+"!");
 		return false;
 	}
 
@@ -354,7 +331,7 @@ function doDraw(pgKey, pageID, what)
 	}
 	catch(e)
 	{
-		console.log("doDraw: Error: "+e);
+		errlog("doDraw: Error: "+e);
 		return false;
 	}
 
@@ -392,7 +369,7 @@ function doDraw(pgKey, pageID, what)
 			}
 			catch(e)
 			{
-				console.log("doDraw: Error: "+e);
+				errlog("doDraw: Error: "+e);
 				return false;
 			}
 		}
@@ -544,7 +521,7 @@ function doDraw(pgKey, pageID, what)
 						else
 							dir = true;
 			
-						console.log("doDraw: name="+nm+sr.number+", level="+level+", j="+j+", idx="+idx);
+						debug("doDraw: name="+nm+sr.number+", level="+level+", j="+j+", idx="+idx);
 						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb), dir);
 					}
 					else
@@ -604,8 +581,6 @@ function doDraw(pgKey, pageID, what)
 					fnt.style.fontSize = font.size+"pt";
 					fnt.style.fontStyle = getFontStyle(font.subfamilyName);
 					fnt.style.fontWeight = getFontWeight(font.subfamilyName);
-//					fnt.style.display = "flex";
-//					fnt.style.order = 3;
 					bsr.appendChild(fnt);
 
 					if (sr.ww == 0 && (sr.jt == TEXT_ORIENTATION.ORI_CENTER_LEFT || sr.jt == TEXT_ORIENTATION.ORI_CENTER_MIDDLE || sr.jt == TEXT_ORIENTATION.ORI_CENTER_RIGHT))
@@ -683,7 +658,7 @@ function doDraw(pgKey, pageID, what)
 		}
 		catch(e)
 		{
-			console.log("doDraw: Error: "+e);
+			errlog("doDraw: Error: "+e);
 			return false;
 		}
 	}
@@ -701,7 +676,7 @@ function dropPage()
 	}
 	catch(e)
 	{
-		console.log("dropPage: Error: "+e);
+		errlog("dropPage: Error: "+e);
 		return false;
 	}
 
@@ -723,7 +698,7 @@ function dropPopup(name)
 
 	if (pageID == 0)
 	{
-		console.log("dropPopup: Couldn't find a popup with the name "+name+"!");
+		errlog("dropPopup: Couldn't find a popup with the name "+name+"!");
 		return false;
 	}
 
@@ -738,7 +713,7 @@ function dropPopup(name)
 	}
 	catch(e)
 	{
-		console.log("dropPopup: Error: "+e);
+		errlog("dropPopup: Error: "+e);
 		return false;
 	}
 

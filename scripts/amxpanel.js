@@ -6,12 +6,14 @@ var curPort;		// The port number the currently processed command depends on
 var curCommand;		// The currently command stripped from the port number
 var z_index = 0;
 var __debug = false;
+var __errlog = true;
+var __TRACE = true;
 
 var cmdArray =
 	{
 		"commands": [
 			{"cmd":"@WLD-","call":unsupported},
-			{"cmd":"@AFP-","call":unsupported},
+			{"cmd":"@AFP-","call":doAFP},
 			{"cmd":"@GCE-","call":unsupported},
 			{"cmd":"@APG-","call":doAPG},			// Add a popup to a popup group
 			{"cmd":"@CPG-","call":doCPG},			// Clear all popups from a group
@@ -212,12 +214,11 @@ function unsupported(msg)
 	else
 		bef = msg;
 
-	console.log("Command "+bef+" is currently not supported!");
+	TRACE("Command "+bef+" is currently not supported!");
 }
 function newZIndex()
 {
 	z_index = z_index + 1;
-	debug("+zIndex="+z_index);
 	return z_index;
 }
 function freeZIndex()
@@ -225,7 +226,6 @@ function freeZIndex()
 	if (z_index > 0)
 		z_index = z_index - 1;
 
-	debug("-zIndex="+z_index);
 }
 function splittCmd(msg)
 {
@@ -293,6 +293,123 @@ function setBargraphLevel(pnum, id, level)
 		{
 			bargraphs.bargraphs[i].lv = level;
 			break;
+		}
+	}
+}
+function saveTextReplace(port, channel, text, inst=[])
+{
+	var i, j;
+
+	for (i in buttonArray.buttons)
+	{
+		var bt = buttonArray.buttons[i];
+
+		if (bt.ap == port && bt.ac == channel)
+		{
+			var name = "structPage"+pnum;
+			var pgKey = eval(name);
+
+			if (pgKey === null)
+				continue;
+
+			for (j in pgKey.buttons)
+			{
+				if (pgKey.buttons[j].bID == bt.bi)
+				{
+					var a;
+
+					for (a in pgKey.buttons[j].sr)
+					{
+						var idx = parseInt(a) + 1;
+
+						if (inst.length == 0)
+							pgKey.buttons[j].sr[a].te = text;
+						else
+						{
+							var x;
+
+							for (x in inst)
+							{
+								if (inst[x] == idx)
+									pgKey.buttons[j].sr[a].te = text;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+function saveTextAppend(port, channel, text, inst=[])
+{
+	var i, j;
+
+	for (i in buttonArray.buttons)
+	{
+		var bt = buttonArray.buttons[i];
+
+		if (bt.ap == port && bt.ac == channel)
+		{
+			var name = "structPage"+pnum;
+			var pgKey = eval(name);
+
+			if (pgKey === null)
+				continue;
+
+			for (j in pgKey.buttons)
+			{
+				if (pgKey.buttons[j].bID == bt.bi)
+				{
+					var a;
+
+					for (a in pgKey.buttons[j].sr)
+					{
+						var idx = parseInt(a) + 1;
+
+						if (inst.length == 0)
+							pgKey.buttons[j].sr[a].te = pgKey.buttons[j].sr[a].te + text;
+						else
+						{
+							var x;
+
+							for (x in inst)
+							{
+								if (inst[x] == idx)
+									pgKey.buttons[j].sr[a].te = pgKey.buttons[j].sr[a].te + text;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+function getText(port, channel, inst=0)
+{
+	var i, j;
+
+	for (i in buttonArray.buttons)
+	{
+		var bt = buttonArray.buttons[i];
+
+		if (bt.ap == port && bt.ac == channel)
+		{
+			var name = "structPage"+pnum;
+			var pgKey = eval(name);
+
+			if (pgKey === null)
+				continue;
+
+			for (j in pgKey.buttons)
+			{
+				if (pgKey.buttons[j].bID == bt.bi)
+				{
+					if (inst == 0)
+						return pgKey.buttons[j].sr[0].te;
+					else if (inst <= pgKey.buttons[j].sr.length)
+						return pgKey.buttons[j].sr[inst-1].te;
+				}
+			}
 		}
 	}
 }
@@ -655,7 +772,7 @@ function getPopupStatus(name)	// return true if popup is shown
 	}
 	catch(e)
 	{
-		console.log('getPopupStatus: Error on name <'+name+'> and page '+pname+': '+e);
+		errlog('getPopupStatus: Error on name <'+name+'> and page '+pname+': '+e);
 		return false;
 	}
 }
@@ -741,8 +858,6 @@ function hideGroup(name)
 	var i;
 	group = popupGroups[name];
 
-	debug("hideGroup("+name+")");
-
 	if (name == "")
 		return;
 
@@ -770,7 +885,7 @@ function hideGroup(name)
 		}
 		catch(e)
 		{
-			console.log('hideGroup: Error on name <'+name+'> and page '+nm+': '+e);
+			errlog('hideGroup: Error on name <'+name+'> and page '+nm+': '+e);
 		}
 	}
 }
@@ -781,7 +896,6 @@ function showPopup(name)
 	var group;
 	var idx;
 
-	debug("showPopup("+name+")");
 	pID = findPopupNumber(name);
 	group = findPageGroup(name);
 	pname = "Page_"+pID;
@@ -801,7 +915,7 @@ function showPopup(name)
 	}
 	catch(e)
 	{
-		console.log('showPopup: Error on name <'+name+'> and page '+pname+': '+e);
+		errlog('showPopup: Error on name <'+name+'> and page '+pname+': '+e);
 	}
 }
 function showPopupOnPage(name, pg)
@@ -834,7 +948,7 @@ function showPopupOnPage(name, pg)
 	}
 	catch(e)
 	{
-		console.log('showPopupOnPage: Error on name <'+name+'> and page '+pname+': '+e);
+		errlog('showPopupOnPage: Error on name <'+name+'> and page '+pname+': '+e);
 	}
 }
 function hidePopupOnPage(name, pg)
@@ -867,7 +981,7 @@ function hidePopupOnPage(name, pg)
 	}
 	catch(e)
 	{
-		console.log('hidePopupOnPage: Error on name <'+name+'> and page '+pname+': '+e);
+		errlog('hidePopupOnPage: Error on name <'+name+'> and page '+pname+': '+e);
 	}
 }
 function hidePopup(name)
@@ -876,7 +990,6 @@ function hidePopup(name)
 	var pID;
 	var idx;
 
-	debug("hidePopup("+name+")");
 	pID = findPopupNumber(name);
 	pname = "Page_"+pID;
 
@@ -898,7 +1011,7 @@ function hidePopup(name)
 	}
 	catch(e)
 	{
-		console.log('hidePopup: Error on name <'+name+'> and page '+pname+': '+e);
+		errlog('hidePopup: Error on name <'+name+'> and page '+pname+': '+e);
 	}
 }
 function showPage(name)
@@ -906,7 +1019,6 @@ function showPage(name)
 	var pname;
 	var pID;
 
-	debug("showPage("+name+")");
 	pID = findPageNumber(name);
 
 	if (pID > 0)
@@ -941,7 +1053,7 @@ function showPage(name)
 	}
 	catch(e)
 	{
-		console.log('showPage: Error on name <'+name+'> and page '+pname+': '+e);
+		errlog('showPage: Error on name <'+name+'> and page '+pname+': '+e);
 	}
 }
 function hidePage(name)
@@ -949,7 +1061,6 @@ function hidePage(name)
 	var pname;
 	var pID;
 
-	debug("hidePage("+name+")");
 	pID = findPageNumber(name);
 
 	if (pID >= 0)
@@ -975,13 +1086,11 @@ function hidePage(name)
 	}
 	catch(e)
 	{
-		console.log('hidePage: Error on name <'+name+'> and page '+pname+': '+e);
+		errlog('hidePage: Error on name <'+name+'> and page '+pname+': '+e);
 	}
 }
 function switchDisplay(name1, name2, dStat, cport, cnum)
 {
-	debug("switchDisplay("+name1+","+name2+","+dStat+","+cport+","+cnum+")");
-
 	try
 	{
 		if (dStat == 1)
@@ -999,137 +1108,12 @@ function switchDisplay(name1, name2, dStat, cport, cnum)
 	}
 	catch(e)
 	{
-		console.log('switchDisplay: Error: name1='+name1+', name2='+name2+', dStat='+dStat+', cport='+cport+', cnum='+cnum);
+		errlog('switchDisplay: Error: name1='+name1+', name2='+name2+', dStat='+dStat+', cport='+cport+', cnum='+cnum);
 	}
 }
 function pushButton(cport, cnum, stat)
 {
-	debug("pushButton("+cport+","+cnum+","+stat+")");
 	writeTextOut("PUSH:"+cport+":"+cnum+":"+stat+";");
-}
-function readText(port, channel)
-{
-	var bt;
-	var name;
-
-	curPort = port;
-
-	if ((bt = findButton(channel)) === -1)
-	{
-		console.log('readText: Error button '+channel+' not found!');
-		return;
-	}
-
-	name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_1_font';
-
-	try
-	{
-		return document.getElementById(name).innerHTML;
-	}
-	catch(e)
-	{
-		console.log("readText: No element of name "+name+" found!");
-	}
-
-	return "";
-}
-function readTextInst(port, channel, inst)
-{
-	var bt;
-	var i;
-	var inum;
-	var name;
-
-	curPort = port;
-
-	if ((bt = findButton(channel)) === -1)
-	{
-		console.log('readText: Error button '+channel+' not found!');
-		return;
-	}
-
-	for (i = 1; i <= bt.instances; i++)
-	{
-		if (i == inst)
-		{
-			name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_'+i+'_font';
-
-			try
-			{
-				return document.getElementById(name).innerHTML;
-			}
-			catch(e)
-			{
-				console.log("readText: No element of name "+name+" found!");
-				break;
-			}
-		}
-	}
-
-	return "";
-}
-function writeText(port, channel, text)
-{
-	var bt;
-	var i;
-	var name;
-
-	curPort = port;
-
-	if ((bt = findButton(channel)) === -1)
-	{
-		console.log('writeText: Error button '+channel+' not found!');
-		return;
-	}
-
-	for (i = 1; i <= bt.instances; i++)
-	{
-		name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_'+i+'_font';
-
-		try
-		{
-			document.getElementById(name).innerHTML = text;
-		}
-		catch(e)
-		{
-			console.log("writeText: No element of name "+name+" found!");
-		}
-	}
-
-	return "";
-}
-function writeTextInst(port, channel, inst, text)
-{
-	var bt;
-	var i;
-	var name;
-
-	curPort = port;
-
-	if ((bt = findButton(channel)) === -1)
-	{
-		console.log('writeText: Error button '+channel+' not found!');
-		return;
-	}
-
-	for (i = 1; i <= bt.instances; i++)
-	{
-		if (i == inst)
-		{
-			name = 'Page_'+bt[b].pnum+'_Button_'+bt.bi+'_'+i+'_font';
-
-			try
-			{
-				document.getElementById(name).innerHTML = text;
-			}
-			catch(e)
-			{
-				console.log("writeText: No element of name "+name+" found!");
-			}
-		}
-	}
-
-	return "";
 }
 function setON(msg)
 {
@@ -1140,7 +1124,7 @@ function setON(msg)
 
 	if (bt.length == 0)
 	{
-		console.log('setON: Error button '+addr+' not found!');
+		errlog('setON: Error button '+addr+' not found!');
 		return;
 	}
 
@@ -1158,7 +1142,7 @@ function setON(msg)
 		}
 		catch(e)
 		{
-			console.log("setON: [Page_"+bt[b].pnum+"_Button_"+bt[b].bi+"_?] Error: "+e);
+			errlog("setON: [Page_"+bt[b].pnum+"_Button_"+bt[b].bi+"_?] Error: "+e);
 		}
 	}
 }
@@ -1171,7 +1155,7 @@ function setOFF(msg)
 
 	if (bt.length == 0)
 	{
-		console.log('setOFF: Error button '+addr+' not found!');
+		errlog('setOFF: Error button '+addr+' not found!');
 		return;
 	}
 
@@ -1189,7 +1173,7 @@ function setOFF(msg)
 		}
 		catch(e)
 		{
-			console.log("setOFF: [Page_"+bt[b].pnum+"_Button_"+bt[b].bi+"_?] Error: "+e);
+			errlog("setOFF: [Page_"+bt[b].pnum+"_Button_"+bt[b].bi+"_?] Error: "+e);
 		}
 	}
 
@@ -1244,11 +1228,34 @@ function setLEVEL(msg)
 			}
 			catch(e)
 			{
-				console.log("setLEVEL: Error: "+e);
+				errlog("setLEVEL: Error: "+e);
 			}
 		}
 	}
 }
+/*
+ * Flips to a page with the specified page name using an animated transition.
+ *
+ * Attention: The animation is currently sot implemented. This works
+ * the same way like doPPN()!
+ */
+function doAFP(msg)
+{
+	var pg;
+	var animation;
+	var origin;
+	var time;
+
+	pg = getField(msg, 0, ',');
+	animation = getField(msg, 1, ',');
+	origin = getField(msg, 2, ',');
+	time = getField(msg, 3, ',');
+
+	showPopup(pg);
+}
+/*
+ * Add a specific popup page to a specified popup group.
+ */
 function doAPG(msg)
 {
 	var pg;
@@ -1284,6 +1291,10 @@ function doAPG(msg)
 		}
 	}
 }
+/*
+ * Activate a specific popup page to launch on either a specified
+ * page or the current page.
+ */
 function doPPN(msg)
 {
 	var pos;
@@ -1308,6 +1319,10 @@ function doPPN(msg)
 	else
 		showPopup(name);
 }
+/*
+ * Deactivate a specific popup page on either a specified page or
+ * the current page.
+ */
 function doPPF(msg)
 {
 	var pos;
@@ -1332,6 +1347,10 @@ function doPPF(msg)
 	else
 		hidePopup(name);
 }
+/*
+ * Toggle a specific popup page on either a specified page or
+ * the current page.
+ */
 function doPPG(msg)
 {
 	var pos;
@@ -1349,6 +1368,9 @@ function doPPG(msg)
 	else
 		showPopup(name);
 }
+/*
+ * Kill a specific popup page from all pages.
+ */
 function doPPK(msg)
 {
 	var name;
@@ -1362,6 +1384,9 @@ function doPPK(msg)
 	else
 		hidePopup(name);
 }
+/*
+ * Close all popups on all pages.
+ */
 function doPPX(msg)
 {
 	var name;
@@ -1372,6 +1397,9 @@ function doPPX(msg)
 		hidePopup(Popups.pages[i].name);
 	}
 }
+/*
+ * Flip to a specified page.
+ */
 function doPAGE(msg)
 {
 	var name;
@@ -1379,6 +1407,9 @@ function doPAGE(msg)
 	name = msg.substr(5);
 	showPage(name);
 }
+/*
+ * Clear all popup pages from specified popup group.
+ */
 function doCPG(msg)
 {
 	var i;
@@ -1394,6 +1425,9 @@ function doCPG(msg)
 	for (i in group)
 		delete group[i];
 }
+/*
+ * Add page flip action to a button if it does not already exist.
+ */
 function doAPF(msg)
 {
 	var name;
@@ -1417,7 +1451,7 @@ function doAPF(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doAPF: Error button '+addrRange[i]+' not found!');
+			errlog('doAPF: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1441,6 +1475,9 @@ function doAPF(msg)
 		}
 	}
 }
+/*
+ * Append non-unicodetext.
+ */
 function doBAT(msg)
 {
 	var bt;
@@ -1454,8 +1491,6 @@ function doBAT(msg)
 	var j;
 	var z;
 	var b;
-	var name;
-	var elem;
 
 	addr = getField(msg, 0, ',');
 	bts = getField(msg, 1, ',');
@@ -1470,7 +1505,7 @@ function doBAT(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doBAT: Error button '+addrRange[i]+' not found!');
+			errlog('doBAT: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1478,8 +1513,7 @@ function doBAT(msg)
 		{
 			if (btRange.length == 1 && btRange[0] == 0)
 			{
-				elem = readText(curPort, addrRange[i]);
-				writeText(curPort, addrRange[i], elem+text);
+				saveTextAppend(curPort, addrRange[i], text);
 				break;
 			}
 
@@ -1489,17 +1523,18 @@ function doBAT(msg)
 				{
 					if (btRange[j] == z)
 					{
-						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z+"_font";
+						var name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z+"_font";
+						saveTextAppend(curPort, addrRange[i], text, [z]);
 
 						try
 						{
-							elem = document.getElementById(name).innerHTML;
-							elem = elem + text;
+							var elem = getText(curPort, addrRange[i], z);
+//							elem = elem + text;
 							document.getElementById(name).innerHTML = elem;
 						}
 						catch(e)
 						{
-							console.log("doBAT: No element of name "+name+" found!");
+							errlog("doBAT: No element of name "+name+" found!");
 						}
 					}
 				}
@@ -1507,6 +1542,9 @@ function doBAT(msg)
 		}
 	}
 }
+/*
+ * Set the border color to the specified color.
+ */
 function doBCB(msg)
 {
 	var i;
@@ -1527,7 +1565,7 @@ function doBCB(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doBCB: Error button '+addrRange[i]+' not found!');
+			errlog('doBCB: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1547,7 +1585,7 @@ function doBCB(msg)
 
 							if ((colArr = getHexColor(col)) === -1)
 							{
-								console.log("doBCT: Error getting color for "+name);
+								errlog("doBCT: Error getting color for "+name);
 								continue;
 							}
 
@@ -1562,7 +1600,7 @@ function doBCB(msg)
 						}
 						catch(e)
 						{
-							console.log("doBCB: No element of name "+name+" found!");
+							errlog("doBCB: No element of name "+name+" found!");
 						}
 					}
 				}
@@ -1570,6 +1608,9 @@ function doBCB(msg)
 		}
 	}
 }
+/*
+ * Set the fill color to the specified color.
+ */
 function doBCF(msg)
 {
 	var i;
@@ -1590,7 +1631,7 @@ function doBCF(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doBCF: Error button '+addrRange[i]+' not found!');
+			errlog('doBCF: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1610,7 +1651,7 @@ function doBCF(msg)
 
 							if ((colArr = getHexColor(col)) === -1)
 							{
-								console.log("doBCT: Error getting color for "+name);
+								errlog("doBCT: Error getting color for "+name);
 								continue;
 							}
 
@@ -1625,7 +1666,7 @@ function doBCF(msg)
 						}
 						catch(e)
 						{
-							console.log("doBCF: No element of name "+name+" found!");
+							errlog("doBCF: No element of name "+name+" found!");
 						}
 					}
 				}
@@ -1633,6 +1674,9 @@ function doBCF(msg)
 		}
 	}
 }
+/*
+ * Set the text color to the specified color.
+ */
 function doBCT(msg)
 {
 	var i;
@@ -1653,7 +1697,7 @@ function doBCT(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doBCT: Error button '+addrRange[i]+' not found!');
+			errlog('doBCT: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1673,7 +1717,7 @@ function doBCT(msg)
 
 							if ((colArr = getHexColor(col)) === -1)
 							{
-								console.log("doBCT: Error getting color for "+name);
+								errlog("doBCT: Error getting color for "+name);
 								continue;
 							}
 
@@ -1688,7 +1732,7 @@ function doBCT(msg)
 						}
 						catch(e)
 						{
-							console.log("doBCT: No element of name "+name+" found! Error: "+e);
+							errlog("doBCT: No element of name "+name+" found! Error: "+e);
 						}
 					}
 				}
@@ -1696,6 +1740,9 @@ function doBCT(msg)
 		}
 	}
 }
+/*
+ * Assign a picture to those buttons with a defined addressrange.
+ */
 function doBMP(msg)
 {
 	var bt;
@@ -1724,7 +1771,7 @@ function doBMP(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doBMI: Error button '+addrRange[i]+' not found!');
+			errlog('doBMI: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1744,7 +1791,7 @@ function doBMP(msg)
 						}
 						catch(e)
 						{
-							console.log("doBMI: No element of name "+name+" found!");
+							errlog("doBMI: No element of name "+name+" found!");
 						}
 					}
 				}
@@ -1752,6 +1799,9 @@ function doBMP(msg)
 		}
 	}
 }
+/*
+ * Set the button size and position.
+ */
 function doBSP(msg)
 {
 	var bt;
@@ -1779,7 +1829,7 @@ function doBSP(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doBSP: Error button '+addrRange[i]+' not found!');
+			errlog('doBSP: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1796,11 +1846,14 @@ function doBSP(msg)
 			}
 			catch(e)
 			{
-				console.log("doBSP: No element of name "+name+" found!");
+				errlog("doBSP: No element of name "+name+" found!");
 			}
 		}
 	}
 }
+/*
+ * Clear all page flips from a button.
+ */
 function doCPF(msg)
 {
 	var bt;
@@ -1818,7 +1871,7 @@ function doCPF(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doCPF: Error button '+addrRange[i]+' not found!');
+			errlog('doCPF: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1832,11 +1885,14 @@ function doCPF(msg)
 			}
 			catch(e)
 			{
-				console.log("doCPF: No element of name "+name+" found!");
+				errlog("doCPF: No element of name "+name+" found!");
 			}
 		}
 	}
 }
+/*
+ * Enable or disable buttons with a set variable text range.
+ */
 function doENA(msg)
 {
 	var bt;
@@ -1856,7 +1912,7 @@ function doENA(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doCPF: Error button '+addrRange[i]+' not found!');
+			errlog('doCPF: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1875,11 +1931,14 @@ function doENA(msg)
 			}
 			catch(e)
 			{
-				console.log("doCPF: No element of name "+name+" found!");
+				errlog("doCPF: No element of name "+name+" found!");
 			}
 		}
 	}
 }
+/*
+ * Set the icon to a button.
+ */
 async function doICO(msg)
 {
 	var bt;
@@ -1908,7 +1967,7 @@ async function doICO(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doICO: Error button '+addrRange[i]+' not found!');
+			errlog('doICO: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -1970,7 +2029,7 @@ async function doICO(msg)
 
 							if (!hasParent || parent === null)
 							{
-								console.log("doICO: No parent of name "+name+" found! ["+err+"]");
+								errlog("doICO: No parent of name "+name+" found! ["+err+"]");
 								return;
 							}
 
@@ -1999,6 +2058,9 @@ async function doICO(msg)
 		}
 	}
 }
+/*
+ * Show or hide a button with a set variable text range.
+ */
 function doSHO(msg)
 {
 	var bt;
@@ -2019,7 +2081,7 @@ function doSHO(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doSHO: Error button '+addrRange[i]+' not found!');
+			errlog('doSHO: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -2036,12 +2098,15 @@ function doSHO(msg)
 				}
 				catch(e)
 				{
-					console.log("doSHO: No element of name "+name+" found! ["+e+"]");
+					errlog("doSHO: No element of name "+name+" found! ["+e+"]");
 				}
 			}
 		}
 	}
 }
+/*
+ * Assign a text string to those buttons with a defined address range.
+ */
 async function doTXT(msg)
 {
 	var bt;
@@ -2064,7 +2129,7 @@ async function doTXT(msg)
 
 		if (bt.length == 0)
 		{
-			console.log('doTXT: Error button '+addrRange[i]+' not found!');
+			errlog('doTXT: Error button '+addrRange[i]+' not found!');
 			continue;
 		}
 
@@ -2077,7 +2142,7 @@ async function doTXT(msg)
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
 						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
-						changePageTextInst(bt[b].pnum, curPort, addrRange[i], z-1, text);
+						saveTextReplace(curPort, addrRange[i], text, [z]);
 
 						try
 						{
@@ -2113,7 +2178,7 @@ async function doTXT(msg)
 
 							if (!hasParent || parent === null)
 							{
-								console.log("doTXT: No parent of name "+name+" found! ["+err+"]");
+								errlog("doTXT: No parent of name "+name+" found! ["+err+"]");
 								continue;
 							}
 
@@ -2145,7 +2210,7 @@ function parseMessage(msg)
 {
 	var i;
 
-	console.log("parseMessage: msg="+msg);
+	errlog("parseMessage: msg="+msg);
 	splittCmd(msg);
 
 	for (i in cmdArray.commands)
@@ -2160,7 +2225,7 @@ function parseMessage(msg)
 		}
 		catch(e)
 		{
-			console.log("parseMessage WARNING: Position: "+i+": Error: "+e);
+			errlog("parseMessage WARNING: Position: "+i+": Error: "+e);
 		}
 	}
 }
@@ -2190,7 +2255,7 @@ function imgCenter(img, name)
 
 	if (iw == 0 || ih == 0)
 	{
-		console.log("imgCenter: Image with no size at "+name+"!");
+		errlog("imgCenter: Image with no size at "+name+"!");
 		return;
 	}
 
@@ -2217,7 +2282,7 @@ function posImage(img, name, code, width, height)
 
 	if (elem === null)
 	{
-		console.log("posImage: Couldn't find an element with name "+name+"!");
+		errlog("posImage: Couldn't find an element with name "+name+"!");
 		return;
 	}
 
@@ -2228,13 +2293,13 @@ function posImage(img, name, code, width, height)
 
 	if (pw == 0 || ph == 0)
 	{
-		console.log("posImage: WARNING: Parent width/height is 0!");
+		errlog("posImage: WARNING: Parent width/height is 0!");
 		pw = iw;
 	}
 
 	if (iw == 0 || ih == 0)
 	{
-		console.log("posImage: Image with no size at "+name+"!");
+		errlog("posImage: Image with no size at "+name+"!");
 		return;
 	}
 
@@ -2309,11 +2374,11 @@ function beep()
 }
 function writeTextOut(msg)
 {
-	console.log("--> "+msg);
+	TRACE("--> "+msg);
 
 	if (wsocket.readyState != WebSocket.OPEN)
 	{
-		console.log("WARNING: Socket not ready!");
+		errlog("WARNING: Socket not ready!");
 		return;
 	}
 
@@ -2335,7 +2400,7 @@ function setWiFi()
 
 	if (connection === null)
 	{
-		console.log("setWiFi: WiFi API not supported!");
+		errlog("setWiFi: WiFi API not supported!");
 		return;
 	}
 
@@ -2382,3 +2447,18 @@ function debug(text)
 
 	console.log(text);
 }
+function errlog(text)
+{
+	if (!__errlog)
+		return;
+
+	console.log(text);
+}
+function TRACE(text)
+{
+	if (!__TRACE)
+		return;
+
+	console.log(text);
+}
+
