@@ -5,7 +5,7 @@ const sleep = (milliseconds) => {
 var curPort;		// The port number the currently processed command depends on
 var curCommand;		// The currently command stripped from the port number
 var z_index = 0;
-var __debug = false;
+var __debug = true;
 var __errlog = true;
 var __TRACE = true;
 
@@ -17,7 +17,7 @@ var cmdArray =
 			{"cmd":"@GCE-","call":unsupported},
 			{"cmd":"@APG-","call":doAPG},			// Add a popup to a popup group
 			{"cmd":"@CPG-","call":doCPG},			// Clear all popups from a group
-			{"cmd":"@DPG-","call":unsupported},
+			{"cmd":"@DPG-","call":doDPG },			// Delete a specific popup page from specified popup group if it exists.
 			{"cmd":"@PDR-","call":unsupported},
 			{"cmd":"@PHE-","call":unsupported},
 			{"cmd":"@PHP-","call":unsupported},
@@ -306,7 +306,7 @@ function saveTextReplace(port, channel, text, inst=[])
 
 		if (bt.ap == port && bt.ac == channel)
 		{
-			var name = "structPage"+pnum;
+			var name = "structPage"+bt.pnum;
 			var pgKey = eval(name);
 
 			if (pgKey === null)
@@ -394,7 +394,7 @@ function getText(port, channel, inst=0)
 
 		if (bt.ap == port && bt.ac == channel)
 		{
-			var name = "structPage"+pnum;
+			var name = "structPage"+bt.pnum;
 			var pgKey = eval(name);
 
 			if (pgKey === null)
@@ -408,6 +408,45 @@ function getText(port, channel, inst=0)
 						return pgKey.buttons[j].sr[0].te;
 					else if (inst <= pgKey.buttons[j].sr.length)
 						return pgKey.buttons[j].sr[inst-1].te;
+				}
+			}
+		}
+	}
+}
+function saveIcon(port, channel, icon, inst=0)
+{
+	var i, j;
+
+	for (i in buttonArray.buttons)
+	{
+		var bt = buttonArray.buttons[i];
+
+		if (bt.ap == port && bt.ac == channel)
+		{
+			var name = "structPage"+bt.pnum;
+			var pgKey = eval(name);
+
+			if (pgKey === null)
+				continue;
+
+			for (j in pgKey.buttons)
+			{
+				if (pgKey.buttons[j].bID == bt.bi)
+				{
+					var a, idx;
+
+					for (a in pgKey.buttons[j].sr)
+					{
+						idx = parseInt(a) + 1;
+
+						if (inst == 0)
+							pgKey.buttons[j].sr[a].ii = icon;
+						else if (idx == inst)
+						{
+							pgKey.buttons[j].sr[a].ii = icon;
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -837,6 +876,33 @@ function getIconDim(id)
 	}
 
 	return -1;
+}
+function getIconPosInfo(pnum, bi, inst)
+{
+	var i, name, pgKey;
+
+	name = "structPage"+pnum;
+	pgKey = eval(name);
+
+	if (pgKey === null)
+		return null;
+
+	for (i in pgKey.buttons)
+	{
+		var j;
+		var but = pgKey.buttons[i];
+
+		if (but.bID == bi)
+		{
+			for (j in but.sr)
+			{
+				if (but.sr[j].number == inst)
+					return [ but.sr[j].ji, but.sr[j].ix, but.sr[j].iy ];
+			}
+		}
+	}
+
+	return null;
 }
 function setButtonOnline(pnum, id, stat)
 {
@@ -1476,6 +1542,44 @@ function doAPF(msg)
 	}
 }
 /*
+ * Delete a specific popup page from specified popup group if it exists.
+ */
+function doDPG(msg)
+{
+	var i, j, pos;
+	var pg, name;
+
+	pg = getField(msg, 0, ';');
+	name = getField(msg, 1, ';');
+
+	if (pg.length > 0 && group.length > 0)
+	{
+		for (i in popupGroups)
+		{
+			if (popupGroups[i] == name)
+			{
+				var have = false;
+				var group = popupGroups[i];
+				pos = 0;
+
+				for (j in group)
+				{
+					if (group[j] == pg)
+					{
+						have = true;
+						pos = parseInt(j);
+						break;
+					}
+				}
+
+				if (have)
+					popupGroups[i].splice(pos, 1);
+			}
+		}
+	}
+
+}
+/*
  * Append non-unicodetext.
  */
 function doBAT(msg)
@@ -1980,6 +2084,7 @@ async function doICO(msg)
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
 						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
+						saveIcon(bt[b].ap, bt[b].ac, idx, btRange[j]);
 
 						try
 						{
@@ -2006,31 +2111,22 @@ async function doICO(msg)
 							var cnt = 0;
 							var err = "";
 
-							while(!hasParent && cnt < 20)
+							try
 							{
-								try
-								{
-									parent = document.getElementById(name);
+								parent = document.getElementById(name);
 
-									if (parent !== null)
-									{
-										hasParent = true;
-										break;
-									}
-								}
-								catch(e)
-								{
-									err = e;
-								}
-
-								await new Promise(r => setTimeout(r, 200));
-								cnt++;
+								if (parent !== null)
+									hasParent = true;
+							}
+							catch(e)
+							{
+								err = e;
 							}
 
 							if (!hasParent || parent === null)
 							{
 								errlog("doICO: No parent of name "+name+" found! ["+err+"]");
-								return;
+								continue;
 							}
 
 							var ico = getIconFile(idx);
@@ -2050,6 +2146,11 @@ async function doICO(msg)
 
 								if (hasSpan)
 									parent.insertBefore(img, span);
+
+								var  icoPos = getIconPosInfo(bt[b].pnum, bt[b].bi, z);
+
+								if (icoPos !== null)
+									posImage(img, name+'_img', icoPos[0], dim[0], dim[1]);
 							}
 						}
 					}
