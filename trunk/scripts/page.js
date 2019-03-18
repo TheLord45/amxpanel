@@ -417,18 +417,18 @@ function doDraw(pgKey, pageID, what)
 				{
 					var name1 = "Page_"+pageID+"_Button_"+button.bID+"_"+button.sr[0].number;
 					var name2 = "Page_"+pageID+"_Button_"+button.bID+"_"+button.sr[1].number;
-					bt.addEventListener('mousedown', switchDisplay.bind(null, name1,name2,1,button.cp,button.ch));
-					bt.addEventListener('mouseup', switchDisplay.bind(null, name1,name2,0,button.cp,button.ch));
+					bt.addEventListener('pointerdown', switchDisplay.bind(null, name1,name2,1,button.cp,button.ch),false);
+					bt.addEventListener('pointerup', switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
 				}
 				else if (button.fb == FEEDBACK.FB_CHANNEL || button.fb == 0)
 				{
-					bt.addEventListener('mousedown', pushButton.bind(null, button.cp,button.ch,1));
-					bt.addEventListener('mouseup', pushButton.bind(null, button.cp,button.ch,0));
+					bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,1),false);
+					bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,0),false);
 				}
 				else if (button.fb == FEEDBACK.FB_INV_CHANNEL)
 				{
-					bt.addEventListener('mousedown', pushButton.bind(null, button.cp,button.ch,0));
-					bt.addEventListener('mouseup', pushButton.bind(null, button.cp,button.ch,1));
+					bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,0),false);
+					bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,1),false);
 				}
 				else if (button.fb == FEEDBACK.FB_ALWAYS_ON)
 					bt.addEventListener('click', pushButton.bind(null, button.cp,button.ch,1));
@@ -508,7 +508,7 @@ function doDraw(pgKey, pageID, what)
 				{
 					var width = sr.mi_width;
 					var height = sr.mi_height;
-					setCSSclass(nm + sr.number + "_canvas", "position: absolute; left: 0px; top: 0px; width: " + width + "px; height: " + height + "px; display: flex; order: 1;");
+					setCSSclass(nm + sr.number + "_canvas", "position: absolute; left: 0px; top: 0px; width: "+width + "px; height: " + height + "px; display: flex; order: 1;");
 
 					if (button.sr[idx+1].bm.length > 0)
 					{
@@ -520,7 +520,7 @@ function doDraw(pgKey, pageID, what)
 							dir = false;
 						else
 							dir = true;
-			
+
 						debug("doDraw: name="+nm+sr.number+", level="+level+", j="+j+", idx="+idx);
 						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb), dir);
 					}
@@ -577,6 +577,13 @@ function doDraw(pgKey, pageID, what)
 						fnt.style.height = bsr.style.height;
 					}
 
+					// Prevent text from being selected.
+					fnt.style.webkitTouchCallout = 'none';
+					fnt.style.webkitUserSelect = 'none';
+					fnt.style.khtmlUserSelect = 'none';
+					fnt.style.mozUserSelect = 'none';
+					fnt.style.userSelect = 'none';
+					fnt.style.pointerEvents = 'none';
 					fnt.style.fontFamily = font.name;
 					fnt.style.fontSize = font.size+"pt";
 					fnt.style.fontStyle = getFontStyle(font.subfamilyName);

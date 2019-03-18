@@ -372,6 +372,9 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 		canvas3.className = name+"_canvas";
 		var div = document.getElementById(name);
 
+		if (div === null)
+			return;
+
 		try
 		{
 			div.replaceChild(canvas3, document.getElementById(name+"_canvas"));
