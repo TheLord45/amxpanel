@@ -257,6 +257,129 @@ function changePageText(num, port, channel, text)
 		errlog("changePageText: Error: "+e);
 	}
 }
+function allElementsFromPoint(x, y)
+{
+    var element, elements = [];
+	var old_visibility = [];
+	
+	if (typeof x != "number" || typeof y != "number")
+	{
+		errlog("allElementsFromPoint: Parameters x and y are not numeric!");
+		return null;
+	}
+
+	if (x <= 0 || y <= 0)
+	{
+		errlog("allElementsFromPoint: Invalid parameters x and/or y: x="+x+", y="+y);
+		return null;
+	}
+
+	debug("allElementsFromPoint: x="+x+", y="+y);
+
+	while (true)
+	{
+        element = document.elementFromPoint(x, y);
+
+		if (!element || element === document.documentElement)
+            break;
+
+        elements.push(element);
+        old_visibility.push(element.style.visibility);
+        element.style.visibility = 'hidden'; // Temporarily hide the element (without changing the layout)
+    }
+
+	for (var k = 0; k < elements.length; k++)
+		elements[k].style.visibility = old_visibility[k];
+
+    elements.reverse();
+    return elements;
+}
+/*
+ * Gets the x/y coordinates of the mouse click and finds the pixel
+ * of the image. If the pixel is transparent, the image underneath
+ * is tested and so on. When there is no more image, or a non
+ * transparent pixel was found, the function stops.
+ * When a non transparent pixel was found, the mouse event is
+ * passed to the parent of that image (button).
+ */
+function activeTouch(event, name, posX, posY, width, height)
+{
+	var i;
+
+	if (event === null)
+	{
+		errlog("activeTouch: Got no valid event on "+name);
+		return;
+	}
+
+	if (typeof name != "string")
+	{
+		errlog("activeTouch: No object name!");
+		return;
+	}
+
+	var x = event.pageX; // - document.offsetLeft;
+	var y = event.pageY; // - document.offsetTop;
+	var objs = allElementsFromPoint(x, y);
+	debug("activeTouch: name="+name+", pageX="+x+", pageY="+y+", posX="+posX+", posY="+posY+", number="+objs.length); //+", offsetLeft="+document.offsetLeft+", offsetTop="+document.offsetTop);
+
+	for (i in objs)
+	{
+		if (objs[i].id.indexOf(name) == 0 && objs[i].id != name && (objs[i].localName == "canvas" || objs[i].localName == "img" || objs[i].localName == "div"))
+		{
+			var ctx = document.createElement("canvas").getContext("2d");
+			var w = ctx.canvas.width = objs[i].width,
+				h = ctx.canvas.height = objs[i].height,
+				alpha;
+
+			if (w === null || typeof w != "number")
+				w = width;
+
+			if (h === null || typeof h != "number")
+				h = height;
+
+			if (objs[i].localName == "img")
+				ctx.drawImage(objs[i], 0, 0, w, h);
+			else if (objs[i].localName == "canvas")
+				ctx = objs[i].getContext("2d");
+			else if (objs[i].style.backgroundImage.length > 0)
+			{
+				var img = document.createElement("img");
+				img.src = objs[i].style.backgroundImage.slice(4, -1).replace(/["']/g, "");
+				ctx.drawImage(img, 0, 0, w, h);
+			}
+			else
+				continue;
+
+			debug("activeTouch: objs["+i+"].id="+objs[i].id+", objs["+i+"].localName="+objs[i].localName+", w="+w+", h="+h);
+
+			var pX = x - objs[i].offsetLeft - posX;
+			var pY = y - objs[i].offsetTop - posY;
+			debug("activeTouch: pX="+pX+", pY="+pY+", offsetLeft="+objs[i].offsetLeft+", offsetTop="+objs[i].offsetTop);
+			alpha = ctx.getImageData(pX, pY, 1, 1).data[3]; // [0]R [1]G [2]B [3]A
+			debug("activeTouch: alpha="+alpha);
+
+  			// If pixel is transparent,
+  			// retrieve the element underneath and trigger it's click event
+			if( alpha != 0 )
+			{
+				debug("activeTouch: Event was triggered to "+objs[i].parentNode.id);
+				var simulateClick = function (elem) {
+					// Create our event (with options)
+					var evt = new MouseEvent('click', {
+						bubbles: true,
+						cancelable: true,
+						view: window
+					});
+					// If cancelled, don't dispatch our event
+					var canceled = !elem.dispatchEvent(evt);
+				};
+
+				simulateClick(objs[i].parentNode);
+			}
+		}
+	}
+}
 function drawPage(name)
 {
 	var i;
@@ -411,35 +534,117 @@ function doDraw(pgKey, pageID, what)
 			if (button.hs == "bounding")
 				bt.style.overflow = "hidden";
 
-			if (button.cp > 0 && button.ch > 0 && button.sr.length == 2)		// clickable?
+			if (button.hs != "passThru")
 			{
-				if (button.fb == FEEDBACK.FB_MOMENTARY)
+				if (button.cp > 0 && button.ch > 0 && button.sr.length == 2)		// clickable?
 				{
-					var name1 = "Page_"+pageID+"_Button_"+button.bID+"_"+button.sr[0].number;
-					var name2 = "Page_"+pageID+"_Button_"+button.bID+"_"+button.sr[1].number;
-					bt.addEventListener('pointerdown', switchDisplay.bind(null, name1,name2,1,button.cp,button.ch),false);
-					bt.addEventListener('pointerup', switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
-				}
-				else if (button.fb == FEEDBACK.FB_CHANNEL || button.fb == 0)
-				{
-					bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,1),false);
-					bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,0),false);
-				}
-				else if (button.fb == FEEDBACK.FB_INV_CHANNEL)
-				{
-					bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,0),false);
-					bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,1),false);
-				}
-				else if (button.fb == FEEDBACK.FB_ALWAYS_ON)
-					bt.addEventListener('click', pushButton.bind(null, button.cp,button.ch,1));
-			}
+					if (button.fb == FEEDBACK.FB_MOMENTARY)
+					{
+						var name1 = "Page_"+pageID+"_Button_"+button.bID+"_"+button.sr[0].number;
+						var name2 = "Page_"+pageID+"_Button_"+button.bID+"_"+button.sr[1].number;
 
-			if (button.pfType == "sShow")			// show popup
-				bt.addEventListener('click', showPopup.bind(null, button.pfName));
-			else if (button.pfType == "sHide")		// hide popup
-				bt.addEventListener('click', hidePopup.bind(null, button.pfName));
-			else if (button.pfType == "scGroup")	// hide group
-				bt.addEventListener('click', hideGroup.bind(null, button.pfName));
+						if (button.hs.length == 0)
+						{
+							bt.addEventListener('click', function(event) {
+								var pos = this.id.lastIndexOf('_');
+								var x = parseInt(this.style.left);
+								var y = parseInt(this.style.top);
+								var w = parseInt(this.style.width);
+								var h = parseInt(this.style.height);
+								var nm;
+
+								if (pos > 0)
+									nm = this.id.substr(0, pos);
+								else
+									nm = this.id;
+
+								activeTouch(event, nm, x, y, w, h); 
+							},false);
+						}
+
+						bt.addEventListener('pointerdown', switchDisplay.bind(null, name1,name2,1,button.cp,button.ch),false);
+						bt.addEventListener('pointerup', switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
+					}
+					else if (button.fb == FEEDBACK.FB_CHANNEL || button.fb == 0)
+					{
+						if (button.hs.length == 0)
+						{
+							bt.addEventListener('click', function(event) {
+								var pos = this.id.lastIndexOf('_');
+								var x = this.id.style.left;
+								var y = this.id.style.top;
+								var w = parseInt(this.style.width);
+								var h = parseInt(this.style.height);
+								var nm;
+
+								if (pos > 0)
+									nm = this.id.substr(0, pos);
+								else
+									nm = this.id;
+
+								activeTouch(event, nm, x, y, w, h); 
+							},false);
+						}
+
+						bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,1),false);
+						bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,0),false);
+					}
+					else if (button.fb == FEEDBACK.FB_INV_CHANNEL)
+					{
+						if (button.hs.length == 0)
+						{
+							bt.addEventListener('click', function(event) {
+								var pos = this.id.lastIndexOf('_');
+								var x = this.id.style.left;
+								var y = this.id.style.top;
+								var w = parseInt(this.style.width);
+								var h = parseInt(this.style.height);
+								var nm;
+
+								if (pos > 0)
+									nm = this.id.substr(0, pos);
+								else
+									nm = this.id;
+
+								activeTouch(event, nm, x, y, w, h); 
+							},false);
+						}
+
+						bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,0),false);
+						bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,1),false);
+					}
+					else if (button.fb == FEEDBACK.FB_ALWAYS_ON)
+					{
+						if (button.hs.length == 0)
+						{
+							bt.addEventListener('click', function(event) {
+								var pos = this.id.lastIndexOf('_');
+								var x = this.id.style.left;
+								var y = this.id.style.top;
+								var w = parseInt(this.style.width);
+								var h = parseInt(this.style.height);
+								var nm;
+
+								if (pos > 0)
+									nm = this.id.substr(0, pos);
+								else
+									nm = this.id;
+
+								activeTouch(event, nm, x, y, w, h);
+							},false);
+						}
+
+						bt.addEventListener('click', pushButton.bind(null, button.cp,button.ch,1));
+					}
+				}
+
+				if (button.pfType == "sShow")			// show popup
+					bt.addEventListener('click', showPopup.bind(null, button.pfName));
+				else if (button.pfType == "sHide")		// hide popup
+					bt.addEventListener('click', hidePopup.bind(null, button.pfName));
+				else if (button.pfType == "scGroup")	// hide group
+					bt.addEventListener('click', hideGroup.bind(null, button.pfName));
+			}
 
 			for (j in button.sr)
 			{
