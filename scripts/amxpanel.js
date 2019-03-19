@@ -244,6 +244,21 @@ function splittCmd(msg)
 		curCommand = msg;
 	}
 }
+function getButton(pnum, bi)
+{
+	pgKey = eval("structPage"+pnum);
+
+	if (pgKey === null)
+		return;
+
+	for (var i in pgKey.buttons)
+	{
+		if (pgKey.buttons[i].bID == bi)
+			return pgKey.buttons[i];
+	}
+
+	return null;
+}
 function getBargraphLevel(pnum, id)
 {
 	var i;
@@ -292,7 +307,6 @@ function setBargraphLevel(pnum, id, level)
 		else if (bg.pnum == pnum && bg.bi == id)
 		{
 			bargraphs.bargraphs[i].lv = level;
-			break;
 		}
 	}
 }
