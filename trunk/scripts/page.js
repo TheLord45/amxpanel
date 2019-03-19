@@ -274,8 +274,6 @@ function allElementsFromPoint(x, y)
 		return null;
 	}
 
-	debug("allElementsFromPoint: x="+x+", y="+y);
-
 	while (true)
 	{
         element = document.elementFromPoint(x, y);
@@ -302,7 +300,7 @@ function allElementsFromPoint(x, y)
  * When a non transparent pixel was found, the mouse event is
  * passed to the parent of that image (button).
  */
-function activeTouch(event, name, posX, posY, width, height)
+function activeTouch(event, name, object)
 {
 	var i;
 
@@ -318,25 +316,31 @@ function activeTouch(event, name, posX, posY, width, height)
 		return;
 	}
 
-	var x = event.pageX; // - document.offsetLeft;
-	var y = event.pageY; // - document.offsetTop;
-	var objs = allElementsFromPoint(x, y);
-	debug("activeTouch: name="+name+", pageX="+x+", pageY="+y+", posX="+posX+", posY="+posY+", number="+objs.length); //+", offsetLeft="+document.offsetLeft+", offsetTop="+document.offsetTop);
+	var rect = object.getBoundingClientRect();
+	var x = event.clientX - rect.left;
+	var y = event.clientY - rect.top;
+	var objs = allElementsFromPoint(event.pageX, event.pageY);
+
+	if (objs === null)
+		return;
 
 	for (i in objs)
 	{
 		if (objs[i].id.indexOf(name) == 0 && objs[i].id != name && (objs[i].localName == "canvas" || objs[i].localName == "img" || objs[i].localName == "div"))
 		{
 			var ctx = document.createElement("canvas").getContext("2d");
-			var w = ctx.canvas.width = objs[i].width,
-				h = ctx.canvas.height = objs[i].height,
+			var w = objs[i].width,
+				h = objs[i].height,
 				alpha;
 
 			if (w === null || typeof w != "number")
-				w = width;
+				w = rect.width;
 
 			if (h === null || typeof h != "number")
-				h = height;
+				h = rect.height;
+
+			ctx.canvas.width = w;
+			ctx.canvas.height = h;
 
 			if (objs[i].localName == "img")
 				ctx.drawImage(objs[i], 0, 0, w, h);
@@ -351,31 +355,40 @@ function activeTouch(event, name, posX, posY, width, height)
 			else
 				continue;
 
-			debug("activeTouch: objs["+i+"].id="+objs[i].id+", objs["+i+"].localName="+objs[i].localName+", w="+w+", h="+h);
+			alpha = ctx.getImageData(x, y, 1, 1).data[3]; // [0]R [1]G [2]B [3]A
 
-			var pX = x - objs[i].offsetLeft - posX;
-			var pY = y - objs[i].offsetTop - posY;
-			debug("activeTouch: pX="+pX+", pY="+pY+", offsetLeft="+objs[i].offsetLeft+", offsetTop="+objs[i].offsetTop);
-			alpha = ctx.getImageData(pX, pY, 1, 1).data[3]; // [0]R [1]G [2]B [3]A
-			debug("activeTouch: alpha="+alpha);
-
-  			// If pixel is transparent,
-  			// retrieve the element underneath and trigger it's click event
+  			// If pixel is not transparent, send a click event
 			if( alpha != 0 )
 			{
-				debug("activeTouch: Event was triggered to "+objs[i].parentNode.id);
-				var simulateClick = function (elem) {
-					// Create our event (with options)
-					var evt = new MouseEvent('click', {
-						bubbles: true,
-						cancelable: true,
-						view: window
-					});
-					// If cancelled, don't dispatch our event
-					var canceled = !elem.dispatchEvent(evt);
-				};
+				var pos1, pos2;
+				var n = objs[i].parentNode.id;
 
-				simulateClick(objs[i].parentNode);
+				pos1 = n.indexOf('_');
+				pos2 = n.indexOf('_', pos1 + 1);
+				var pnum = parseInt(n.substr(pos1 + 1, pos2 - pos1));
+				pos1 = n.indexOf('_', pos2 + 1);
+				var bi = parseInt(n.substr(pos1 + 1));
+				var name1 = "Page_"+pnum+"_Button_"+bi+"_1";
+				var name2 = "Page_"+pnum+"_Button_"+bi+"_2";
+				var button = getButton(pnum, bi);
+
+				if (button !== null)
+				{
+					debug("activeTouch: Button "+button.bname+" found.");
+
+					if (button.cp >= 0 && button.ch > 0)
+					{
+						if (event.type == "mousedown" || event.type == "pointerdown" || event.type == "touchdown")
+							switchDisplay(name1, name2, 1, button.cp, button.ch);
+						else if (event.type == "mouseup" || event.type == "pointerup" || event.type == "touchup")
+							switchDisplay(name1, name2, 0, button.cp, button.ch);
+						else
+						{
+							writeTextOut("PUSH:"+button.cp+":"+button.ch+":1;");
+							writeTextOut("PUSH:"+button.cp+":"+button.ch+":0;");
+						}
+					}
+				}
 			}
 		}
 	}
@@ -545,12 +558,8 @@ function doDraw(pgKey, pageID, what)
 
 						if (button.hs.length == 0)
 						{
-							bt.addEventListener('click', function(event) {
+							bt.addEventListener('pointerdown', function(event) {
 								var pos = this.id.lastIndexOf('_');
-								var x = parseInt(this.style.left);
-								var y = parseInt(this.style.top);
-								var w = parseInt(this.style.width);
-								var h = parseInt(this.style.height);
 								var nm;
 
 								if (pos > 0)
@@ -558,12 +567,25 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, x, y, w, h); 
+								activeTouch(event, nm, this); 
+							},false);
+							bt.addEventListener('pointerup', function(event) {
+								var pos = this.id.lastIndexOf('_');
+								var nm;
+
+								if (pos > 0)
+									nm = this.id.substr(0, pos);
+								else
+									nm = this.id;
+
+								activeTouch(event, nm, this); 
 							},false);
 						}
-
-						bt.addEventListener('pointerdown', switchDisplay.bind(null, name1,name2,1,button.cp,button.ch),false);
-						bt.addEventListener('pointerup', switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
+						else
+						{
+							bt.addEventListener('pointerdown', switchDisplay.bind(null, name1,name2,1,button.cp,button.ch),false);
+							bt.addEventListener('pointerup', switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
+						}
 					}
 					else if (button.fb == FEEDBACK.FB_CHANNEL || button.fb == 0)
 					{
@@ -571,10 +593,6 @@ function doDraw(pgKey, pageID, what)
 						{
 							bt.addEventListener('click', function(event) {
 								var pos = this.id.lastIndexOf('_');
-								var x = this.id.style.left;
-								var y = this.id.style.top;
-								var w = parseInt(this.style.width);
-								var h = parseInt(this.style.height);
 								var nm;
 
 								if (pos > 0)
@@ -582,12 +600,14 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, x, y, w, h); 
+								activeTouch(event, nm, this); 
 							},false);
 						}
-
-						bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,1),false);
-						bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,0),false);
+						else
+						{
+							bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,1),false);
+							bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,0),false);
+						}
 					}
 					else if (button.fb == FEEDBACK.FB_INV_CHANNEL)
 					{
@@ -595,10 +615,6 @@ function doDraw(pgKey, pageID, what)
 						{
 							bt.addEventListener('click', function(event) {
 								var pos = this.id.lastIndexOf('_');
-								var x = this.id.style.left;
-								var y = this.id.style.top;
-								var w = parseInt(this.style.width);
-								var h = parseInt(this.style.height);
 								var nm;
 
 								if (pos > 0)
@@ -606,12 +622,14 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, x, y, w, h); 
+								activeTouch(event, nm, this); 
 							},false);
 						}
-
-						bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,0),false);
-						bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,1),false);
+						else
+						{
+							bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,0),false);
+							bt.addEventListener('pointerup', pushButton.bind(null, button.cp,button.ch,1),false);
+						}
 					}
 					else if (button.fb == FEEDBACK.FB_ALWAYS_ON)
 					{
@@ -619,10 +637,6 @@ function doDraw(pgKey, pageID, what)
 						{
 							bt.addEventListener('click', function(event) {
 								var pos = this.id.lastIndexOf('_');
-								var x = this.id.style.left;
-								var y = this.id.style.top;
-								var w = parseInt(this.style.width);
-								var h = parseInt(this.style.height);
 								var nm;
 
 								if (pos > 0)
@@ -630,11 +644,11 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, x, y, w, h);
+								activeTouch(event, nm, this);
 							},false);
 						}
-
-						bt.addEventListener('click', pushButton.bind(null, button.cp,button.ch,1));
+						else
+							bt.addEventListener('click', pushButton.bind(null, button.cp,button.ch,1));
 					}
 				}
 
