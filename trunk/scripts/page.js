@@ -292,6 +292,45 @@ function allElementsFromPoint(x, y)
     elements.reverse();
     return elements;
 }
+function getButtonKennung(name)
+{
+	if (typeof name != "string" || name.length < 17)
+		return null;
+
+	var pos1 = name.indexOf('_');
+	var pos2 = name.indexOf('_', pos1 + 1);
+
+	if (pos1 < 0 || pos2 < 0)
+		return null;
+
+	var pnum = parseInt(name.substr(pos1 + 1, pos2 - pos1));
+	pos1 = name.indexOf('_', pos2 + 1);
+
+	if (pos1 < 0)
+		return null;
+
+	var bi = parseInt(name.substr(pos1 + 1));
+
+	if (isNaN(pnum) || isNaN(bi))
+		return null;
+
+	return [pnum, bi];
+}
+function hasGraphic(button, inst=0)
+{
+	if (button === null)
+		return false;
+
+	for (var i in button.sr)
+	{
+		var sr = button.sr[i];
+
+		if ((inst == 0 || inst == parseInt(i)) && (sr.mi.length > 0 || sr.bm.length > 0))
+			return true;
+	}
+
+	return false;
+}
 /*
  * Gets the x/y coordinates of the mouse click and finds the pixel
  * of the image. If the pixel is transparent, the image underneath
@@ -341,52 +380,80 @@ function activeTouch(event, name, object)
 
 			ctx.canvas.width = w;
 			ctx.canvas.height = h;
+			var btKenn = getButtonKennung(objs[i].parentNode.id);
 
-			if (objs[i].localName == "img")
-				ctx.drawImage(objs[i], 0, 0, w, h);
-			else if (objs[i].localName == "canvas")
-				ctx = objs[i].getContext("2d");
-			else if (objs[i].style.backgroundImage.length > 0)
-			{
-				var img = document.createElement("img");
-				img.src = objs[i].style.backgroundImage.slice(4, -1).replace(/["']/g, "");
-				ctx.drawImage(img, 0, 0, w, h);
-			}
-			else
+			if (btKenn === null)
 				continue;
 
-			alpha = ctx.getImageData(x, y, 1, 1).data[3]; // [0]R [1]G [2]B [3]A
+			var button = getButton(btKenn[0], btKenn[1]);
+
+			if (button === null)
+				continue;
+
+			if (hasGraphic(button))
+			{
+				if (objs[i].localName == "img")
+					ctx.drawImage(objs[i], 0, 0, w, h);
+				else if (objs[i].localName == "canvas")
+					ctx = objs[i].getContext("2d");
+				else if (objs[i].style.backgroundImage.length > 0)
+				{
+					var img = document.createElement("img");
+					img.src = objs[i].style.backgroundImage.slice(4, -1).replace(/["']/g, "");
+					ctx.drawImage(img, 0, 0, w, h);
+				}
+				else
+					continue;
+
+				alpha = ctx.getImageData(x, y, 1, 1).data[3]; // [0]R [1]G [2]B [3]A
+			}
+			else
+			{
+				var col = getAMXColor(button.sr[0].cf);
+
+				if (col.length == 4)
+					alpha = col[3];
+				else
+					alpha = 255;
+			}
 
   			// If pixel is not transparent, send a click event
 			if( alpha != 0 )
 			{
-				var pos1, pos2;
-				var n = objs[i].parentNode.id;
+				var name1 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_1";
+				var name2 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_2";
 
-				pos1 = n.indexOf('_');
-				pos2 = n.indexOf('_', pos1 + 1);
-				var pnum = parseInt(n.substr(pos1 + 1, pos2 - pos1));
-				pos1 = n.indexOf('_', pos2 + 1);
-				var bi = parseInt(n.substr(pos1 + 1));
-				var name1 = "Page_"+pnum+"_Button_"+bi+"_1";
-				var name2 = "Page_"+pnum+"_Button_"+bi+"_2";
-				var button = getButton(pnum, bi);
+				debug("activeTouch: Button "+button.bname+" found.");
 
-				if (button !== null)
+				if (button.cp >= 0 && button.ch > 0)
 				{
-					debug("activeTouch: Button "+button.bname+" found.");
-
-					if (button.cp >= 0 && button.ch > 0)
+					if (event.type == "mousedown" || event.type == "pointerdown" || event.type == "touchdown")
 					{
-						if (event.type == "mousedown" || event.type == "pointerdown" || event.type == "touchdown")
+						if (button.fb == FEEDBACK.FB_MOMENTARY)
 							switchDisplay(name1, name2, 1, button.cp, button.ch);
-						else if (event.type == "mouseup" || event.type == "pointerup" || event.type == "touchup")
-							switchDisplay(name1, name2, 0, button.cp, button.ch);
+						else if (button.fb == FEEDBACK.FB_INV_CHANNEL)
+							pushButton(button.cp, button.ch, 0);
 						else
-						{
-							writeTextOut("PUSH:"+button.cp+":"+button.ch+":1;");
-							writeTextOut("PUSH:"+button.cp+":"+button.ch+":0;");
-						}
+							pushButton(button.cp, button.ch, 1);
+
+						return;
+					}
+					else if (event.type == "mouseup" || event.type == "pointerup" || event.type == "touchup")
+					{
+						if (button.fb == FEEDBACK.FB_MOMENTARY)
+							switchDisplay(name1, name2, 0, button.cp, button.ch);
+						else if (button.fb == FEEDBACK.FB_INV_CHANNEL)
+							pushButton(button.cp, button.ch, 1);
+						else
+							pushButton(button.cp, button.ch, 0);
+
+						return;
+					}
+					else
+					{
+						writeTextOut("PUSH:"+button.cp+":"+button.ch+":1;");
+						writeTextOut("PUSH:"+button.cp+":"+button.ch+":0;");
+						return;
 					}
 				}
 			}
@@ -591,7 +658,18 @@ function doDraw(pgKey, pageID, what)
 					{
 						if (button.hs.length == 0)
 						{
-							bt.addEventListener('click', function(event) {
+							bt.addEventListener('pointerdown', function(event) {
+								var pos = this.id.lastIndexOf('_');
+								var nm;
+
+								if (pos > 0)
+									nm = this.id.substr(0, pos);
+								else
+									nm = this.id;
+
+								activeTouch(event, nm, this); 
+							},false);
+							bt.addEventListener('pointerup', function(event) {
 								var pos = this.id.lastIndexOf('_');
 								var nm;
 
@@ -613,7 +691,18 @@ function doDraw(pgKey, pageID, what)
 					{
 						if (button.hs.length == 0)
 						{
-							bt.addEventListener('click', function(event) {
+							bt.addEventListener('pointerdown', function(event) {
+								var pos = this.id.lastIndexOf('_');
+								var nm;
+
+								if (pos > 0)
+									nm = this.id.substr(0, pos);
+								else
+									nm = this.id;
+
+								activeTouch(event, nm, this); 
+							},false);
+							bt.addEventListener('pointerup', function(event) {
 								var pos = this.id.lastIndexOf('_');
 								var nm;
 
@@ -715,19 +804,24 @@ function doDraw(pgKey, pageID, what)
 				{
 					var width = sr.mi_width;
 					var height = sr.mi_height;
-					var can;
-					setCSSclass(nm+sr.number+"_canvas", "position: absolute; left: 0px; top: 0px; width: "+width+"px; height: "+height+"px; display: flex; order: 1;");
+					var css = calcImagePosition(width, height, button, CENTER_CODE.SC_BITMAP, sr.number);
+					setCSSclass(nm+sr.number+"_canvas", css+"display: flex; order: 1;");
+					debug("doDraw: Button chameleon image: "+css);
 
 					if (sr.bm.length > 0)
 						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 					else
 						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+
+					
 				}
 				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
 				{
 					var width = sr.mi_width;
 					var height = sr.mi_height;
-					setCSSclass(nm + sr.number + "_canvas", "position: absolute; left: 0px; top: 0px; width: "+width + "px; height: " + height + "px; display: flex; order: 1;");
+					var css = calcImagePosition(width, height, button, CENTER_CODE.SC_BITMAP, sr.number);
+					setCSSclass(nm+sr.number+"_canvas", css+"display: flex; order: 1;");
+					debug("doDraw: Bargraph image: "+css);
 
 					if (button.sr[idx+1].bm.length > 0)
 					{
@@ -740,7 +834,7 @@ function doDraw(pgKey, pageID, what)
 						else
 							dir = true;
 
-						debug("doDraw: name="+nm+sr.number+", level="+level+", j="+j+", idx="+idx);
+//						debug("doDraw: name="+nm+sr.number+", level="+level+", j="+j+", idx="+idx);
 						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb), dir);
 					}
 					else
@@ -748,8 +842,27 @@ function doDraw(pgKey, pageID, what)
 				}
 				else if (sr.bm.length > 0)
 				{
+					debug("doDraw: Background image: "+sr.bm);
 					bsr.style.backgroundImage = "url('images/"+sr.bm+"')";
 					bsr.style.backgroundRepeat = "no-repeat";
+
+					switch (button.jb)
+					{
+						case 0:
+							bsr.style.backgroundPositionX = sr.ix+'px';
+							bsr.style.backgroundPositionY = sr.iy+'px';
+						break;
+
+						case 2: bsr.style.backgroundPosition = "center top"; break;
+						case 3: bsr.style.backgroundPosition = "right top"; break;
+						case 4: bsr.style.backgroundPosition = "left center"; break;
+						case 6: bsr.style.backgroundPosition = "right center"; break;
+						case 7: bsr.style.backgroundPosition = "left bottom"; break;
+						case 8: bsr.style.backgroundPosition = "center bottom"; break;
+						case 9: bsr.style.backgroundPosition = "right bottom"; break;
+						default:
+							bsr.style.backgroundPosition = "center center";
+					}
 				}
 
 				if (sr.ii > 0)		// Icon?
@@ -759,21 +872,13 @@ function doDraw(pgKey, pageID, what)
 
 					if (ico !== -1)
 					{
+						debug("doDraw: Icon image: "+ico);
 						var img = document.createElement('img');
 						img.src = makeURL('images/'+ico);
 						img.id = nm+sr.number+'_img';
 						img.width = dim[0];
 						img.height = dim[1];
-						img.style.position = "absolute";
-
-						if (sr.ji == 0)
-						{
-							img.style.left = sr.ix+'px';
-							img.style.top = sr.iy+'px';
-						}
-						else
-							posImage(img, nm+sr.number, sr.ji, dim[0], dim[1]);
-
+						justifyImage(img, button, CENTER_CODE.SC_ICON, sr.number);
 						img.style.display = "flex";
 						img.style.order = 2;
 						bsr.appendChild(img);

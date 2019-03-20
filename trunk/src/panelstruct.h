@@ -273,8 +273,8 @@ namespace amx
 			dynamic = false;
 			ii = 0;
 			sb = 0;
-			ji = 0;
-			jb = 0;
+			ji = 5;
+			jb = 5;
 			ix = 0;
 			iy = 0;
 			fi = 0;
@@ -360,6 +360,7 @@ namespace amx
 			rv = 0;
 			rl = 0;
 			rh = 0;
+            lv = 0;
 			pfType.clear();
 			pfName.clear();
 			sr.clear();
