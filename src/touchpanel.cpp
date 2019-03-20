@@ -506,11 +506,11 @@ bool TouchPanel::parsePages()
 	cssFile << getFontList()->getFontStyles();
 	// The styles
 	// Write the main pages
-	for (size_t i = 0; i < stPages.size(); i++)
-		cssFile << getPageStyle(stPages[i].ID);
+//	for (size_t i = 0; i < stPages.size(); i++)
+//		cssFile << getPageStyle(stPages[i].ID);
 	// write the styles of all popups
-	for (size_t i = 0; i < stPopups.size(); i++)
-		cssFile << getPageStyle(stPopups[i].ID);
+//	for (size_t i = 0; i < stPopups.size(); i++)
+//		cssFile << getPageStyle(stPopups[i].ID);
 
 	cssFile.close();
 	getFontList()->serializeToJson();
@@ -519,7 +519,7 @@ bool TouchPanel::parsePages()
 	pgFile << "<!DOCTYPE html>\n";
 	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
-	pgFile << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
+	pgFile << "<meta name=\"viewport\" content=\"height=device-height, initial-scale=1.0\">\n";
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">\n";
 	// Scripts
 	pgFile << "<script>\n";
@@ -721,6 +721,12 @@ bool TouchPanel::parsePages()
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
+	pgFile << "\tvar elem = document.documentElement;\n\tif (elem.requestFullscreen)\n";
+    pgFile << "\t\telem.requestFullscreen();\n";
+	pgFile << "\telse if (elem.mozRequestFullScreen)\t/* Firefox */\n";
+    pgFile << "\t\telem.mozRequestFullScreen();\n";
+	pgFile << "\telse if (elem.webkitRequestFullscreen)\t/* Chrome, Safari and Opera */\n";
+    pgFile << "\t\telem.webkitRequestFullscreen();\n\n";
 	pgFile << "\tshowPage('"<< prg.panelSetup.powerUpPage << "');\n";
 
 	for (size_t i = 0; i < prg.panelSetup.powerUpPopup.size(); i++)

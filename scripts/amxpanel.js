@@ -160,6 +160,12 @@ var cmdArray =
 		]
 	};
 
+const CENTER_CODE = Object.freeze({
+	SC_ICON:	0,
+	SC_BITMAP:	1,
+	SC_TEXT:	2
+});
+	
 function rgb(red, green, blue)
 {
 	return "rgb("+red+","+green+","+blue+")";
@@ -2153,7 +2159,7 @@ async function doICO(msg)
 								img.id = name+'_img';
 								img.width = dim[0];
 								img.height = dim[1];
-								img.onload = imgCenter(img, name);
+								img.addEventListener('load', imgCenter.bind(null, img, name), false);
 								img.style.display = "flex";
 								img.style.order = 2;
 								parent.appendChild(img);
@@ -2164,7 +2170,7 @@ async function doICO(msg)
 								var  icoPos = getIconPosInfo(bt[b].pnum, bt[b].bi, z);
 
 								if (icoPos !== null)
-									posImage(img, name+'_img', icoPos[0], dim[0], dim[1]);
+									justifyImage(img, getButton(bt[b].pnum, bt[b].bi), CENTER_CODE.SC_ICON, z);
 							}
 						}
 					}
@@ -2385,101 +2391,451 @@ function imgCenter(img, name)
 	img.style.width = iw;
 	img.style.height = ih;
 }
-function posImage(img, name, code, width, height)
+function calcImagePosition(width, height, button, cc, inst=0)
 {
-	var pw;
-	var ph;
-	var iw;
-	var ih;
-	var elem;
+	var sr, code, css;
 
-	elem = document.getElementById(name);
+	if (button === null)
+		return "";
 
-	if (elem === null)
+	css = "position: absolute;";
+	var idx = parseInt(inst);
+
+	if (idx == 0)
+		sr = button.sr[0];
+	else if (idx <= button.sr.length)
+		sr = button.sr[idx-1];
+	else
+		return "";
+
+	switch(cc)
 	{
-		errlog("posImage: Couldn't find an element with name "+name+"!");
-		return;
+		case CENTER_CODE.SC_ICON: 	code = sr.ji; break;
+		case CENTER_CODE.SC_BITMAP:	code = sr.jb; break;
+		case CENTER_CODE.SC_TEXT:	code = sr.jt; break;
 	}
-
-	pw = width;
-	ph = height;
-	iw = img.width;
-	ih = img.height;
-
-	if (pw == 0 || ph == 0)
-	{
-		errlog("posImage: WARNING: Parent width/height is 0!");
-		pw = iw;
-	}
-
-	if (iw == 0 || ih == 0)
-	{
-		errlog("posImage: Image with no size at "+name+"!");
-		return;
-	}
-
-	img.style.position = 'absolute';
 
 	switch (code)
 	{
+		case 0:
+		case 1:	// absolute position
+			css += "left:"+sr.ix+'px;';
+			css += "top:"+sr.iy+'px;';
+
+			if ((sr.ix + width) > button.wt)
+				css += "width:"+(button.wt - sr.ix) + 'px;';
+			else
+				css += "width:"+width + 'px;';
+
+			if ((sr.iy + height) > button.ht)
+				css += "height:"+(button.ht - sr.iy) + 'px;';
+			else
+				css += "height:"+height + 'px;';
+		break;
+
+		case 2:	// center, top
+			css += "top:0px;";
+
+			if (width <= button.wt)
+			{
+				css += "left:"+((button.wt - img.width) / 2) + 'px;';
+				css += "width:"+width + 'px;';
+			}
+			else
+			{
+				css += "left:0px;";
+				css += "width:"+button.wt + 'px;'
+			}
+
+			if (height <= button.ht)
+				css += "height:"+height + 'px;';
+			else
+				css += "height:"+button.ht + 'px;';
+		break;
+
+		case 3:	// right, top
+			css += "top:0px;";
+
+			if (width <= button.wt)
+			{
+				css += "left:"+(button.wt - width) + 'px;';
+				css += "width:"+width + 'px;';
+			}
+			else
+			{
+				css += "left:0px;";
+				css += "width:"+button.wt + 'px;'
+			}
+
+			if (height <= button.ht)
+				css += "height:"+height + 'px;';
+			else
+				css += "height:"+button.ht + 'px;';
+		break;
+
+		case 4:	// left, middle
+			css += "left:0px;";
+
+			if (width <= button.wt)
+				css += "width:"+width + 'px;';
+			else
+				css += "width:"+button.wt + 'px;'
+
+			if (height <= button.ht)
+			{
+				css += "top:"+((button.ht - height) / 2) + 'px;';
+				css += "height:"+height + 'px;';
+			}
+			else
+			{
+				css += "top:0px;";
+				css += "height:"+button.ht + 'px;';
+			}
+		break;
+
+		case 6:	// right, middle
+			if (width <= button.wt)
+			{
+				css += "left:"+(button.wt - img.width) + 'px;';
+				css += "width:"+width + 'px;';
+			}
+			else
+			{
+				css += "left:0px;";
+				css += "width:"+button.wt + 'px;'
+			}
+
+			if (height <= button.ht)
+			{
+				css += "top:"+((button.ht - img.height) / 2) + 'px;';
+				css += "height:"+height + 'px;';
+			}
+			else
+			{
+				css += "top:0px;";
+				css += "height:"+button.ht + 'px;';
+			}
+		break;
+
+		case 7:	// left, bottom
+			css += "left:0px;";
+
+			if (width > button.wt)
+				css += "width:"+button.wt + 'px;';
+			else
+				css += "width:"+width + 'px;';
+			
+			if (height > button.ht)
+			{
+				css += "top:"+(button.ht - img.height) + 'px;';
+				css += "height:"+button.ht + 'px;';
+			}
+			else
+			{
+				css += "top:0px;";
+				css += "height:"+height+"px;";
+			}
+		break;
+
+		case 8:	// center, bottom
+			if (width <= button.wt)
+			{
+				css += "left:"+((button.wt - width) / 2) + 'px;';
+				css += "width:"+width + 'px;';
+			}
+			else
+			{
+				css += "left:0px;";
+				css += "width:"+button.wt + 'px;';
+			}
+
+			if (height > button.ht)
+			{
+				css += "top:"+(button.ht - img.height) + 'px;';
+				css += "height:"+button.ht + 'px;';
+			}
+			else
+			{
+				css += "top:0px;";
+				css += "height:"+height + 'px;';
+			}
+		break;
+
+		case 9:	// right, bottom
+			if (width <= button.wt)
+			{
+				css += "left:"+(button.wt - width) + 'px;';
+				css += "width:"+width + 'px;';
+			}
+			else
+			{
+				css += "left:0px;";
+				css += "width:"+button.wt + 'px;';
+			}
+
+			if (height > button.ht)
+			{
+				css += "top:"+(button.ht - img.height) + 'px;';
+				css += "height:"+button.ht + 'px;';
+			}
+			else
+			{
+				css += "top:0px;";
+				css += "height:"+height+"px;";
+			}
+		break;
+
+		default:	// center, middle
+			if (width <= button.wt)
+			{
+				css += "left:"+((button.with - width) / 2) + 'px;';
+				css += "width:"+width + 'px;';
+			}
+			else
+			{
+				css += "left:0px;";
+				css += "width:"+button.wt + 'px;'
+			}
+
+			if (height <= button.ht)
+			{
+				css += "top:"+((button.ht - img.height) / 2) + 'px;';
+				css += "height:"+height + 'px;';
+			}
+			else
+			{
+				css += "top:0px;";
+				css += "height:"+button.ht + 'px;';
+			}
+	}
+
+	return css;
+}
+function justifyImage(img, button, cc, inst=0)
+{
+	var sr, code;
+
+	if (img === null || button === null)
+		return;
+
+	img.style.position = 'absolute';
+	var idx = parseInt(inst);
+
+	if (idx == 0)
+		sr = button.sr[0];
+	else if (idx <= button.sr.length)
+		sr = button.sr[idx-1];
+	else
+		return;
+
+	if (img.width <= 0)
+		img.width = sr.bm_width;
+
+	if (img.height <= 0)
+		img.height = sr.bm_height;
+
+	switch(cc)
+	{
+		case CENTER_CODE.SC_ICON: 	code = sr.ji; break;
+		case CENTER_CODE.SC_BITMAP:	code = sr.jb; break;
+		case CENTER_CODE.SC_TEXT:	code = sr.jt; break;
+		default:
+			code = sr.ji;
+	}
+
+	debug("justifyImage: width="+img.width+", height="+img.height+", cc="+cc+", code="+code);
+
+	switch (code)
+	{
+		case 0:	// absolute position
+			img.style.left = button.ix+'px';
+			img.style.top = button.iy+'px';
+
+			if ((sr.ix + img.width) > button.wt)
+				img.style.width = (button.wt - sr.ix) + 'px';
+			else
+				img.style.width = img.width + 'px';
+
+			if ((sr.iy + img.height) > button.ht)
+				img.style.height = (button.ht - sr.iy) + 'px';
+			else
+				img.style.height = img.height + 'px';
+		break;
+
 		case 2:	// center, top
 			img.style.top = "0px";
 
-			if (pw > iw)
-				img.style.left = (pw - iw) / 2 + 'px';
+			if (img.width <= button.wt)
+			{
+				img.style.left = ((button.wt - img.width) / 2) + 'px';
+				img.style.width = img.width + 'px';
+			}
+			else
+			{
+				img.style.left = '0px';
+				img.style.width = button.wt + 'px'
+			}
+
+			if (img.height <= button.ht)
+				img.style.height = img.height + 'px';
+			else
+				img.style.height = button.ht + 'px';
 		break;
 
 		case 3:	// right, top
 			img.style.top = "0px";
 
-			if (pw >= iw)
-				img.style.left = (pw - iw) + 'px';
+			if (img.width <= button.wt)
+			{
+				img.style.left = (button.wt - img.width) + 'px';
+				img.style.width = img.width + 'px';
+			}
+			else
+			{
+				img.style.left = '0px';
+				img.style.width = button.wt + 'px';
+			}
+
+			if (img.height <= button.ht)
+				img.style.height = img.height + 'px';
+			else
+				img.style.height = button.ht + 'px';
 		break;
 
 		case 4:	// left, middle
 			img.style.left = "0px";
 
-			if (ph > ih)
-				img.style.top = (ph - ih) / 2 + 'px';
+			if (img.width <= button.wt)
+				img.style.width = img.width + 'px';
+			else
+				img.style.width = button.wt + 'px'
+
+			if (img.height <= button.ht)
+			{
+				img.style.top = ((button.ht - img.height) / 2) + 'px';
+				img.style.height = img.height + 'px';
+			}
+			else
+			{
+				img.style.top = '0px';
+				img.style.height = button.ht + 'px';
+			}
 		break;
 
 		case 6:	// right, middle
-			if (pw >= iw)
-				img.style.left = (pw - iw) + 'px';
+			if (img.width <= button.wt)
+			{
+				img.style.left = (button.wt - img.width) + 'px';
+				img.style.width = img.width + 'px';
+			}
+			else
+			{
+				img.style.left = '0px';
+				img.style.width = button.wt + 'px';
+			}
 
-			if (ph > ih)
-				img.style.top = (ph - ih) / 2 + 'px';
+			if (img.height <= button.ht)
+			{
+				img.style.top = ((button.ht - img.height) / 2) + 'px';
+				img.style.height = img.height + 'px';
+			}
+			else
+			{
+				img.style.top = '0px';
+				img.style.height = button.ht + 'px';
+			}
 		break;
 
 		case 7:	// left, bottom
 			img.style.left = "0px";
 
-			if (ph >= ih)
-				img.style.top = (ph - ih) + 'px';
+			if (img.width > button.wt)
+				img.style.width = button.wt + 'px';
+			else
+				img.style.width = img.width + 'px';
+			
+			if (img.height > button.ht)
+			{
+				img.style.top = (button.ht - img.height) + 'px';
+				img.style.height = button.ht + 'px';
+			}
+			else
+			{
+				img.style.top = '0px';
+				img.style.height = img.height+'px';
+			}
 		break;
 
 		case 8:	// center, bottom
-			if (pw > iw)
-				img.style.left = (pw - iw) / 2 + 'px';
+			if (img.width <= button.wt)
+			{
+				img.style.left = ((button.wt - img.width) / 2) + 'px';
+				img.style.width = img.width + 'px';
+			}
+			else
+			{
+				img.style.left = '0px';
+				img.style.width = button.wt + 'px';
+			}
 
-			if (ph >= ih)
-				img.style.top = (ph - ih) + 'px';
+			if (img.height > button.ht)
+			{
+				img.style.top = (button.ht - img.height) + 'px';
+				img.style.height = button.ht + 'px';
+			}
+			else
+			{
+				img.style.top = '0px';
+				img.style.height = img.height+'px';
+			}
 		break;
 
 		case 9:	// right, bottom
-			if (pw >= iw)
-				img.style.left = (pw - iw) + 'px';
+			if (img.width <= button.wt)
+			{
+				img.style.left = (button.wt - img.width) + 'px';
+				img.style.width = img.width + 'px';
+			}
+			else
+			{
+				img.style.left = '0px';
+				img.style.width = button.wt + 'px';
+			}
 
-			if (ph >= ih)
-				img.style.top = (ph - ih) + 'px';
+			if (img.height > button.ht)
+			{
+				img.style.top = (button.ht - img.height) + 'px';
+				img.style.height = button.ht + 'px';
+			}
+			else
+			{
+				img.style.top = '0px'
+				img.style.height = img.height+'px';
+			}
 		break;
 
 		default:	// center, middle
-			if (pw > iw)
-				img.style.left = (pw - iw) / 2 + 'px';
+			if (img.width <= button.wt)
+			{
+				img.style.left = ((button.wt - img.width) / 2) + 'px';
+				img.style.width = img.width + 'px';
+			}
+			else
+			{
+				img.style.left = '0px';
+				img.style.width = button.wt + 'px';
+			}
 
-			if (ph > ih)
-				img.style.top = (ph - ih) / 2 + 'px';
+			if (img.height <= button.ht)
+			{
+				img.style.top = ((button.ht - img.height) / 2) + 'px';
+				img.style.height = img.height + 'px';
+			}
+			else
+			{
+				img.style.top = '0px';
+				img.style.height = button.ht + 'px';
+			}
 	}
 }
 function beep()
