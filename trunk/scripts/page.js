@@ -217,6 +217,18 @@ function getBorderStyle(name)
 
 	return -1;
 }
+function getBorderSize(name)
+{
+	for (var i in sysBorders.borders)
+	{
+		var brd = sysBorders.borders[i];
+
+		if (brd.name == name)
+			return parseInt(brd.border_width);
+	}
+
+	return 0;
+}
 function setCSSclass(name, content)
 {
 	var element = document.querySelector('.'+name);
@@ -558,12 +570,14 @@ function doDraw(pgKey, pageID, what)
 		if (sr.ct.length > 0)
 			page.style.color = getWebColor(sr.ct);
 
-		if (sr.mi.length > 0 && sr.bm.length > 0)	// chameleon image?
+		if (sr.mi.length > 0)	// chameleon image?
 		{
 			try
 			{
 				var width = sr.mi_width;
 				var height = sr.mi_height;
+				var css = calcImagePosition(width, height, pgKey, CENTER_CODE.SC_BITMAP, sr.number);
+				setCSSclass("Page_"+pageID+"_canvas", css+"display: flex; order: 1;");
 
 				if (sr.bm.length > 0)
 					drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),"Page_"+pageID,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
@@ -580,6 +594,25 @@ function doDraw(pgKey, pageID, what)
 		{
 			page.style.backgroundImage = "url('images/"+sr.bm+"')";
 			page.style.backgroundRepeat = "no-repeat";
+
+			switch (sr.jb)
+			{
+				case 0:
+					page.style.backgroundPositionX = sr.ix+'px';
+					page.style.backgroundPositionY = sr.iy+'px';
+				break;
+
+				case 1: page.style.backgroundPosition = "left top"; break;
+				case 2: page.style.backgroundPosition = "center top"; break;
+				case 3: page.style.backgroundPosition = "right top"; break;
+				case 4: page.style.backgroundPosition = "left center"; break;
+				case 6: page.style.backgroundPosition = "right center"; break;
+				case 7: page.style.backgroundPosition = "left bottom"; break;
+				case 8: page.style.backgroundPosition = "center bottom"; break;
+				case 9: page.style.backgroundPosition = "right bottom"; break;
+				default:
+					page.style.backgroundPosition = "center center";
+			}
 		}
 	}
 
@@ -806,7 +839,6 @@ function doDraw(pgKey, pageID, what)
 					var height = sr.mi_height;
 					var css = calcImagePosition(width, height, button, CENTER_CODE.SC_BITMAP, sr.number);
 					setCSSclass(nm+sr.number+"_canvas", css+"display: flex; order: 1;");
-					debug("doDraw: Button chameleon image: "+css);
 
 					if (sr.bm.length > 0)
 						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
@@ -821,7 +853,6 @@ function doDraw(pgKey, pageID, what)
 					var height = sr.mi_height;
 					var css = calcImagePosition(width, height, button, CENTER_CODE.SC_BITMAP, sr.number);
 					setCSSclass(nm+sr.number+"_canvas", css+"display: flex; order: 1;");
-					debug("doDraw: Bargraph image: "+css);
 
 					if (button.sr[idx+1].bm.length > 0)
 					{
@@ -834,7 +865,6 @@ function doDraw(pgKey, pageID, what)
 						else
 							dir = true;
 
-//						debug("doDraw: name="+nm+sr.number+", level="+level+", j="+j+", idx="+idx);
 						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb), dir);
 					}
 					else
@@ -842,17 +872,17 @@ function doDraw(pgKey, pageID, what)
 				}
 				else if (sr.bm.length > 0)
 				{
-					debug("doDraw: Background image: "+sr.bm);
 					bsr.style.backgroundImage = "url('images/"+sr.bm+"')";
 					bsr.style.backgroundRepeat = "no-repeat";
 
-					switch (button.jb)
+					switch (sr.jb)
 					{
 						case 0:
 							bsr.style.backgroundPositionX = sr.ix+'px';
 							bsr.style.backgroundPositionY = sr.iy+'px';
 						break;
 
+						case 1: bsr.style.backgroundPosition = "left top"; break;
 						case 2: bsr.style.backgroundPosition = "center top"; break;
 						case 3: bsr.style.backgroundPosition = "right top"; break;
 						case 4: bsr.style.backgroundPosition = "left center"; break;
@@ -872,7 +902,6 @@ function doDraw(pgKey, pageID, what)
 
 					if (ico !== -1)
 					{
-						debug("doDraw: Icon image: "+ico);
 						var img = document.createElement('img');
 						img.src = makeURL('images/'+ico);
 						img.id = nm+sr.number+'_img';
@@ -892,13 +921,14 @@ function doDraw(pgKey, pageID, what)
 					var fnt = document.createElement('span');
 					fnt.id = nm+sr.number+'_font';
 					fnt.style.position = "absolute";
+					var border = getBorderSize(sr.bs);
 
 					if (sr.jt != TEXT_ORIENTATION.ORI_ABSOLUT)
 					{
-						fnt.style.left = "0px";
-						fnt.style.top = "0px";
-						fnt.style.width = bsr.style.width;
-						fnt.style.height = bsr.style.height;
+						fnt.style.left = border+"px";
+						fnt.style.top = border+"px";
+						fnt.style.width = bsr.style.width - border * 2;
+						fnt.style.height = bsr.style.height - border * 2;
 					}
 
 					// Prevent text from being selected.
@@ -922,8 +952,8 @@ function doDraw(pgKey, pageID, what)
 						case TEXT_ORIENTATION.ORI_ABSOLUT:
 							fnt.style.left = sr.tx+"px";
 							fnt.style.top = sr.ty+"px";
-							fnt.style.width = (bsr.style.width - sr.tx)+'px';
-							fnt.style.height = (bsr.style.height - sr.ty)+'px';
+							fnt.style.width = (bsr.style.width - (sr.tx + border))+'px';
+							fnt.style.height = (bsr.style.height - (sr.ty + border))+'px';
 						break;
 						case TEXT_ORIENTATION.ORI_TOP_LEFT:
 							fnt.style.textAlign = "left";

@@ -723,7 +723,7 @@ bool TouchPanel::parsePages()
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
-	pgFile << "\tvar elem = document.documentElement;\n\tif (elem.requestFullscreen)\n\n";
+	pgFile << "\tvar elem = document.documentElement;\n\n\tif (elem.requestFullscreen)\n";
     pgFile << "\t\telem.requestFullscreen();\n";
 	pgFile << "\telse if (elem.mozRequestFullScreen)\t/* Firefox */\n";
     pgFile << "\t\telem.mozRequestFullScreen();\n";
