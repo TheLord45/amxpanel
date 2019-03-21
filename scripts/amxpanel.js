@@ -2350,6 +2350,34 @@ function parseMessage(msg)
 		}
 	}
 }
+function calcImageSize(imWidth, imHeight, btWidth, btHeight, btFrame)
+{
+	var spX = btWidth - (btFrame * 2);
+	var spY = btHeight - (btFrame * 2);
+
+	if (imWidth <= spX && imHeight <= spY)
+		return [imWidth+'px', imHeight+'px', imWidth, imHeight];
+
+	var oversizeX = 0, oversizeY = 0;
+
+	if (imWidth > spX)
+		oversizeX = imWidth - spX;
+
+	if (imHeight > spY)
+		oversizeY = imHeight - spY;
+
+	var percent = 0;
+	var realX, realY;
+
+	if (oversizeX > oversizeY)
+		percent = 100 / imWidth * spX;
+	else
+		percent = 100 / imHeight * spY;
+
+	realX = percent / 100 * imWidth;
+	realY = percent / 100 * imHeight;
+	return [percent+'%', percent+'%', realX, realY];
+}
 function imgCenter(img, name)
 {
 	var pw;
@@ -2393,7 +2421,7 @@ function imgCenter(img, name)
 }
 function calcImagePosition(width, height, button, cc, inst=0)
 {
-	var sr, code, css;
+	var sr, code, css, sz, border;
 
 	if (button === null)
 		return "";
@@ -2408,6 +2436,8 @@ function calcImagePosition(width, height, button, cc, inst=0)
 	else
 		return "";
 
+	border = getBorderSize(sr.bs);
+
 	switch(cc)
 	{
 		case CENTER_CODE.SC_ICON: 	code = sr.ji; break;
@@ -2421,199 +2451,89 @@ function calcImagePosition(width, height, button, cc, inst=0)
 		case 1:	// absolute position
 			css += "left:"+sr.ix+'px;';
 			css += "top:"+sr.iy+'px;';
+			sz = calcImageSize(width, height, button.wt - sr.ix + border, button.ht - sr.iy + border, border);
+			css += "width:"+sz[0]+";";
+			css += "height"+sz[1]+";";
+		break;
 
-			if ((sr.ix + width) > button.wt)
-				css += "width:"+(button.wt - sr.ix) + 'px;';
-			else
-				css += "width:"+width + 'px;';
-
-			if ((sr.iy + height) > button.ht)
-				css += "height:"+(button.ht - sr.iy) + 'px;';
-			else
-				css += "height:"+height + 'px;';
+		case 1:	// top, left
+			css += "left:"+border+"px;";
+			css += "top:"+border+"px;";
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			css += "width:"+sz[0]+";";
+			css += "height"+sz[1]+";";
 		break;
 
 		case 2:	// center, top
-			css += "top:0px;";
+			css += "top:"+border+"px;";
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
 
-			if (width <= button.wt)
-			{
-				css += "left:"+((button.wt - width) / 2) + 'px;';
-				css += "width:"+width + 'px;';
-			}
-			else
-			{
-				css += "left:0px;";
-				css += "width:"+button.wt + 'px;'
-			}
-
-			if (height <= button.ht)
-				css += "height:"+height + 'px;';
-			else
-				css += "height:"+button.ht + 'px;';
+			css += "left:"+((button.wt - sz[2]) / 2) + 'px;';
+			css += "width:"+sz[0]+";";
+			css += "height:"+sz[1]+";";
 		break;
 
 		case 3:	// right, top
-			css += "top:0px;";
-
-			if (width <= button.wt)
-			{
-				css += "left:"+(button.wt - width) + 'px;';
-				css += "width:"+width + 'px;';
-			}
-			else
-			{
-				css += "left:0px;";
-				css += "width:"+button.wt + 'px;'
-			}
-
-			if (height <= button.ht)
-				css += "height:"+height + 'px;';
-			else
-				css += "height:"+button.ht + 'px;';
+			css += "top:"+border+"px;";
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			css += "left:"+(button.wt - sz[2]) + 'px;';
+			css += "width:"+sz[0]+ ';';
+			css += "height:"+sz[1]+';';
 		break;
 
 		case 4:	// left, middle
-			css += "left:0px;";
-
-			if (width <= button.wt)
-				css += "width:"+width + 'px;';
-			else
-				css += "width:"+button.wt + 'px;'
-
-			if (height <= button.ht)
-			{
-				css += "top:"+((button.ht - height) / 2) + 'px;';
-				css += "height:"+height + 'px;';
-			}
-			else
-			{
-				css += "top:0px;";
-				css += "height:"+button.ht + 'px;';
-			}
+			css += "left:"+border+"px;";
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			css += "width:"+sz[0]+';';
+			css += "top:"+((button.ht - sz[3]) / 2) + 'px;';
+			css += "height:"+sz[1]+';';
 		break;
 
 		case 6:	// right, middle
-			if (width <= button.wt)
-			{
-				css += "left:"+(button.wt - width) + 'px;';
-				css += "width:"+width + 'px;';
-			}
-			else
-			{
-				css += "left:0px;";
-				css += "width:"+button.wt + 'px;'
-			}
-
-			if (height <= button.ht)
-			{
-				css += "top:"+((button.ht - height) / 2) + 'px;';
-				css += "height:"+height + 'px;';
-			}
-			else
-			{
-				css += "top:0px;";
-				css += "height:"+button.ht + 'px;';
-			}
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			css += "left:"+(button.wt - (sz[2] + border)) + 'px;';
+			css += "width:"+sz[0]+';';
+			css += "top:"+((button.ht - sz[3]) / 2) + 'px;';
+			css += "height:"+sz[1]+';';
 		break;
 
 		case 7:	// left, bottom
-			css += "left:0px;";
-
-			if (width > button.wt)
-				css += "width:"+button.wt + 'px;';
-			else
-				css += "width:"+width + 'px;';
-
-			if (height > button.ht)
-			{
-				css += "top:"+(button.ht - height) + 'px;';
-				css += "height:"+button.ht + 'px;';
-			}
-			else
-			{
-				css += "top:0px;";
-				css += "height:"+height+"px;";
-			}
+			css += "left:"+border+"px;";
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			css += "width:"+sz[0]+';';
+			css += "top:"+(button.ht - (sz[3] + border)) + 'px;';
+			css += "height:"+sz[1]+';';
 		break;
 
 		case 8:	// center, bottom
-			if (width <= button.wt)
-			{
-				css += "left:"+((button.wt - width) / 2) + 'px;';
-				css += "width:"+width + 'px;';
-			}
-			else
-			{
-				css += "left:0px;";
-				css += "width:"+button.wt + 'px;';
-			}
-
-			if (height > button.ht)
-			{
-				css += "top:"+(button.ht - height) + 'px;';
-				css += "height:"+button.ht + 'px;';
-			}
-			else
-			{
-				css += "top:0px;";
-				css += "height:"+height + 'px;';
-			}
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			css += "left:"+((button.wt - (sz[2] + border)) / 2) + 'px;';
+			css += "width:"+sz[0]+';';
+			css += "top:"+(button.ht - (sz[3] + border)) + 'px;';
+			css += "height:"+sz[1]+';';
 		break;
 
 		case 9:	// right, bottom
-			if (width <= button.wt)
-			{
-				css += "left:"+(button.wt - width) + 'px;';
-				css += "width:"+width + 'px;';
-			}
-			else
-			{
-				css += "left:0px;";
-				css += "width:"+button.wt + 'px;';
-			}
-
-			if (height > button.ht)
-			{
-				css += "top:"+(button.ht - height) + 'px;';
-				css += "height:"+button.ht + 'px;';
-			}
-			else
-			{
-				css += "top:0px;";
-				css += "height:"+height+"px;";
-			}
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			css += "left:"+(button.wt - (sz[2] + border)) + 'px;';
+			css += "width:"+sz[0]+';';
+			css += "top:"+(button.ht - (sz[3] + border)) + 'px;';
+			css += "height:"+sz[1]+';';
 		break;
 
 		default:	// center, middle
-			if (width <= button.wt)
-			{
-				css += "left:"+((button.with - width) / 2) + 'px;';
-				css += "width:"+width + 'px;';
-			}
-			else
-			{
-				css += "left:0px;";
-				css += "width:"+button.wt + 'px;'
-			}
-
-			if (height <= button.ht)
-			{
-				css += "top:"+((button.ht - height) / 2) + 'px;';
-				css += "height:"+height + 'px;';
-			}
-			else
-			{
-				css += "top:0px;";
-				css += "height:"+button.ht + 'px;';
-			}
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			css += "left:"+((button.with - (sz[2] + border)) / 2) + 'px;';
+			css += "width:"+sz[0]+';';
+			css += "top:"+((button.ht - (sz[3] + border)) / 2) + 'px;';
+			css += "height:"+sz[1]+';';
 	}
 
 	return css;
 }
 function justifyImage(img, button, cc, inst=0)
 {
-	var sr, code;
+	var sr, code, sz, border;
 
 	if (img === null || button === null)
 		return;
@@ -2628,214 +2548,104 @@ function justifyImage(img, button, cc, inst=0)
 	else
 		return;
 
+	border = getBorderSize(sr.bs);
+
 	if (img.width <= 0)
 		img.width = sr.bm_width;
 
 	if (img.height <= 0)
 		img.height = sr.bm_height;
 
+	var width = img.width;
+	var height = img.height;
+
 	switch(cc)
 	{
 		case CENTER_CODE.SC_ICON: 	code = sr.ji; break;
 		case CENTER_CODE.SC_BITMAP:	code = sr.jb; break;
 		case CENTER_CODE.SC_TEXT:	code = sr.jt; break;
-		default:
-			code = sr.ji;
 	}
-
-	debug("justifyImage: width="+img.width+", height="+img.height+", cc="+cc+", code="+code);
 
 	switch (code)
 	{
 		case 0:	// absolute position
+			sz = calcImageSize(width, height, button.wt - sr.ix, button.ht - sr.iy, border);
 			img.style.left = sr.ix+'px';
 			img.style.top = sr.iy+'px';
+			img.style.width = sz[0];
+			img.style.height = sz[1];
+		break;
 
-			if ((sr.ix + img.width) > button.wt)
-				img.style.width = (button.wt - sr.ix) + 'px';
-			else
-				img.style.width = img.width + 'px';
-
-			if ((sr.iy + img.height) > button.ht)
-				img.style.height = (button.ht - sr.iy) + 'px';
-			else
-				img.style.height = img.height + 'px';
+		case 1:	// top, left
+			img.style.left = border+'px';
+			img.style.top = border+'px';
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			img.style.width = sz[0];
+			img.style.height = sz[1];
 		break;
 
 		case 2:	// center, top
-			img.style.top = "0px";
-
-			if (img.width <= button.wt)
-			{
-				img.style.left = ((button.wt - img.width) / 2) + 'px';
-				img.style.width = img.width + 'px';
-			}
-			else
-			{
-				img.style.left = '0px';
-				img.style.width = button.wt + 'px'
-			}
-
-			if (img.height <= button.ht)
-				img.style.height = img.height + 'px';
-			else
-				img.style.height = button.ht + 'px';
+			img.style.top = border+"px";
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			img.style.left = ((button.wt - (sz[2] + border)) / 2) + 'px';
+			img.style.width = sz[0];
+			img.style.height = sz[1];
 		break;
 
 		case 3:	// right, top
-			img.style.top = "0px";
-
-			if (img.width <= button.wt)
-			{
-				img.style.left = (button.wt - img.width) + 'px';
-				img.style.width = img.width + 'px';
-			}
-			else
-			{
-				img.style.left = '0px';
-				img.style.width = button.wt + 'px';
-			}
-
-			if (img.height <= button.ht)
-				img.style.height = img.height + 'px';
-			else
-				img.style.height = button.ht + 'px';
+			img.style.top = border+"px";
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			img.style.left = (button.wt - (sz[2] + border)) + 'px';
+			img.style.width = sz[0];
+			img.style.height = sz[1];
 		break;
 
 		case 4:	// left, middle
 			img.style.left = "0px";
-
-			if (img.width <= button.wt)
-				img.style.width = img.width + 'px';
-			else
-				img.style.width = button.wt + 'px'
-
-			if (img.height <= button.ht)
-			{
-				img.style.top = ((button.ht - img.height) / 2) + 'px';
-				img.style.height = img.height + 'px';
-			}
-			else
-			{
-				img.style.top = '0px';
-				img.style.height = button.ht + 'px';
-			}
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			img.style.width = sz[0];
+			img.style.top = ((button.ht - (sz[3] + border)) / 2) + 'px';
+			img.style.height = sz[1];
 		break;
 
 		case 6:	// right, middle
-			if (img.width <= button.wt)
-			{
-				img.style.left = (button.wt - img.width) + 'px';
-				img.style.width = img.width + 'px';
-			}
-			else
-			{
-				img.style.left = '0px';
-				img.style.width = button.wt + 'px';
-			}
-
-			if (img.height <= button.ht)
-			{
-				img.style.top = ((button.ht - img.height) / 2) + 'px';
-				img.style.height = img.height + 'px';
-			}
-			else
-			{
-				img.style.top = '0px';
-				img.style.height = button.ht + 'px';
-			}
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			img.style.left = (button.wt - (st[2] + border)) + 'px';
+			img.style.width = sz[0];
+			img.style.top = ((button.ht - (sz[3] + border)) / 2) + 'px';
+			img.style.height = sz[1];
 		break;
 
 		case 7:	// left, bottom
-			img.style.left = "0px";
-
-			if (img.width > button.wt)
-				img.style.width = button.wt + 'px';
-			else
-				img.style.width = img.width + 'px';
-
-			if (img.height > button.ht)
-			{
-				img.style.top = (button.ht - img.height) + 'px';
-				img.style.height = button.ht + 'px';
-			}
-			else
-			{
-				img.style.top = '0px';
-				img.style.height = img.height+'px';
-			}
+			img.style.left = border+"px";
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			img.style.width = sz[0];
+			img.style.top = (button.ht - (sz[3] + border)) + 'px';
+			img.style.height = sz[1];
 		break;
 
 		case 8:	// center, bottom
-			if (img.width <= button.wt)
-			{
-				img.style.left = ((button.wt - img.width) / 2) + 'px';
-				img.style.width = img.width + 'px';
-			}
-			else
-			{
-				img.style.left = '0px';
-				img.style.width = button.wt + 'px';
-			}
-
-			if (img.height > button.ht)
-			{
-				img.style.top = (button.ht - img.height) + 'px';
-				img.style.height = button.ht + 'px';
-			}
-			else
-			{
-				img.style.top = '0px';
-				img.style.height = img.height+'px';
-			}
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			img.style.left = ((button.wt - (sz[2] + border)) / 2) + 'px';
+			img.style.width = sz[0];
+			img.style.top = (button.ht - (sz[3] + border)) + 'px';
+			img.style.height = sz[1];
 		break;
 
 		case 9:	// right, bottom
-			if (img.width <= button.wt)
-			{
-				img.style.left = (button.wt - img.width) + 'px';
-				img.style.width = img.width + 'px';
-			}
-			else
-			{
-				img.style.left = '0px';
-				img.style.width = button.wt + 'px';
-			}
-
-			if (img.height > button.ht)
-			{
-				img.style.top = (button.ht - img.height) + 'px';
-				img.style.height = button.ht + 'px';
-			}
-			else
-			{
-				img.style.top = '0px'
-				img.style.height = img.height+'px';
-			}
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			img.style.left = (button.wt - (sz[2] + border)) + 'px';
+			img.style.width = sz[0];
+			img.style.top = (button.ht - (sz[3] + border)) + 'px';
+			img.style.height = sz[1];
 		break;
 
 		default:	// center, middle
-			if (img.width <= button.wt)
-			{
-				img.style.left = ((button.wt - img.width) / 2) + 'px';
-				img.style.width = img.width + 'px';
-			}
-			else
-			{
-				img.style.left = '0px';
-				img.style.width = button.wt + 'px';
-			}
-
-			if (img.height <= button.ht)
-			{
-				img.style.top = ((button.ht - img.height) / 2) + 'px';
-				img.style.height = img.height + 'px';
-			}
-			else
-			{
-				img.style.top = '0px';
-				img.style.height = button.ht + 'px';
-			}
+			sz = calcImageSize(width, height, button.wt, button.ht, border);
+			img.style.left = ((button.wt - (sz[2] + border)) / 2) + 'px';
+			img.style.width = sz[0];
+			img.style.top = ((button.ht - (sz[3] + border)) / 2) + 'px';
+			img.style.height = sz[1];
 	}
 }
 function beep()
