@@ -520,6 +520,8 @@ bool TouchPanel::parsePages()
 	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
 	pgFile << "<meta name=\"viewport\" content=\"height=device-height, initial-scale=1.0\">\n";
+	pgFile << "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\n";
+	pgFile << "<meta name=\"mobile-web-app-capable\" content=\"yes\">\n";
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">\n";
 	// Scripts
 	pgFile << "<script>\n";
@@ -721,7 +723,7 @@ bool TouchPanel::parsePages()
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
-	pgFile << "\tvar elem = document.documentElement;\n\tif (elem.requestFullscreen)\n";
+	pgFile << "\tvar elem = document.documentElement;\n\tif (elem.requestFullscreen)\n\n";
     pgFile << "\t\telem.requestFullscreen();\n";
 	pgFile << "\telse if (elem.mozRequestFullScreen)\t/* Firefox */\n";
     pgFile << "\t\telem.mozRequestFullScreen();\n";

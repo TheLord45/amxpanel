@@ -261,7 +261,7 @@ function allElementsFromPoint(x, y)
 {
     var element, elements = [];
 	var old_visibility = [];
-	
+
 	if (typeof x != "number" || typeof y != "number")
 	{
 		errlog("allElementsFromPoint: Parameters x and y are not numeric!");
@@ -634,7 +634,7 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, this); 
+								activeTouch(event, nm, this);
 							},false);
 							bt.addEventListener('pointerup', function(event) {
 								var pos = this.id.lastIndexOf('_');
@@ -645,7 +645,7 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, this); 
+								activeTouch(event, nm, this);
 							},false);
 						}
 						else
@@ -667,7 +667,7 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, this); 
+								activeTouch(event, nm, this);
 							},false);
 							bt.addEventListener('pointerup', function(event) {
 								var pos = this.id.lastIndexOf('_');
@@ -678,7 +678,7 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, this); 
+								activeTouch(event, nm, this);
 							},false);
 						}
 						else
@@ -700,7 +700,7 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, this); 
+								activeTouch(event, nm, this);
 							},false);
 							bt.addEventListener('pointerup', function(event) {
 								var pos = this.id.lastIndexOf('_');
@@ -711,7 +711,7 @@ function doDraw(pgKey, pageID, what)
 								else
 									nm = this.id;
 
-								activeTouch(event, nm, this); 
+								activeTouch(event, nm, this);
 							},false);
 						}
 						else
@@ -813,7 +813,7 @@ function doDraw(pgKey, pageID, what)
 					else
 						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 
-					
+
 				}
 				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
 				{
@@ -825,7 +825,7 @@ function doDraw(pgKey, pageID, what)
 
 					if (button.sr[idx+1].bm.length > 0)
 					{
-						var lev = getBargraphLevel(btArray.pnum, button.bID);
+						var lev = getBargraphLevel(pgKey.ID, button.bID);
 						var level = parseInt(100.0 / button.rh * lev);
 						var dir = false;
 
