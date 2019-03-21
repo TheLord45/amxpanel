@@ -165,7 +165,7 @@ const CENTER_CODE = Object.freeze({
 	SC_BITMAP:	1,
 	SC_TEXT:	2
 });
-	
+
 function rgb(red, green, blue)
 {
 	return "rgb("+red+","+green+","+blue+")";
@@ -2438,7 +2438,7 @@ function calcImagePosition(width, height, button, cc, inst=0)
 
 			if (width <= button.wt)
 			{
-				css += "left:"+((button.wt - img.width) / 2) + 'px;';
+				css += "left:"+((button.wt - width) / 2) + 'px;';
 				css += "width:"+width + 'px;';
 			}
 			else
@@ -2496,7 +2496,7 @@ function calcImagePosition(width, height, button, cc, inst=0)
 		case 6:	// right, middle
 			if (width <= button.wt)
 			{
-				css += "left:"+(button.wt - img.width) + 'px;';
+				css += "left:"+(button.wt - width) + 'px;';
 				css += "width:"+width + 'px;';
 			}
 			else
@@ -2507,7 +2507,7 @@ function calcImagePosition(width, height, button, cc, inst=0)
 
 			if (height <= button.ht)
 			{
-				css += "top:"+((button.ht - img.height) / 2) + 'px;';
+				css += "top:"+((button.ht - height) / 2) + 'px;';
 				css += "height:"+height + 'px;';
 			}
 			else
@@ -2524,10 +2524,10 @@ function calcImagePosition(width, height, button, cc, inst=0)
 				css += "width:"+button.wt + 'px;';
 			else
 				css += "width:"+width + 'px;';
-			
+
 			if (height > button.ht)
 			{
-				css += "top:"+(button.ht - img.height) + 'px;';
+				css += "top:"+(button.ht - height) + 'px;';
 				css += "height:"+button.ht + 'px;';
 			}
 			else
@@ -2551,7 +2551,7 @@ function calcImagePosition(width, height, button, cc, inst=0)
 
 			if (height > button.ht)
 			{
-				css += "top:"+(button.ht - img.height) + 'px;';
+				css += "top:"+(button.ht - height) + 'px;';
 				css += "height:"+button.ht + 'px;';
 			}
 			else
@@ -2575,7 +2575,7 @@ function calcImagePosition(width, height, button, cc, inst=0)
 
 			if (height > button.ht)
 			{
-				css += "top:"+(button.ht - img.height) + 'px;';
+				css += "top:"+(button.ht - height) + 'px;';
 				css += "height:"+button.ht + 'px;';
 			}
 			else
@@ -2599,7 +2599,7 @@ function calcImagePosition(width, height, button, cc, inst=0)
 
 			if (height <= button.ht)
 			{
-				css += "top:"+((button.ht - img.height) / 2) + 'px;';
+				css += "top:"+((button.ht - height) / 2) + 'px;';
 				css += "height:"+height + 'px;';
 			}
 			else
@@ -2648,8 +2648,8 @@ function justifyImage(img, button, cc, inst=0)
 	switch (code)
 	{
 		case 0:	// absolute position
-			img.style.left = button.ix+'px';
-			img.style.top = button.iy+'px';
+			img.style.left = sr.ix+'px';
+			img.style.top = sr.iy+'px';
 
 			if ((sr.ix + img.width) > button.wt)
 				img.style.width = (button.wt - sr.ix) + 'px';
@@ -2753,7 +2753,7 @@ function justifyImage(img, button, cc, inst=0)
 				img.style.width = button.wt + 'px';
 			else
 				img.style.width = img.width + 'px';
-			
+
 			if (img.height > button.ht)
 			{
 				img.style.top = (button.ht - img.height) + 'px';
