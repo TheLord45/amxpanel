@@ -883,7 +883,7 @@ function getIconFile(id)
 			return iconArray.icons[i].file;
 	}
 
-	return -1;
+	return null;
 }
 function getIconDim(id)
 {
@@ -2105,12 +2105,35 @@ async function doICO(msg)
 					{
 						name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 						saveIcon(bt[b].ap, bt[b].ac, idx, btRange[j]);
+						var newIcon = false;
+						var iFile = getIconFile(idx);
 
-						try
+						if (iFile !== null)
 						{
-							document.getElementById(name+'_img').src = "images/"+getIconFile(idx);
+							try
+							{
+								document.getElementById(name+'_img').src = "images/"+iFile;
+							}
+							catch(e)
+							{
+								newIcon = true;
+							}
 						}
-						catch(e)
+						else
+						{
+							// Delete icon if it exists
+							try
+							{
+								var ico = document.getElementById(name+'_img');
+								ico.removeChild(ico);
+							}
+							catch(e)
+							{
+								TRACE("doICO: Delete icon error: "+e);
+							}
+						}
+
+						if (newIcon)
 						{
 							// Create a new icon image
 							var span;
@@ -2149,17 +2172,15 @@ async function doICO(msg)
 								continue;
 							}
 
-							var ico = getIconFile(idx);
 							var dim = getIconDim(idx);
 
-							if (ico !== -1)
+							if (iFile !== null)
 							{
 								var img = document.createElement('img');
-								img.src = makeURL('images/'+ico);
+								img.src = makeURL('images/'+iFile);
 								img.id = name+'_img';
 								img.width = dim[0];
 								img.height = dim[1];
-								img.addEventListener('load', imgCenter.bind(null, img, name), false);
 								img.style.display = "flex";
 								img.style.order = 2;
 								parent.appendChild(img);

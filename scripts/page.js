@@ -921,12 +921,12 @@ function doDraw(pgKey, pageID, what)
 					var fnt = document.createElement('span');
 					fnt.id = nm+sr.number+'_font';
 					fnt.style.position = "absolute";
+					fnt.style.paddingLeft = "4px";
+					fnt.style.paddingRight = "4px";
 					var border = getBorderSize(sr.bs);
 
 					if (sr.jt != TEXT_ORIENTATION.ORI_ABSOLUT)
 					{
-						fnt.style.left = border+"px";
-						fnt.style.top = border+"px";
 						fnt.style.width = bsr.style.width - border * 2;
 						fnt.style.height = bsr.style.height - border * 2;
 					}
@@ -944,9 +944,6 @@ function doDraw(pgKey, pageID, what)
 					fnt.style.fontWeight = getFontWeight(font.subfamilyName);
 					bsr.appendChild(fnt);
 
-					if (sr.ww == 0 && (sr.jt == TEXT_ORIENTATION.ORI_CENTER_LEFT || sr.jt == TEXT_ORIENTATION.ORI_CENTER_MIDDLE || sr.jt == TEXT_ORIENTATION.ORI_CENTER_RIGHT))
-						fnt.style.lineHeight = button.ht+"px";
-
 					switch(sr.jt)
 					{
 						case TEXT_ORIENTATION.ORI_ABSOLUT:
@@ -956,40 +953,45 @@ function doDraw(pgKey, pageID, what)
 							fnt.style.height = (bsr.style.height - (sr.ty + border))+'px';
 						break;
 						case TEXT_ORIENTATION.ORI_TOP_LEFT:
-							fnt.style.textAlign = "left";
-							fnt.style.verticalAlign = "top";
+							fnt.style.left = "0px";
+							fnt.style.top = "0px";
 						break;
 						case TEXT_ORIENTATION.ORI_TOP_MIDDLE:
-							fnt.style.textAlign = "center";
-							fnt.style.verticalAlign = "top";
+							fnt.style.left = "50%";
+							fnt.style.transform = "translateX(-50%)";
+							fnt.style.top = "0px";
 						break;
 						case TEXT_ORIENTATION.ORI_TOP_RIGHT:
-							fnt.style.textAlign = "right";
-							fnt.style.verticalAlign = "top";
+							fnt.style.right = "0px";
+							fnt.style.top = "0px";
 						break;
 						case TEXT_ORIENTATION.ORI_CENTER_LEFT:
-							fnt.style.textAlign = "left";
-							fnt.style.verticalAlign = "middle";
+							fnt.style.top = '50%';
+							fnt.style.left = "0px";
+							fnt.style.transform = "translate(0%, -50%)";
 						break;
 						case TEXT_ORIENTATION.ORI_CENTER_MIDDLE:
-							fnt.style.textAlign = "center";
-							fnt.style.verticalAlign = "middle";
+							fnt.style.left = "50%";
+							fnt.style.top = '50%';
+							fnt.style.transform = "translate(-50%, -50%)"
 						break;
 						case TEXT_ORIENTATION.ORI_CENTER_RIGHT:
-							fnt.style.textAlign = "right";
-							fnt.style.verticalAlign = "middle";
+							fnt.style.right = "0px";
+							fnt.style.top = '50%';
+							fnt.style.transform = "translateY(-50%)";
 						break;
 						case TEXT_ORIENTATION.ORI_BOTTOM_LEFT:
-							fnt.style.textAlign = "left";
-							fnt.style.verticalAlign = "bottom";
+							fnt.style.left = "0px";
+							fnt.style.bottom = "0px";
 						break;
 						case TEXT_ORIENTATION.ORI_BOTTOM_MIDDLE:
-							fnt.style.textAlign = "center";
-							fnt.style.verticalAlign = "bottom";
+						fnt.style.left = "50%";
+						fnt.style.transform = "translateX(-50%)";
+						fnt.style.bottom = "0px";
 						break;
 						case TEXT_ORIENTATION.ORI_BOTTOM_RIGHT:
-							fnt.style.textAlign = "right";
-							fnt.style.verticalAlign = "bottom";
+							fnt.style.right = "0px";
+							fnt.style.bottom = "0px";
 						break;
 					}
 
