@@ -210,6 +210,8 @@ String NameFormat::textToWeb(const String& txt)
 			out += "&dash;";
 		else if (c == '~')
 			out += "&tilde;";
+		else if (c == ' ')
+			out += "&nbsp;";
 		else
 			out += (char)c;
 	}
