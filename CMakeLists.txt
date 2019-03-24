@@ -18,7 +18,7 @@ set (LIBS ${LIBS} ${FREETYPE2_LIBRARIES})
 
 if (APPLE)
 	set(OSX_INCLUDE -I/usr/local/include -I/opt/local/include)
-	set(OSX_LIB -L/usr/local/lib -L/opt/local/lib -lboost_system-mt)
+	set(OSX_LIB -L/usr/local/lib -L/opt/local/lib -lboost_system-mt -liconv)
 	set(LIBS ${LIBS} ${OSX_LIB} ${Boost_LIBRARY_DIRS})
 endif(APPLE)
 
