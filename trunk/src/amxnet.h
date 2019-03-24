@@ -278,7 +278,11 @@ namespace amx
 			void start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter);
 			void handle_connect(const std::error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter);
 			void start_read();
+#ifdef __APPLE__
+			void handle_read(const system::error_code& error, size_t n, R_TOKEN tk);
+#else
 			void handle_read(const asio::error_code& error, size_t n, R_TOKEN tk);
+#endif
 			void start_write();
 			void handle_write(const std::error_code& error);
 			void check_deadline();

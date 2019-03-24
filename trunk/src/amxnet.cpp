@@ -38,7 +38,11 @@
 #include "strings.h"
 #include "config.h"
 #include "amxnet.h"
+#ifdef __APPLE__
+#include <boost/asio/read.hpp>
+#else
 #include <asio/read.hpp>
+#endif
 #include "nameformat.h"
 
 #ifdef __APPLE__
@@ -257,8 +261,11 @@ void AMXNet::start_read()
 //	input_buffer_.clear();
 	protError = false;
 	comm.clear();
+#ifdef __APPLE__
+	system::error_code error;
+#else
 	asio::error_code error;
-
+#endif
 	// Start an asynchronous operation to read a newline-delimited message.
 	// Read the first byte. It should be 0x02
 	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
@@ -341,7 +348,11 @@ void AMXNet::start_read()
 		throw std::invalid_argument(error.message());
 }
 
+#ifdef __APPLE__
+void AMXNet::handle_read(const system::error_code& error, size_t n, R_TOKEN tk)
+#else
 void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
+#endif
 {
 	sysl->TRACE(std::string("handle_read(const std::error_code& error, std::size_t n, R_TOKEN tk)"));
 

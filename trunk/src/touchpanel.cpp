@@ -14,6 +14,7 @@
  * from Andreas Theofilu.
  */
 
+#include <cstdlib>
 #include <utility>
 #include <memory>
 #include <unistd.h>
@@ -332,7 +333,7 @@ void TouchPanel::readPages()
 
 	// delete all chameleon images
 	String cmd = String("rm ")+Configuration->getHTTProot()+"/chameleon/ChamImage_*.png";
-	system(cmd.data());
+	std::system(cmd.data());
 
 	try
 	{
@@ -441,7 +442,7 @@ void TouchPanel::readPages()
 
 		scBtArray += "]";
 	}
-	catch (exception& e)
+	catch (std::exception& e)
 	{
 		sysl->errlog(String("TouchPanel::readPages: ")+e.what());
 		exit(1);
@@ -519,15 +520,18 @@ bool TouchPanel::parsePages()
 	pgFile << "<!DOCTYPE html>\n";
 	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
-	pgFile << "<meta name=\"viewport\" content=\"height=device-height, initial-scale=1.0\">\n";
-	pgFile << "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\n";
-	pgFile << "<meta name=\"mobile-web-app-capable\" content=\"yes\">\n";
+	pgFile << "<meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\"/>\n";
+	pgFile << "<meta name=\"mobile-web-app-capable\" content=\"yes\" />" << std::endl;
+	pgFile << "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n";
+	pgFile << "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\" />" << std::endl;
+	pgFile << "<link rel=\"icon\" sizes=\"192x192\" href=\"images/icon.png\">" << std::endl;
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">\n";
 	// Scripts
 	pgFile << "<script>\n";
 	pgFile << "\"use strict\";\n";
 	pgFile << "var pageName = \"\";\n";
-	pgFile << "var wsocket;\n\n";
+	pgFile << "var wsocket;\n";
+	pgFile << "var wsStatus = 0;" << std::endl << std::endl;
 
 	try
 	{
@@ -715,11 +719,11 @@ bool TouchPanel::parsePages()
 	pgFile << "function connect()\n{\n";
 	pgFile << "\ttry\n\t{\n";
 	pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
-	pgFile << "\t\twsocket.onopen = function() { wsocket.send('READY;'); }\n";
-	pgFile << "\t\twsocket.onerror = function(error) { console.log('WebSocket error: '+error); }\n";
+	pgFile << "\t\twsocket.onopen = function() { setOnlineStatus(2); wsocket.send('READY;'); }\n";
+	pgFile << "\t\twsocket.onerror = function(error) { console.log('WebSocket error: '+error); setOnlineStatus(10); }\n";
 	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
-	pgFile << "\t\twsocket.onclose = function() { debug('WebSocket is closed!'); }\n\t}\n\tcatch (exception)\n";
-	pgFile << "\t{\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
+	pgFile << "\t\twsocket.onclose = function() { debug('WebSocket is closed!'); setOnlineStatus(1); }\n\t}\n\tcatch (exception)\n";
+	pgFile << "\t{\n\t\tsetOnlineStatus(1);\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
@@ -736,6 +740,21 @@ bool TouchPanel::parsePages()
 
 	pgFile << String("\t")+scrStart+"\n";
 	pgFile << "}\n";
+	pgFile << "function setOnlineStatus(stat)\n{" << std::endl;
+	pgFile << "\tif (stat < 0 || stat > 11)\n\t\treturn;" << std::endl << std::endl;
+	pgFile << "\tcurPort = 0;" << std::endl;
+	pgFile << "\tvar bt = findButtonPort(8);" << std::endl << std::endl;
+	pgFile << "\tif (bt.length == 0)" << std::endl;
+	pgFile << "\t{\n\t\terrlog('setOnlineStatus: Error button '+addr+' not found!');\n\t\treturn;\n\t}\n\n";
+	pgFile << "\tfor (var b = 0; b < bt.length; b++)\n\t{" << std::endl;
+	pgFile << "\t\ttry\n\t\t{" << std::endl;
+	pgFile << "\t\t\tvar name1 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+(wsStatus+1);" << std::endl;
+	pgFile << "\t\t\tvar name2 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+(stat+1);" << std::endl;
+	pgFile << "\t\t\twsStatus = stat;" << std::endl;
+	pgFile << "\t\t\tdocument.getElementById(name1).style.display = 'none';" << std::endl;
+	pgFile << "\t\t\tdocument.getElementById(name2).style.display = 'inline';\n\t}" << std::endl;
+	pgFile << "\t\tcatch(e)\n\t\t{\n\t\t\terrlog(\"setOnlineStatus: [Page_\"+bt[b].pnum+\"_Button_\"+bt[b].bi+\"_?] Error: \"+e);\n";
+	pgFile << "\t\t}\n\t}\n}" << std::endl;
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
