@@ -667,7 +667,7 @@ void amx::Page::generateButtons()
 				btArray += String("\"instances\":")+page.buttons[i].sr.size()+",";
 				btArray += String("\"ap\":")+page.buttons[i].ap+",\"ac\":"+page.buttons[i].ad;
 				btArray += String(",\"cp\":")+page.buttons[i].cp+",\"ch\":"+page.buttons[i].ch;
-				btArray += String(",\"ion\":")+on+",\"visible\":1}";
+				btArray += String(",\"ion\":")+on+",\"visible\":1,\"enabled\":1}";
 			}
 
 			PushButton pbt(page.buttons[i], paletteClass->getPalette());
