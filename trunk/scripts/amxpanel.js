@@ -73,7 +73,7 @@ var cmdArray =
 			{"cmd":"^CPF-","call":doCPF},			// Clear all page flips from a button.
 			{"cmd":"^DLD-","call":unsupported},
 			{"cmd":"^DPF-","call":unsupported},
-			{"cmd":"^ENA-","call":unsupported},		// Enable or disable buttons with a set variable text range.
+			{"cmd":"^ENA-","call":doENA},			// Enable or disable buttons with a set variable text range.
 			{"cmd":"^FON-","call":unsupported},
 			{"cmd":"^GDI-","call":unsupported},
 			{"cmd":"^GIV-","call":unsupported},
@@ -770,6 +770,18 @@ function findButtonPort(num)
 
 	return btArray;
 }
+function findButtonDistinct(pnum, bi)
+{
+	for (var i in buttonArray.buttons)
+	{
+		var bt = buttonArray.buttons[i];
+
+		if (bt.pnum == pnum && bt.bi == bi)
+			return buttonArray.buttons[i];
+	}
+
+	return null;
+}
 function findBargraphs(port, channel)
 {
 	var i;
@@ -1177,6 +1189,19 @@ function hidePage(name)
 }
 function switchDisplay(name1, name2, dStat, cport, cnum)
 {
+	var btKenn = getButtonKennung(name1);
+
+	if (btKenn === null)
+		return;
+
+	var bt = findButtonDistinct(btKenn[0], btKenn[1]);
+
+	if (bt === null)
+		return;
+
+	if (bt.enabled == 0)
+		return;
+
 	try
 	{
 		if (dStat == 1)
@@ -1216,6 +1241,9 @@ function setON(msg)
 
 	for (b = 0; b < bt.length; b++)
 	{
+		if (bt[b].enabled == 0)
+			continue;
+
 		try
 		{
 			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_1';
@@ -1247,6 +1275,9 @@ function setOFF(msg)
 
 	for (b = 0; b < bt.length; b++)
 	{
+		if (bt[b].enabled == 0)
+			continue;
+
 		try
 		{
 			var name1 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_1';
@@ -2043,20 +2074,7 @@ function doENA(msg)
 		for (b = 0; b < bt.length; b++)
 		{
 			name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi;
-
-			try
-			{
-				bt[b].visible = val;
-
-				if (val == 0)
-					document.getElementById(name).style.display = 'none';
-				else
-					document.getElementById(name).style.display = 'inline';
-			}
-			catch(e)
-			{
-				errlog("doCPF: No element of name "+name+" found!");
-			}
+			bt[b].enabled = val;
 		}
 	}
 }
@@ -2107,16 +2125,20 @@ async function doICO(msg)
 						saveIcon(bt[b].ap, bt[b].ac, idx, btRange[j]);
 						var newIcon = false;
 						var iFile = getIconFile(idx);
+						debug("doICO: iFile="+iFile);
 
 						if (iFile !== null)
 						{
 							try
 							{
+								debug("doICO: Try to overwrite "+name+"_img ...");
 								document.getElementById(name+'_img').src = "images/"+iFile;
+								debug("doICO: iFile "+iFile+" was added to page.");
 							}
 							catch(e)
 							{
 								newIcon = true;
+								debug("doICO: No iFile found, adding a new one.");
 							}
 						}
 						else
@@ -2124,8 +2146,14 @@ async function doICO(msg)
 							// Delete icon if it exists
 							try
 							{
+								debug("doICO: Deleting element "+name+"_img ...");
 								var ico = document.getElementById(name+'_img');
-								ico.removeChild(ico);
+								var parent = document.getElementById(name);
+
+								if (parent !== null && ico !== null)
+									parent.removeChild(ico);
+								else if (ico !== null)
+									ico.style.display = 'none';
 							}
 							catch(e)
 							{
@@ -2398,47 +2426,6 @@ function calcImageSize(imWidth, imHeight, btWidth, btHeight, btFrame)
 	realX = percent / 100 * imWidth;
 	realY = percent / 100 * imHeight;
 	return [percent+'%', percent+'%', realX, realY];
-}
-function imgCenter(img, name)
-{
-	var pw;
-	var ph;
-	var iw;
-	var ih;
-	var elem;
-
-	elem = document.getElementById(name);
-
-	if (elem === null)
-		return;
-
-	pw = elem.clientWidth;
-	ph = elem.clientHeight;
-	iw = img.width;
-	ih = img.height;
-
-	if (pw == 0)
-		pw = iw;
-
-	if (ph == 0)
-		ph = ih;
-
-	if (iw == 0 || ih == 0)
-	{
-		errlog("imgCenter: Image with no size at "+name+"!");
-		return;
-	}
-
-	img.style.position = 'absolute';
-
-	if (pw > iw)
-		img.style.left = (pw - iw) / 2 + 'px';
-
-	if (ph > ih)
-		img.style.top = (ph - ih) / 2 + 'px';
-
-	img.style.width = iw;
-	img.style.height = ih;
 }
 function calcImagePosition(width, height, button, cc, inst=0)
 {

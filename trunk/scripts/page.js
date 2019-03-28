@@ -398,8 +398,12 @@ function activeTouch(event, name, object)
 				continue;
 
 			var button = getButton(btKenn[0], btKenn[1]);
+			var btPars = findButtonDistinct(btKenn[0], btKenn[1]);
 
-			if (button === null)
+			if (button === null || btPars === null)
+				continue;
+
+			if (btPars.enabled == 0)
 				continue;
 
 			if (hasGraphic(button))
