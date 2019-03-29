@@ -453,7 +453,7 @@ bool TouchPanel::parsePages()
 {
 	sysl->TRACE(std::string("TouchPanel::parsePages()"));
 
-	fstream pgFile, cssFile, jsFile;
+	fstream pgFile, cssFile, jsFile, cacheFile;
 	// Did we've already parsed?
 	try
 	{
@@ -514,13 +514,32 @@ bool TouchPanel::parsePages()
 //		cssFile << getPageStyle(stPopups[i].ID);
 
 	cssFile.close();
+	std::string cacheName = Configuration->getHTTProot().toString()+"/cache.appcache";
+
+	try
+	{
+		cacheFile.open(cacheName, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!cacheFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+cacheName);
+			return false;
+		}
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		return false;
+	}
+
+	cacheFile << "CACHE MANIFEST" << std::endl;
 	getFontList()->serializeToJson();
 
 	// Page header
 	pgFile << "<!DOCTYPE html>\n";
-	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
+	pgFile << "<html manifest=\"cache.appcache\">\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
-	pgFile << "<meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\"/>\n";
+	pgFile << "<meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=0.5, minimum-scale=0.5, maximum-scale=1.0, user-scalable=yes\"/>\n";
 	pgFile << "<meta name=\"mobile-web-app-capable\" content=\"yes\" />" << std::endl;
 	pgFile << "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n";
 	pgFile << "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\" />" << std::endl;
@@ -553,6 +572,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
+		cacheFile.close();
 		return false;
 	}
 
@@ -576,6 +596,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
+		cacheFile.close();
 		return false;
 	}
 
@@ -599,6 +620,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
+		cacheFile.close();
 		return false;
 	}
 
@@ -622,6 +644,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
+		cacheFile.close();
 		return false;
 	}
 
@@ -644,6 +667,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
+		cacheFile.close();
 		return false;
 	}
 
@@ -666,6 +690,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
+		cacheFile.close();
 		return false;
 	}
 
@@ -688,6 +713,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
+		cacheFile.close();
 		return false;
 	}
 
@@ -702,16 +728,37 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl << std::endl;
 
+	cacheFile << "scripts/pages.js" << std::endl;
+	cacheFile << "scripts/popups.js" << std::endl;
+	cacheFile << "scripts/groups.js" << std::endl;
+	cacheFile << "scripts/btarray.js" << std::endl;
+	cacheFile << "scripts/icons.js" << std::endl;
+	cacheFile << "scripts/bargraphs.js" << std::endl;
+	cacheFile << "scripts/palette.js" << std::endl;
+	cacheFile << "scripts/fonts.js" << std::endl;
+	cacheFile << "scripts/chameleon.js" << std::endl;
+
 	for (size_t i = 0; i < stPages.size(); i++)
+	{
 		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPages[i].ID << ".js\"></script>" << std::endl;
+		cacheFile << "scripts/Page" << stPages[i].ID << ".js" << std::endl;
+	}
 
 	pgFile << std::endl;
 
 	for (size_t i = 0; i < stPopups.size(); i++)
+	{
 		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPopups[i].ID << ".js\"></script>" << std::endl;
+		cacheFile << "scripts/Page" << stPopups[i].ID << ".js" << std::endl;
+	}
 
 	pgFile << std::endl << "<script type=\"text/javascript\" src=\"scripts/page.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>" << std::endl;
+	cacheFile << "scripts/page.js" << std::endl;
+	cacheFile << "scripts/amxpanel.js" << std::endl;
+	cacheFile << "amxpanel.css" << std::endl;
+	cacheFile << "index.html" << std::endl << std::endl;
+	cacheFile << "NETWORK:" << std::endl << "*" << std::endl;
 	// Add some special script functions
 	pgFile << "<script>\n";
 	pgFile << scrBuffer << "\n";
@@ -740,21 +787,6 @@ bool TouchPanel::parsePages()
 
 	pgFile << String("\t")+scrStart+"\n";
 	pgFile << "}\n";
-	pgFile << "function setOnlineStatus(stat)\n{" << std::endl;
-	pgFile << "\tif (stat < 0 || stat > 11)\n\t\treturn;" << std::endl << std::endl;
-	pgFile << "\tcurPort = 0;" << std::endl;
-	pgFile << "\tvar bt = findButtonPort(8);" << std::endl << std::endl;
-	pgFile << "\tif (bt.length == 0)" << std::endl;
-	pgFile << "\t{\n\t\terrlog('setOnlineStatus: Error button '+addr+' not found!');\n\t\treturn;\n\t}\n\n";
-	pgFile << "\tfor (var b = 0; b < bt.length; b++)\n\t{" << std::endl;
-	pgFile << "\t\ttry\n\t\t{" << std::endl;
-	pgFile << "\t\t\tvar name1 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+(wsStatus+1);" << std::endl;
-	pgFile << "\t\t\tvar name2 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+(stat+1);" << std::endl;
-	pgFile << "\t\t\twsStatus = stat;" << std::endl;
-	pgFile << "\t\t\tdocument.getElementById(name1).style.display = 'none';" << std::endl;
-	pgFile << "\t\t\tdocument.getElementById(name2).style.display = 'inline';\n\t}" << std::endl;
-	pgFile << "\t\tcatch(e)\n\t\t{\n\t\t\terrlog(\"setOnlineStatus: [Page_\"+bt[b].pnum+\"_Button_\"+bt[b].bi+\"_?] Error: \"+e);\n";
-	pgFile << "\t\t}\n\t}\n}" << std::endl;
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
