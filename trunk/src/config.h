@@ -48,6 +48,8 @@ class Config
 		strings::String getSSHDHFile() { return sshDHFile; }
 		strings::String getSSHPassword() { return sshPassword; }
 		strings::String getWebSocketServer() { return webSocketServer; }
+		strings::String getHashTablePath() { return hashTablePath; }
+		std::vector<strings::String>& getHashTable(const strings::String& path);
 
 		void setHOME(const strings::String& hm) { HOME = hm.data(); }
 
@@ -76,6 +78,8 @@ class Config
 		strings::String sshDHFile;
 		strings::String sshPassword;
 		strings::String webSocketServer;
+		strings::String hashTablePath;
+		std::vector<strings::String> hashTable;
 
 		std::ifstream fs;
 		strings::String sFileName;

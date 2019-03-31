@@ -48,6 +48,7 @@ namespace amx
 			bool haveBtArray() { return !btArray.empty(); }
 			strings::String& getBargraphs() { return sBargraphs; }
 			bool haveBargraphs() { return !sBargraphs.empty(); }
+			PAGE_T& getPageData() { return page; }
 
 			void setPalette(Palette *pal) { paletteClass = pal; }
 			void setParentSize(int w, int h) { totalWidth = w; totalHeight = h; }

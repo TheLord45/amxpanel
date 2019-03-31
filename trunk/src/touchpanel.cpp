@@ -47,6 +47,7 @@ TouchPanel::TouchPanel()
 {
 	sysl->TRACE(Syslog::ENTRY, String("TouchPanel::TouchPanel()"));
 	openPage = 0;
+	registrated = false;
 	busy = false;
 	webConnected = false;
 	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1));
@@ -87,7 +88,7 @@ bool TouchPanel::startClient()
 
 		while (1)
 		{
-			if (webConnected)
+			if (webConnected && registrated)
 			{
 				sysl->TRACE(String("TouchPanel::startClient: Starting connection to controller ..."));
 				c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()));
@@ -106,82 +107,11 @@ bool TouchPanel::startClient()
 	return false;;
 }
 
-String TouchPanel::getPage(int id)
-{
-	sysl->TRACE(String("TouchPanel::getPage(int id)"));
-
-	for (size_t i = 0; i < stPages.size(); i++)
-	{
-		if (!stPages[i].webcode.empty() && stPages[i].ID == id)
-			return stPages[i].webcode;
-	}
-
-	for (size_t i = 0; i < stPopups.size(); i++)
-	{
-		if (!stPopups[i].webcode.empty() && stPopups[i].ID == id)
-			return stPopups[i].webcode;
-	}
-
-	return "";
-}
-
-String TouchPanel::getPageStyle(int id)
-{
-	sysl->TRACE(String("TouchPanel::getPageStyle(int id)"));
-
-	for (size_t i = 0; i < stPages.size(); i++)
-	{
-		if (!stPages[i].styles.empty() && stPages[i].ID == id)
-			return stPages[i].styles;
-	}
-
-	for (size_t i = 0; i < stPopups.size(); i++)
-	{
-		if (!stPopups[i].styles.empty() && stPopups[i].ID == id)
-			return stPopups[i].styles;
-	}
-
-	return "";
-}
-
-String TouchPanel::getPage(const String& name)
-{
-	sysl->TRACE(String("TouchPanel::getPage(const String& name)"));
-
-	for (size_t i = 0; i < stPages.size(); i++)
-	{
-		if (!stPages[i].webcode.empty() && stPages[i].name.compare(name) == 0)
-			return stPages[i].webcode;
-	}
-
-	for (size_t i = 0; i < stPopups.size(); i++)
-	{
-		if (!stPopups[i].webcode.empty() && stPopups[i].name.compare(name) == 0)
-			return stPopups[i].webcode;
-	}
-
-	return "";
-}
-
-String TouchPanel::getPageStyle(const String& name)
-{
-	sysl->TRACE(String("TouchPanel::getPageStyle(const String& name)"));
-
-	for (size_t i = 0; i < stPages.size(); i++)
-	{
-		if (!stPages[i].styles.empty() && stPages[i].name.compare(name) == 0)
-			return stPages[i].styles;
-	}
-
-	for (size_t i = 0; i < stPopups.size(); i++)
-	{
-		if (!stPopups[i].styles.empty() && stPopups[i].name.compare(name) == 0)
-			return stPopups[i].styles;
-	}
-
-	return "";
-}
-
+/*
+ * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
+ * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
+ * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
+ */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 {
 	sysl->TRACE(String("TouchPanel::setCommand(const ANET_COMMAND& cmd)"));
@@ -263,7 +193,7 @@ void TouchPanel::webMsg(std::string& msg)
 {
 	sysl->TRACE(String("TouchPanel::webMsg(std::string& msg) [")+msg+"]");
 
-	if (msg.find("PUSH:") != std::string::npos)
+	if (registrated && msg.find("PUSH:") != std::string::npos)
 	{
 		std::vector<String> parts = String(msg).split(":");
 		ANET_SEND as;
@@ -282,6 +212,56 @@ void TouchPanel::webMsg(std::string& msg)
 			amxnet->sendCommand(as);
 		else
 			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
+	}
+	else if (registrated && msg.find("ON:") != std::string::npos)
+	{
+		std::vector<String> parts = String(msg).split(":");
+		ANET_SEND as;
+		as.MC = 0x0088;
+		as.port = atoi(parts[1].data());
+		as.channel = atoi(parts[2].data());
+		int value = 1;
+		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", value: "+value+", MC: 0x"+NameFormat::toHex(as.MC, 4));
+
+		if (amxnet != 0)
+			amxnet->sendCommand(as);
+		else
+			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
+	}
+	else if (registrated && msg.find("OFF:") != std::string::npos)
+	{
+		std::vector<String> parts = String(msg).split(":");
+		ANET_SEND as;
+		as.MC = 0x0089;
+		as.port = atoi(parts[1].data());
+		as.channel = atoi(parts[2].data());
+		int value = 0;
+		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", value: "+value+", MC: 0x"+NameFormat::toHex(as.MC, 4));
+
+		if (amxnet != 0)
+			amxnet->sendCommand(as);
+		else
+			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
+	}
+	else if (msg.find("REGISTER:") != std::string::npos)
+	{
+		std::vector<String> parts = String(msg).split(":");
+
+		if (parts.size() != 2)
+			return;
+
+		String regID = parts[1].substring((size_t)0, parts[1].length()-1);
+		sysl->warnlog(String("TouchPanel::webMsg: Try to registrate with ID: %1 ...").arg(regID));
+		std::vector<String> ht = Configuration->getHashTable(Configuration->getHashTablePath());
+
+		if (isPresent(ht, regID))
+		{
+			registrated = true;
+			sysl->warnlog(String("TouchPanel::webMsg: Registration with ID: %1 was successfull.").arg(regID));
+			return;
+		}
+		else
+			sysl->warnlog(String("TouchPanel::webMsg: Access for ID: %1 is denied!").arg(regID));
 	}
 }
 
@@ -312,7 +292,7 @@ int TouchPanel::findPage(const String& name)
 
 	return 0;
 }
-
+/*
 int TouchPanel::getActivePage()
 {
 	for (size_t i = 0; i < stPages.size(); i++)
@@ -323,7 +303,7 @@ int TouchPanel::getActivePage()
 
 	return 0;
 }
-
+*/
 void TouchPanel::readPages()
 {
 	sysl->TRACE(String("TouchPanel::readPages()"));
@@ -332,8 +312,8 @@ void TouchPanel::readPages()
 		return;
 
 	// delete all chameleon images
-	String cmd = String("rm ")+Configuration->getHTTProot()+"/chameleon/ChamImage_*.png";
-	std::system(cmd.data());
+//	String cmd = String("rm ")+Configuration->getHTTProot()+"/chameleon/ChamImage_*.png";
+//	std::system(cmd.data());
 
 	try
 	{
@@ -356,6 +336,8 @@ void TouchPanel::readPages()
 				sysl->warnlog(String("TouchPanel::readPages: Page ")+p.getPageName()+" had an error! Page will be ignored.");
 				continue;
 			}
+
+			pageList.push_back(p.getPageData());
 
 			if (p.getType() == PAGE)
 			{
@@ -514,6 +496,39 @@ bool TouchPanel::parsePages()
 //		cssFile << getPageStyle(stPopups[i].ID);
 
 	cssFile.close();
+
+	try
+	{
+		std::string maniName = Configuration->getHTTProot().toString()+"/manifest.json";
+		jsFile.open(maniName, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!jsFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+maniName);
+			return false;
+		}
+
+		jsFile << "{" << std::endl << "\t\"short_name\": \"AMXP\"," << std::endl;
+		jsFile << "\t\"name\": \"AMX Panel\"," << std::endl;
+		jsFile << "\t\"icons\": [" << std::endl << "\t\t{" << std::endl;
+		jsFile << "\t\t\t\"src\": \"images/icon.png\"," << std::endl;
+		jsFile << "\t\t\t\"type\": \"image/png\"," << std::endl;
+		jsFile << "\t\t\t\"sizes\": \"256x256\"" << std::endl << "\t\t}" << std::endl;
+		jsFile << "\t]," << std::endl;
+		jsFile << "\t\"start_url\": \"" << "https://" << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation().toString() << "/index.html\"," << std::endl;
+		jsFile << "\t\"background_color\": \"#5a005a\"," << std::endl;
+		jsFile << "\t\"display\": \"standalone\"," << std::endl;
+		jsFile << "\t\"scope\": \"" << Configuration->getWebLocation().toString() << "/\"," << std::endl;
+		jsFile << "\t\"theme_color\": \"#5a005a\"," << std::endl;
+		jsFile << "\t\"orientation\": \"landscape\"" << std::endl << "}" << std::endl;
+		jsFile.close();
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		return false;
+	}
+
 	std::string cacheName = Configuration->getHTTProot().toString()+"/cache.appcache";
 
 	try
@@ -539,11 +554,12 @@ bool TouchPanel::parsePages()
 	pgFile << "<!DOCTYPE html>\n";
 	pgFile << "<html manifest=\"cache.appcache\">\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
-	pgFile << "<meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=0.5, minimum-scale=0.5, maximum-scale=1.0, user-scalable=yes\"/>\n";
+	pgFile << "<meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=0.7, minimum-scale=0.7, maximum-scale=1.0, user-scalable=yes\"/>\n";
 	pgFile << "<meta name=\"mobile-web-app-capable\" content=\"yes\" />" << std::endl;
 	pgFile << "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n";
 	pgFile << "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\" />" << std::endl;
-	pgFile << "<link rel=\"icon\" sizes=\"192x192\" href=\"images/icon.png\">" << std::endl;
+	pgFile << "<link rel=\"manifest\" href=\"manifest.json\">" << std::endl;
+	pgFile << "<link rel=\"icon\" sizes=\"256x256\" href=\"images/icon.png\">" << std::endl;
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">\n";
 	// Scripts
 	pgFile << "<script>\n";
@@ -757,8 +773,53 @@ bool TouchPanel::parsePages()
 	cacheFile << "scripts/page.js" << std::endl;
 	cacheFile << "scripts/amxpanel.js" << std::endl;
 	cacheFile << "amxpanel.css" << std::endl;
-	cacheFile << "index.html" << std::endl << std::endl;
+	cacheFile << "index.html" << std::endl;
+	cacheFile << "manifest.json" << std::endl;
+
+	std::vector<String> bitmaps;
+
+	for (size_t i = 0; i < pageList.size(); i++)
+	{
+		for (size_t j = 0; j < pageList[i].sr.size(); j++)
+		{
+			if (pageList[i].sr[j].bm.length() > 0)
+			{
+				if (!isPresent(bitmaps, pageList[i].sr[j].bm))
+					bitmaps.push_back(pageList[i].sr[j].bm);
+			}
+
+			if (pageList[i].sr[j].mi.length() > 0)
+			{
+				if (!isPresent(bitmaps, pageList[i].sr[j].mi))
+					bitmaps.push_back(pageList[i].sr[j].mi);
+			}
+		}
+
+		for (size_t z = 0; z < pageList[i].buttons.size(); z++)
+		{
+			for (size_t j = 0; j < pageList[i].buttons[z].sr.size(); j++)
+			{
+				if (pageList[i].buttons[z].sr[j].bm.length() > 0)
+				{
+					if (!isPresent(bitmaps, pageList[i].buttons[z].sr[j].bm))
+						bitmaps.push_back(pageList[i].buttons[z].sr[j].bm);
+				}
+
+				if (pageList[i].buttons[z].sr[j].mi.length() > 0)
+				{
+					if (!isPresent(bitmaps, pageList[i].buttons[z].sr[j].mi))
+						bitmaps.push_back(pageList[i].buttons[z].sr[j].mi);
+				}
+			}
+		}
+	}
+
+	for (size_t i = 0; i < bitmaps.size(); i++)
+		cacheFile << "images/" << bitmaps[i] << std::endl;
+
 	cacheFile << "NETWORK:" << std::endl << "*" << std::endl;
+	cacheFile.close();
+
 	// Add some special script functions
 	pgFile << "<script>\n";
 	pgFile << scrBuffer << "\n";
@@ -766,7 +827,7 @@ bool TouchPanel::parsePages()
 	pgFile << "function connect()\n{\n";
 	pgFile << "\ttry\n\t{\n";
 	pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
-	pgFile << "\t\twsocket.onopen = function() { setOnlineStatus(2); wsocket.send('READY;'); }\n";
+	pgFile << "\t\twsocket.onopen = function() { setOnlineStatus(2); wsocket.send('REGISTER:'+getRegistrationID()+';'); }\n";
 	pgFile << "\t\twsocket.onerror = function(error) { console.log('WebSocket error: '+error); setOnlineStatus(10); }\n";
 	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
 	pgFile << "\t\twsocket.onclose = function() { debug('WebSocket is closed!'); setOnlineStatus(1); }\n\t}\n\tcatch (exception)\n";
@@ -817,6 +878,17 @@ bool TouchPanel::parsePages()
 	}
 
 	return true;
+}
+
+bool TouchPanel::isPresent(const std::vector<String>& vs, const String& str)
+{
+	for (size_t i = 0; i < vs.size(); i++)
+	{
+		if (str.compare(vs[i]) == 0)
+			return true;
+	}
+
+	return false;
 }
 
 void TouchPanel::writeGroups (fstream& pgFile)

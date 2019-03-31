@@ -63,12 +63,12 @@ namespace amx
 			TouchPanel();
 			~TouchPanel();
 
-			strings::String getPage(int id);
-			strings::String getPageStyle(int id);
-			strings::String getPage(const strings::String& name);
-			strings::String getPageStyle(const strings::String& name);
+//			strings::String getPage(int id);
+//			strings::String getPageStyle(int id);
+//			strings::String getPage(const strings::String& name);
+//			strings::String getPageStyle(const strings::String& name);
 			int findPage(const strings::String& name);
-			int getActivePage();
+//			int getActivePage();
 			bool parsePages();
 
 			void setCommand(const struct ANET_COMMAND& cmd);
@@ -88,6 +88,7 @@ namespace amx
 			void writeBtArray(std::fstream& pgFile);
 			void writeIconTable(std::fstream& pgFile);
 			void writeBargraphs(std::fstream& pgFile);
+			bool isPresent(const std::vector<strings::String>& vs, const strings::String& str);
 
 			AMXNet *amxnet;
 			strings::String scrBuffer;
@@ -99,8 +100,10 @@ namespace amx
 			std::vector<int> openPopups;	// The currently open popups connected
 			std::vector<ST_PAGE> stPages;
 			std::vector<ST_POPUP> stPopups;
+			std::vector<PAGE_T> pageList;
 			bool busy;
 			bool webConnected;
+			bool registrated;		// TRUE = Client (browser) is identified and has access
 
 			std::vector<ANET_COMMAND> commands;		// Commands from controller
 	};

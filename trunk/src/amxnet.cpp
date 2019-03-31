@@ -742,7 +742,8 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			status = true;
 		break;
 
-		case 0x0086:
+		case 0x0086:	// output channel on
+		case 0x0088:	// feedback/input channel on
 			com.data.channel.device = com.device2;
 			com.data.channel.port = s.port;
 			com.data.channel.system = com.system;
@@ -752,7 +753,8 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			status = true;
 		break;
 
-		case 0x0087:
+		case 0x0087:	// output channel off
+		case 0x0089:	// feedback/input channel off
 			com.data.channel.device = com.device2;
 			com.data.channel.port = s.port;
 			com.data.channel.system = com.system;
