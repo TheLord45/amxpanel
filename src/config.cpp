@@ -110,6 +110,7 @@ void Config::init()
 	sshDHFile = "dh.pem";
 	sshPassword.clear();
 	webSocketServer = "www.theosys.at";
+	hashTablePath = "/etc/amxpanel/hashtable.tbl";
 }
 
 void Config::readConfig(const String &sFile)
@@ -188,6 +189,8 @@ void Config::readConfig(const String &sFile)
 				sshPassword = right.trim();
 			else if (left.caseCompare("WEBSOCKETSERVER") == 0 && !right.empty())
 				webSocketServer = right.trim();
+			else if (left.caseCompare("HashTablePath") == 0 && !right.empty())
+				hashTablePath = right.trim();
 			else if (left.caseCompare("DEBUG") == 0 && !right.empty())
 			{
 				String b = right.trim();
@@ -202,6 +205,31 @@ void Config::readConfig(const String &sFile)
 	fs.close();
 	this->fflag = true;
 	initialized = true;
+}
+
+std::vector<String>& Config::getHashTable(const String& path)
+{
+	hashTable.clear();
+	std::ifstream fl;
+
+	try
+	{
+		fl.open(path.data(), std::fstream::in);
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(String("Error on file ")+path+": "+e.what());
+		throw rConfig;
+	}
+
+	for (std::string line; std::getline(fl, line);)
+	{
+		String ln = line;
+		hashTable.push_back(ln);
+	}
+
+	fl.close();
+	return hashTable;
 }
 
 Config::~Config()

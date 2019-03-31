@@ -88,7 +88,7 @@ void WebSocket::run()
 		sock_server.set_tls_init_handler(bind(&on_tls_init,MOZILLA_MODERN,::_1));
 
 		// Listen on port 11012
-		sock_server.listen(11012);
+		sock_server.listen(Configuration->getSidePort());
 
 		// Start the server accept loop
 		sock_server.start_accept();
@@ -153,16 +153,7 @@ bool WebSocket::send(strings::String& msg)
 
 	try
 	{
-//		server& echo_server = getServer();
-//		server::connection_ptr pcon = echo_server.get_connection();
-//		websocketpp::lib::error_code ec;
 		sock_server.send(server_hdl, msg.toString(), websocketpp::frame::opcode::text);
-
-/*		if (ec)
-		{
-			sysl->errlog(std::string("WebSocket::send: Error sending a message: ")+ec.message());
-			return false;
-		} */
 	}
 	catch (websocketpp::exception const & e)
 	{

@@ -624,18 +624,7 @@ function doDraw(pgKey, pageID, what)
 	for (i in pgKey.buttons)
 	{
 		var button = pgKey.buttons[i];
-		btArray = null;
-
-		for (i in buttonArray.buttons)
-		{
-			var but = buttonArray.buttons[i];
-
-			if (but.pnum == pageID && but.bi == button.bID)
-			{
-				btArray = but;
-				break;
-			}
-		}
+		btArray = findButtonDistinct(pageID, button.ID);
 
 		try
 		{
@@ -848,8 +837,6 @@ function doDraw(pgKey, pageID, what)
 						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 					else
 						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
-
-
 				}
 				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
 				{
@@ -1007,7 +994,14 @@ function doDraw(pgKey, pageID, what)
 				{
 					var comp = parseInt(j) + 1;
 
-					if (comp == btArray.ion && btArray.visible == 1)
+					if (btArray.ap == 0 && btArray.ac == 8)		// System network connection
+					{
+						if (wsStatus == idx)
+							bsr.style.display = "inline";
+						else
+							bsr.style.display = "none";
+					}
+					else if (comp == btArray.ion && btArray.visible == 1)
 						bsr.style.display = "inline";
 					else
 						bsr.style.display = "none";
