@@ -343,6 +343,45 @@ function hasGraphic(button, inst=0)
 
 	return false;
 }
+function onlineStatus()
+{
+	if (navigator.online)
+	{
+		if (wsocket !== null)
+		{
+			if (wsocket.readyState == 1)	// online?
+				setOnlineStatus(1);
+			else
+				setOnlineStatus(0);
+		}
+		else
+			setOnlineStatus(0);
+	}
+	else
+	{
+		if (wsocket !== null)
+		{
+			if (wsocket.readyState == 1)	// online?
+				setOnlineStatus(9);
+			else
+				setOnlineStatus(0);
+		}
+		else
+			setOnlineStatus(0);
+	}
+}
+function onOnline()
+{
+	if (wsocket !== null)
+	{
+		if (wsocket.readyState == 1)	// online?
+			setOnlineStatus(1);
+		else
+			setOnlineStatus(0);
+	}
+	else
+		setOnlineStatus(0);
+}
 /*
  * Gets the x/y coordinates of the mouse click and finds the pixel
  * of the image. If the pixel is transparent, the image underneath
@@ -370,7 +409,9 @@ function activeTouch(event, name, object)
 	var rect = object.getBoundingClientRect();
 	var x = event.clientX - rect.left;
 	var y = event.clientY - rect.top;
-	var objs = allElementsFromPoint(event.pageX, event.pageY);
+//	var x = event.pageX - rect.left;
+//	var y = event.pageY - rect.top;
+	var objs = allElementsFromPoint(event.clientX, event.clientY);
 
 	if (objs === null)
 		return;
@@ -624,7 +665,7 @@ function doDraw(pgKey, pageID, what)
 	for (i in pgKey.buttons)
 	{
 		var button = pgKey.buttons[i];
-		btArray = findButtonDistinct(pageID, button.ID);
+		btArray = findButtonDistinct(pageID, button.bID);
 
 		try
 		{
@@ -856,7 +897,7 @@ function doDraw(pgKey, pageID, what)
 						else
 							dir = true;
 
-						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb), dir);
+						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(button.sr[idx+1].cf), getAMXColor(button.sr[idx+1].cb), dir);
 					}
 					else
 						drawArea(makeURL("images/"+sr.mi), nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
@@ -994,7 +1035,7 @@ function doDraw(pgKey, pageID, what)
 				{
 					var comp = parseInt(j) + 1;
 
-					if (btArray.ap == 0 && btArray.ac == 8)		// System network connection
+					if (button.ap == 0 && button.ad == 8)		// System network connection
 					{
 						if (wsStatus == idx)
 							bsr.style.display = "inline";
@@ -1008,7 +1049,14 @@ function doDraw(pgKey, pageID, what)
 				}
 				else
 				{
-					if (j == 0 && button.fb != FEEDBACK.FB_INV_CHANNEL && button.fb != FEEDBACK.FB_ALWAYS_ON)
+					if (button.ap == 0 && button.ad == 8)		// System network connection
+					{
+						if (wsStatus == idx)
+							bsr.style.display = "inline";
+						else
+							bsr.style.display = "none";
+					}
+					else if (j == 0 && button.fb != FEEDBACK.FB_INV_CHANNEL && button.fb != FEEDBACK.FB_ALWAYS_ON)
 						bsr.style.display = "inline";
 					else if (j == 1 && (button.fb == FEEDBACK.FB_INV_CHANNEL || button.fb == FEEDBACK.FB_ALWAYS_ON))
 						bsr.style.display = "inline";

@@ -124,7 +124,7 @@ String NameFormat::toURL(String& str)
 		{
 			ret.append("%");
 			std::stringstream stream;
-			stream << std::setfill ('0') << std::setw(2) << std::hex << (int)c;
+			stream << std::setfill ('0') << std::setw(2) << std::hex << ((int)c & 0x000000ff);
 			ret.append(stream.str());
 		}
 		else

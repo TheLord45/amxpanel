@@ -4,6 +4,7 @@ const sleep = (milliseconds) => {
 
 var curPort;		// The port number the currently processed command depends on
 var curCommand;		// The currently command stripped from the port number
+var registrationID;	// The unique ID the App is registered on Server
 var z_index = 0;
 var __debug = true;
 var __errlog = true;
@@ -274,7 +275,7 @@ function getBargraphLevel(pnum, id)
 		var bg = bargraphs.bargraphs[i];
 
 		if (bg.pnum == pnum && bg.bi == id)
-			return bg.lv;
+			return bg.level;
 	}
 
 	return 0;
@@ -308,11 +309,11 @@ function setBargraphLevel(pnum, id, level)
 		if (bg.ap >= 0 && bg.ac >= 0)
 		{
 			if (bg.ap == PC[0] && bg.ac == PC[1])
-				bargraphs.bargraphs[i].lv = level;
+				bargraphs.bargraphs[i].level = level;
 		}
 		else if (bg.pnum == pnum && bg.bi == id)
 		{
-			bargraphs.bargraphs[i].lv = level;
+			bargraphs.bargraphs[i].level = level;
 		}
 	}
 }
@@ -1341,7 +1342,7 @@ function setLEVEL(msg)
 				if (cv !== null)
 					cv.parentNode.removeChild(cv);
 
-				drawBargraph(makeURL("images/"+bgArray[i].states[0].mi), makeURL("images/"+bgArray[i].states[1].bm), name, value, width, height, getAMXColor(bgArray[i].states[0].cf), getAMXColor(bgArray[i].states[0].cb), dir);
+				drawBargraph(makeURL("images/"+bgArray[i].states[0].mi), makeURL("images/"+bgArray[i].states[1].bm), name, value, width, height, getAMXColor(bgArray[i].states[1].cf), getAMXColor(bgArray[i].states[1].cb), dir);
 			}
 			catch(e)
 			{
@@ -2125,20 +2126,16 @@ async function doICO(msg)
 						saveIcon(bt[b].ap, bt[b].ac, idx, btRange[j]);
 						var newIcon = false;
 						var iFile = getIconFile(idx);
-						debug("doICO: iFile="+iFile);
 
 						if (iFile !== null)
 						{
 							try
 							{
-								debug("doICO: Try to overwrite "+name+"_img ...");
 								document.getElementById(name+'_img').src = "images/"+iFile;
-								debug("doICO: iFile "+iFile+" was added to page.");
 							}
 							catch(e)
 							{
 								newIcon = true;
-								debug("doICO: No iFile found, adding a new one.");
 							}
 						}
 						else
@@ -2146,7 +2143,6 @@ async function doICO(msg)
 							// Delete icon if it exists
 							try
 							{
-								debug("doICO: Deleting element "+name+"_img ...");
 								var ico = document.getElementById(name+'_img');
 								var parent = document.getElementById(name);
 
@@ -2663,28 +2659,92 @@ function beep()
 }
 function getRegistrationID()
 {
-	return "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
-/*	var requestedBytes = 1024*1024*10;
-	var granted = false;
+	var requestedBytes = 1024*1024*10;
 
-	navigator.webkitPersistentStorage.queryUsageAndQuota (
-		function(usedBytes, grantedBytes) {
-			debug('getRegistrationID: We are using ', usedBytes, ' of ', grantedBytes, 'bytes');
-			granted = true;
-		},
-		function(e) {
-			errlog('getRegistrationID: Error: ', e);
+	if (navigator.storage && navigator.storage.persist)
+	{
+		navigator.storage.persist().then(granted => {
+			if (granted)
+			{
+				try
+				{
+					registrationID = localStorage.getItem("regID");
 
-			navigator.webkitPersistentStorage.requestQuota (
-				requestedBytes, function(grantedBytes) {
-					window.webkitRequestFileSystem(PERSISTENT, grantedBytes, onInitFs, errorHandler);
-					granted = true;
-					var ID = 'T' + Math.random().toString(36).substr(2, 9);
-				}, function(e) {
-					console.log('getRegistrationID: Error: ', e);
+					if (registrationID === null)
+					{
+						try
+						{
+							var ID = 'T' + Math.random().toString(36).substr(2, 9);
+							localStorage.setItem("regID", ID);
+							registrationID = ID;
+							writeTextOut("REGISTER:"+registrationID);
+						}
+						catch(e)
+						{
+							errlog("getRegistrationID: Error: "+e);
+							registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
+							writeTextOut("REGISTER:"+registrationID);
+						}
+					}
+					else
+						writeTextOut("REGISTER:"+registrationID);
+				}
+				catch(e)
+				{
+					try
+					{
+						var ID = 'T' + Math.random().toString(36).substr(2, 9);
+						localStorage.setItem("regID", ID);
+						registrationID = ID;
+						writeTextOut("REGISTER:"+registrationID);
+					}
+					catch(e)
+					{
+						errlog("getRegistrationID: Error: "+e);
+						registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
+						writeTextOut("REGISTER:"+registrationID);
+					}
+				}
+			}
+			else
+			{
+				navigator.webkitPersistentStorage.requestQuota (
+					requestedBytes, function(grantedBytes) {
+						window.webkitRequestFileSystem(PERSISTENT, grantedBytes, onInitFs, errorHandler);
+					}, function(e) {
+						console.log('getRegistrationID: Error: ', e);
+				});
+			}
 		});
-	});
-*/
+	}
+
+	debug("getRegistrationID: "+registrationID);
+	return registrationID;
+}
+function onInitFs(name, root)
+{
+	var ID = 'T' + Math.random().toString(36).substr(2, 9);
+	debug("getRegistrationID: Storage: "+name+" / "+root+", regID: "+ID);
+
+	try
+	{
+		localStorage.setItem("regID", ID);
+		registrationID = ID;
+	}
+	catch(e)
+	{
+		errlog("onInitFs: Error: "+e);
+		registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
+	}
+
+	debug("onInitFs: "+registrationID);
+	writeTextOut("REGISTER:"+registrationID);
+}
+function errorHandler(err)
+{
+	errlog("errorHandler: Error: "+err);
+	registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
+	debug("errorHandler: "+registrationID);
 }
 function setOnlineStatus(stat)
 {
@@ -2708,6 +2768,7 @@ function setOnlineStatus(stat)
 			var name2 = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+(stat+1);
 			document.getElementById(name1).style.display = 'none';
 			document.getElementById(name2).style.display = 'inline';
+			debug("setOnlineStatus: stat="+stat+", wsStatus="+wsStatus);
 		}
 		catch(e)
 		{
