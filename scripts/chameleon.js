@@ -32,7 +32,7 @@ function makeURL(name)
 {
 	var getUrl = window.location;
 	var baseUrl = getUrl.protocol + "//" + getUrl.host + "/" + getUrl.pathname.split('/')[1];
-	return baseUrl+"/amxpanel/"+name;
+	return baseUrl+"/"+name;
 }
 /**
  * Calculates the position in the image data. With the given \a x and \a y
