@@ -222,7 +222,7 @@ String PushButton::getWebCode()
 			sBargraph += ",\n";
 
 		if (button.rh > button.rl)
-			level = (button.rh - button.rl) / 2;	// Initial value is 50%
+			level = button.rl;	// Initial value is lowest possible
 		else
 			level = button.rl;
 
@@ -235,7 +235,7 @@ String PushButton::getWebCode()
 
 		sBargraph += String("\t{\"name\":\"")+nm+"\",\"pnum\":"+pageID+", \"bi\":"+button.bi+",\"ap\":"+button.ap+",\"ac\":"+button.ad;
 		sBargraph += String(",\"cp\":")+button.cp+",\"ch\":"+button.ch+",\"lp\":"+button.lp+",\"lc\":"+button.lv;
-		sBargraph += String(",\"rl\":")+button.rl+",\"rh\":"+button.rh+",\"lv\":"+level;
+		sBargraph += String(",\"rl\":")+button.rl+",\"rh\":"+button.rh+",\"lv\":"+button.lv+",\"level\":"+level;
 		sBargraph += String(",\"dr\":\"")+button.dr+"\",\"states\":[\n";
 
 		for (size_t i = 0; i < button.sr.size(); i++)

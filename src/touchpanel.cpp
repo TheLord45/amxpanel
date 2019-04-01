@@ -109,12 +109,15 @@ bool TouchPanel::startClient()
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 {
 	sysl->TRACE(String("TouchPanel::setCommand(const ANET_COMMAND& cmd)"));
+
+	if (!registrated)
+		return;
 
 	commands.push_back(cmd);
 
@@ -261,7 +264,10 @@ void TouchPanel::webMsg(std::string& msg)
 			return;
 		}
 		else
+		{
 			sysl->warnlog(String("TouchPanel::webMsg: Access for ID: %1 is denied!").arg(regID));
+			registrated = false;
+		}
 	}
 }
 
@@ -292,18 +298,6 @@ int TouchPanel::findPage(const String& name)
 
 	return 0;
 }
-/*
-int TouchPanel::getActivePage()
-{
-	for (size_t i = 0; i < stPages.size(); i++)
-	{
-		if (stPages[i].active)
-			return stPages[i].ID;
-	}
-
-	return 0;
-}
-*/
 void TouchPanel::readPages()
 {
 	sysl->TRACE(String("TouchPanel::readPages()"));
@@ -518,7 +512,7 @@ bool TouchPanel::parsePages()
 		jsFile << "\t\"start_url\": \"" << "https://" << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation().toString() << "/index.html\"," << std::endl;
 		jsFile << "\t\"background_color\": \"#5a005a\"," << std::endl;
 		jsFile << "\t\"display\": \"standalone\"," << std::endl;
-		jsFile << "\t\"scope\": \"" << Configuration->getWebLocation().toString() << "/\"," << std::endl;
+		jsFile << "\t\"scope\": \"" << "https://" << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation().toString() << "/\"," << std::endl;
 		jsFile << "\t\"theme_color\": \"#5a005a\"," << std::endl;
 		jsFile << "\t\"orientation\": \"landscape\"" << std::endl << "}" << std::endl;
 		jsFile.close();
@@ -782,16 +776,16 @@ bool TouchPanel::parsePages()
 	{
 		for (size_t j = 0; j < pageList[i].sr.size(); j++)
 		{
-			if (pageList[i].sr[j].bm.length() > 0)
+			if (pageList[i].sr[j].bm.length() > 0 && pageList[i].sr[j].sb == 0)
 			{
 				if (!isPresent(bitmaps, pageList[i].sr[j].bm))
-					bitmaps.push_back(pageList[i].sr[j].bm);
+					bitmaps.push_back(NameFormat::toURL(pageList[i].sr[j].bm));
 			}
 
 			if (pageList[i].sr[j].mi.length() > 0)
 			{
 				if (!isPresent(bitmaps, pageList[i].sr[j].mi))
-					bitmaps.push_back(pageList[i].sr[j].mi);
+					bitmaps.push_back(NameFormat::toURL(pageList[i].sr[j].mi));
 			}
 		}
 
@@ -799,16 +793,16 @@ bool TouchPanel::parsePages()
 		{
 			for (size_t j = 0; j < pageList[i].buttons[z].sr.size(); j++)
 			{
-				if (pageList[i].buttons[z].sr[j].bm.length() > 0)
+				if (pageList[i].buttons[z].sr[j].bm.length() > 0 && pageList[i].buttons[z].sr[j].sb == 0)
 				{
 					if (!isPresent(bitmaps, pageList[i].buttons[z].sr[j].bm))
-						bitmaps.push_back(pageList[i].buttons[z].sr[j].bm);
+						bitmaps.push_back(NameFormat::toURL(pageList[i].buttons[z].sr[j].bm));
 				}
 
 				if (pageList[i].buttons[z].sr[j].mi.length() > 0)
 				{
 					if (!isPresent(bitmaps, pageList[i].buttons[z].sr[j].mi))
-						bitmaps.push_back(pageList[i].buttons[z].sr[j].mi);
+						bitmaps.push_back(NameFormat::toURL(pageList[i].buttons[z].sr[j].mi));
 				}
 			}
 		}
@@ -827,11 +821,12 @@ bool TouchPanel::parsePages()
 	pgFile << "function connect()\n{\n";
 	pgFile << "\ttry\n\t{\n";
 	pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
-	pgFile << "\t\twsocket.onopen = function() { setOnlineStatus(2); wsocket.send('REGISTER:'+getRegistrationID()+';'); }\n";
-	pgFile << "\t\twsocket.onerror = function(error) { console.log('WebSocket error: '+error); setOnlineStatus(10); }\n";
+	pgFile << "\t\twsocket.onopen = function() {" << std::endl;
+    pgFile << "\t\t\tgetRegistrationID();\n\t\t\tsetOnlineStatus(1);\n\t\t\twsocket.send('REGISTER:'+registrationID+';');\n\t\t}\n";
+	pgFile << "\t\twsocket.onerror = function(error) { errlog('WebSocket error: '+error); setOnlineStatus(0); }\n";
 	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
-	pgFile << "\t\twsocket.onclose = function() { debug('WebSocket is closed!'); setOnlineStatus(1); }\n\t}\n\tcatch (exception)\n";
-	pgFile << "\t{\n\t\tsetOnlineStatus(1);\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
+	pgFile << "\t\twsocket.onclose = function() { TRACE('WebSocket is closed!'); setOnlineStatus(0); }\n\t}\n\tcatch (exception)\n";
+	pgFile << "\t{\n\t\tsetOnlineStatus(0);\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
@@ -841,6 +836,8 @@ bool TouchPanel::parsePages()
     pgFile << "\t\telem.mozRequestFullScreen();\n";
 	pgFile << "\telse if (elem.webkitRequestFullscreen)\t/* Chrome, Safari and Opera */\n";
     pgFile << "\t\telem.webkitRequestFullscreen();\n\n";
+	pgFile << "\twindow.addEventListener('online',  onOnline);\n";
+	pgFile << "window.addEventListener('offline', onlineStatus);\n";
 	pgFile << "\tshowPage('"<< prg.panelSetup.powerUpPage << "');\n";
 
 	for (size_t i = 0; i < prg.panelSetup.powerUpPopup.size(); i++)
@@ -851,7 +848,7 @@ bool TouchPanel::parsePages()
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
-	pgFile << "<body onload=\"main(); connect();\">" << std::endl;
+	pgFile << "<body onload=\"main(); connect(); onlineStatus();\">" << std::endl;
 	pgFile << "   <div id=\"main\"></div>" << std::endl;
 /*
 	for (size_t i = 0; i < stPages.size(); i++)

@@ -232,7 +232,7 @@ namespace amx
 	typedef struct SR
 	{
 		int number;
-		strings::String _do;
+		strings::String _do;	// Order on how to show a multistate bargraph (010203...)
 		strings::String bs;     // Frame type (circle, ...)
 		strings::String mi;     // Chameleon image
 		int mi_width;           // Width of image
@@ -244,8 +244,8 @@ namespace amx
 		strings::String bm;     // bitmap file name
 		int bm_width;           // Width of image
 		int bm_height;          // Height of image
-		bool dynamic;
-		int sb;
+		bool dynamic;			// TRUE = moving image
+		int sb;					// Index to external graphics download
 		int ii;					// Icon index number
 		int ji;					// Icon style / position like "jt"
 		int jb;
