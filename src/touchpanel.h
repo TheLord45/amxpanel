@@ -106,6 +106,7 @@ namespace amx
 			bool registrated;		// TRUE = Client (browser) is identified and has access
 
 			std::vector<ANET_COMMAND> commands;		// Commands from controller
+			strings::String amxBuffer;				// This is the cache for incomplete commands
 	};
 }
 

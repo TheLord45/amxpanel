@@ -2,9 +2,10 @@ const sleep = (milliseconds) => {
 	return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
 
-var curPort;		// The port number the currently processed command depends on
-var curCommand;		// The currently command stripped from the port number
-var registrationID;	// The unique ID the App is registered on Server
+var curPort;			// The port number the currently processed command depends on
+var curCommand;			// The currently command stripped from the port number
+var registrationID;		// The unique ID the App is registered on Server
+var regStatus = false;	// TRUE = Registration to server was successfull
 var z_index = 0;
 var __debug = true;
 var __errlog = true;
@@ -157,7 +158,9 @@ var cmdArray =
 			{"cmd":"?PHN-","call":unsupported},
 			{"cmd":"ON-","call":setON},
 			{"cmd":"OFF-","call":setOFF},
-            {"cmd":"LEVEL-","call":setLEVEL}
+			{"cmd":"LEVEL-","call":setLEVEL},
+			{"cmd":"#REG-","call":doREG},
+			{"cmd":"#ERR-","call":doERR}
 		]
 	};
 
@@ -1209,13 +1212,13 @@ function switchDisplay(name1, name2, dStat, cport, cnum)
 		{
 			document.getElementById(name1).style.display = "none";
 			document.getElementById(name2).style.display = "inline";
-			writeTextOut("PUSH:"+cport+":"+cnum+":1;");
+			writeTextOut("PUSH:"+cport+":"+cnum+":1");
 		}
 		else
 		{
 			document.getElementById(name1).style.display = "inline";
 			document.getElementById(name2).style.display = "none";
-			writeTextOut("PUSH:"+cport+":"+cnum+":0;");
+			writeTextOut("PUSH:"+cport+":"+cnum+":0");
 		}
 	}
 	catch(e)
@@ -1225,7 +1228,7 @@ function switchDisplay(name1, name2, dStat, cport, cnum)
 }
 function pushButton(cport, cnum, stat)
 {
-	writeTextOut("PUSH:"+cport+":"+cnum+":"+stat+";");
+	writeTextOut("PUSH:"+cport+":"+cnum+":"+stat);
 }
 function setON(msg)
 {
@@ -1253,7 +1256,7 @@ function setON(msg)
 			setButtonOnline(bt[b].pnum, bt[b].bi, 2);
 			document.getElementById(name1).style.display = 'none';
 			document.getElementById(name2).style.display = 'inline';
-			writeTextOut("ON:"+bt[b].cp+":"+bt[b].ch+";");
+			writeTextOut("ON:"+bt[b].cp+":"+bt[b].ch);
 		}
 		catch(e)
 		{
@@ -1287,7 +1290,7 @@ function setOFF(msg)
 			setButtonOnline(bt[b].pnum, bt[b].bi, 1);
 			document.getElementById(name1).style.display = 'inline';
 			document.getElementById(name2).style.display = 'none';
-			writeTextOut("OFF:"+bt[b].cp+":"+bt[b].ch+";");
+			writeTextOut("OFF:"+bt[b].cp+":"+bt[b].ch);
 		}
 		catch(e)
 		{
@@ -2372,6 +2375,21 @@ function doADBEEP(msg)
 		beep();
 	});
 }
+function doERR(msg)
+{
+	var emg = getField(msg, 0, ',');
+	alert(emg);
+	wsocket.close();
+}
+function doREG(msg)
+{
+	var stat = getField(msg, 0, ',');
+
+	if (stat == 'OK')
+		regStatus = true;
+	else
+		regStatus = false;
+}
 function parseMessage(msg)
 {
 	var i;
@@ -2693,6 +2711,20 @@ function storageAvailable(type)
 }
 function getRegistrationID()
 {
+	if (fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
+	{
+		registrationID = fingerprint;
+		
+		if (wsocket.readyState == WebSocket.CLOSED)
+		{
+			connect();
+			return registrationID;
+		}
+
+		writeTextOut("REGISTER:"+registrationID);
+		return registrationID;
+	}
+
 	var requestedBytes = 1024*1024;
 
 	if (navigator.storage && navigator.storage.persist)
@@ -2703,8 +2735,7 @@ function getRegistrationID()
 				if (!storageAvailable(window.localStorage))
 				{
 					errlog("getRegistrationID: Local storage is not (completely) supported by the browser!");
-					registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
-					writeTextOut("REGISTER:"+registrationID);
+					registrationID = "";
 					return registrationID;
 				}
 				else
@@ -2712,22 +2743,22 @@ function getRegistrationID()
 
 				try
 				{
-					registrationID = localStorage.getItem("regID");
+					registrationID = window.localStorage.getItem("regID");
 
 					if (registrationID === null)
 					{
 						try
 						{
 							var ID = 'T' + Math.random().toString(36).substr(2, 9);
-							localStorage.setItem("regID", ID);
+							window.localStorage.setItem("regID", ID);
 							registrationID = ID;
 							writeTextOut("REGISTER:"+registrationID);
 						}
 						catch(e)
 						{
 							errlog("getRegistrationID: Error: "+e);
-							registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
-							writeTextOut("REGISTER:"+registrationID);
+							registrationID = "";
+							return registrationID;
 						}
 					}
 					else
@@ -2738,15 +2769,15 @@ function getRegistrationID()
 					try
 					{
 						var ID = 'T' + Math.random().toString(36).substr(2, 9);
-						localStorage.setItem("regID", ID);
+						window.localStorage.setItem("regID", ID);
 						registrationID = ID;
 						writeTextOut("REGISTER:"+registrationID);
 					}
 					catch(e)
 					{
 						errlog("getRegistrationID: Error: "+e);
-						registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
-						writeTextOut("REGISTER:"+registrationID);
+						registrationID = "";
+						return registrationID;
 					}
 				}
 			}
@@ -2764,11 +2795,10 @@ function getRegistrationID()
 	else
 	{
 		errlog("getRegistrationID: Local storage is not supported by the browser!");
-		registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
-		writeTextOut("REGISTER:"+registrationID);
+		registrationID = "";
+		return registrationID;
 	}
 
-	debug("getRegistrationID: "+registrationID);
 	return registrationID;
 }
 function onInitFs(name, root)
@@ -2778,13 +2808,14 @@ function onInitFs(name, root)
 
 	try
 	{
-		localStorage.setItem("regID", ID);
+		window.localStorage.setItem("regID", ID);
 		registrationID = ID;
 	}
 	catch(e)
 	{
 		errlog("onInitFs: Error: "+e);
-		registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
+		registrationID = "";
+		return;
 	}
 
 	debug("onInitFs: "+registrationID);
@@ -2793,8 +2824,7 @@ function onInitFs(name, root)
 function errorHandler(err)
 {
 	errlog("errorHandler: Error: "+err);
-	registrationID = "fj945c495cq2346d663254bcxd773bce3460235xv26nxqw36";
-	debug("errorHandler: "+registrationID);
+	registrationID = "";
 }
 function setOnlineStatus(stat)
 {
@@ -2838,7 +2868,7 @@ function writeTextOut(msg)
 		return;
 	}
 
-	wsocket.send(msg);
+	wsocket.send(msg+";");
 }
 function checkTime(i)
 {
