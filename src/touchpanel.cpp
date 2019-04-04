@@ -216,7 +216,7 @@ void TouchPanel::webMsg(std::string& msg)
 		else
 			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
 	}
-	else if (registrated && msg.find("ON:") != std::string::npos)
+/*	else if (registrated && msg.find("ON:") != std::string::npos)
 	{
 		std::vector<String> parts = String(msg).split(":");
 		ANET_SEND as;
@@ -245,7 +245,7 @@ void TouchPanel::webMsg(std::string& msg)
 			amxnet->sendCommand(as);
 		else
 			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
-	}
+	} */
 	else if (msg.find("REGISTER:") != std::string::npos)
 	{
 		std::vector<String> parts = String(msg).split(":");
