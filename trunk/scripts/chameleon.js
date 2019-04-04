@@ -31,7 +31,12 @@ function getMousePos(canvas, evt)
 function makeURL(name)
 {
 	var getUrl = window.location;
-	var baseUrl = getUrl.protocol + "//" + getUrl.host + "/" + getUrl.pathname.split('/')[1];
+	var parts = getUrl.pathname.split('/');
+	var baseUrl = getUrl.protocol + "//" + getUrl.host;
+	
+	for (var i = 1; i < parts.length; i++)
+		baseUrl += "/" + parts[i];
+
 	return baseUrl+"/"+name;
 }
 /**

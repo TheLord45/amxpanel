@@ -176,6 +176,20 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 
 			case 0x000c:	// Command string
 				ANET_MSG_STRING msg = bef.data.message_string;
+
+				if (msg.length < strlen((char *)&msg.content))
+				{
+					amxBuffer.append((char *)&msg.content);
+					break;
+				}
+				else if (amxBuffer.length() > 0)
+				{
+					amxBuffer.append((char *)&msg.content);
+					size_t len = (amxBuffer.length() >= sizeof(msg.content)) ? 1499 : amxBuffer.length();
+					strncpy((char *)&msg.content, amxBuffer.data(), len);
+					msg.content[len] = 0;
+				}
+
 				com = msg.port;
 				com.append("|");
 				com.append((char *)&msg.content);
@@ -261,12 +275,18 @@ void TouchPanel::webMsg(std::string& msg)
 		{
 			registrated = true;
 			sysl->warnlog(String("TouchPanel::webMsg: Registration with ID: %1 was successfull.").arg(regID));
+			String com = "0|#REG-OK";
+			send(com);
 			return;
 		}
 		else
 		{
 			sysl->warnlog(String("TouchPanel::webMsg: Access for ID: %1 is denied!").arg(regID));
 			registrated = false;
+			String com = "0|#REG-NAK";
+			send(com);
+			com = "0|#ERR-Access denied!";
+			send(com);
 		}
 	}
 }
@@ -556,11 +576,22 @@ bool TouchPanel::parsePages()
 	pgFile << "<link rel=\"icon\" sizes=\"256x256\" href=\"images/icon.png\">" << std::endl;
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">\n";
 	// Scripts
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/imprint.min.js\"></script>\n";
 	pgFile << "<script>\n";
 	pgFile << "\"use strict\";\n";
+	pgFile << "var fingerprint = \"\";\n";
 	pgFile << "var pageName = \"\";\n";
 	pgFile << "var wsocket;\n";
 	pgFile << "var wsStatus = 0;" << std::endl << std::endl;
+	pgFile << "var browserTests = [\n";
+	pgFile << "\t\"audio\",\n\t\"availableScreenResolution\",\n\t\"canvas\",\n";
+	pgFile << "\t\"colorDepth\",\n\t\"cookies\",\n\t\"cpuClass\",\n\t\"deviceDpi\",\n";
+	pgFile << "\t\"doNotTrack\",\n\t\"indexedDb\",\n\t\"installedFonts\",\n";
+	pgFile << "\t\"installedLanguages\",\n";
+	pgFile << "\t\"language\",\n\t\"localIp\",\n\t\"localStorage\",\n\t\"pixelRatio\",\n";
+	pgFile << "\t\"platform\",\n\t\"plugins\",\n\t\"processorCores\",\n\t\"screenResolution\",\n";
+	pgFile << "\t\"sessionStorage\",\n\t\"timezoneOffset\",\n\t\"touchSupport\",\n";
+	pgFile << "\t\"userAgent\",\n\t\"webGl\"\n];\n\n";
 
 	try
 	{
@@ -822,11 +853,20 @@ bool TouchPanel::parsePages()
 	pgFile << "\ttry\n\t{\n";
 	pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
 	pgFile << "\t\twsocket.onopen = function() {" << std::endl;
-    pgFile << "\t\t\tgetRegistrationID();\n\t\t\tsetOnlineStatus(1);\n\t\t\twsocket.send('REGISTER:'+registrationID+';');\n\t\t}\n";
+    pgFile << "\t\t\tgetRegistrationID();\n\t\t\tsetOnlineStatus(1);\n";
+	pgFile << "\t\t\tif (typeof registrationID == \"string\" && registrationID.length > 0)\n";
+	pgFile << "\t\t\t\twsocket.send('REGISTER:'+registrationID+';');\n";
+	pgFile << "\t\t\telse\n\t\t\t\terrlog(\"connect: Missing registration ID!\");\n\t\t}\n";
 	pgFile << "\t\twsocket.onerror = function(error) { errlog('WebSocket error: '+error); setOnlineStatus(0); }\n";
 	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
 	pgFile << "\t\twsocket.onclose = function() { TRACE('WebSocket is closed!'); setOnlineStatus(0); }\n\t}\n\tcatch (exception)\n";
 	pgFile << "\t{\n\t\tsetOnlineStatus(0);\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
+	// Create a fingerprint
+	pgFile << "function makeFingerprint()\n{\n";
+	pgFile << "\tconsole.time('getImprint');\n";
+	pgFile << "\t\timprint.test(browserTests).then(function(result) {\n";
+	pgFile << "\t\t\tconsole.timeEnd('getImprint');\n\t\t\tfingerprint = result;\n";
+	pgFile << "\t\t\tgetRegistrationID();\n\t});\n}\n\n";
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
@@ -837,7 +877,7 @@ bool TouchPanel::parsePages()
 	pgFile << "\telse if (elem.webkitRequestFullscreen)\t/* Chrome, Safari and Opera */\n";
     pgFile << "\t\telem.webkitRequestFullscreen();\n\n";
 	pgFile << "\twindow.addEventListener('online',  onOnline);\n";
-	pgFile << "window.addEventListener('offline', onlineStatus);\n";
+	pgFile << "\twindow.addEventListener('offline', onlineStatus);\n";
 	pgFile << "\tshowPage('"<< prg.panelSetup.powerUpPage << "');\n";
 
 	for (size_t i = 0; i < prg.panelSetup.powerUpPopup.size(); i++)
@@ -848,7 +888,7 @@ bool TouchPanel::parsePages()
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
-	pgFile << "<body onload=\"main(); connect(); onlineStatus();\">" << std::endl;
+	pgFile << "<body onload=\"makeFingerprint(); main(); connect(); onlineStatus();\">" << std::endl;
 	pgFile << "   <div id=\"main\"></div>" << std::endl;
 /*
 	for (size_t i = 0; i < stPages.size(); i++)
