@@ -851,7 +851,12 @@ bool TouchPanel::parsePages()
 	// This is the WebSocket connection function
 	pgFile << "function connect()\n{\n";
 	pgFile << "\ttry\n\t{\n";
-	pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
+	
+	if (Configuration->getWSStatus())
+		pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
+	else
+		pgFile << "\t\twsocket = new WebSocket(\"ws://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
+
 	pgFile << "\t\twsocket.onopen = function() {" << std::endl;
     pgFile << "\t\t\tgetRegistrationID();\n\t\t\tsetOnlineStatus(1);\n";
 	pgFile << "\t\t\tif (typeof registrationID == \"string\" && registrationID.length > 0)\n";

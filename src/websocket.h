@@ -22,6 +22,7 @@
 #include "strings.h"
 
 typedef websocketpp::server<websocketpp::config::asio_tls> server;
+typedef websocketpp::server<websocketpp::config::asio> server_ws;
 
 // pull out the type of messages sent by our config
 typedef websocketpp::config::asio::message_type::ptr message_ptr;
@@ -30,6 +31,7 @@ typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> conte
 namespace amx
 {
 	static server sock_server;
+	static server_ws sock_server_ws;
 	static websocketpp::connection_hdl server_hdl;
 	static bool connected = false;
 	static bool cbInit = false;
@@ -65,6 +67,9 @@ namespace amx
 			static void on_fail(server* s, websocketpp::connection_hdl hdl);
 			static void on_close(websocketpp::connection_hdl);
 			static void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg);
+			static void on_http_ws(server_ws* s, websocketpp::connection_hdl hdl);
+			static void on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl);
+			static void on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg);
 			static context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl);
 			static std::string getPassword();
 	};

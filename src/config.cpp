@@ -111,6 +111,7 @@ void Config::init()
 	sshPassword.clear();
 	webSocketServer = "www.theosys.at";
 	hashTablePath = "/etc/amxpanel/hashtable.tbl";
+	wsStatus = true;	// We'll use WSS WEB sockets by default
 }
 
 void Config::readConfig(const String &sFile)
@@ -191,6 +192,14 @@ void Config::readConfig(const String &sFile)
 				webSocketServer = right.trim();
 			else if (left.caseCompare("HashTablePath") == 0 && !right.empty())
 				hashTablePath = right.trim();
+			else if (left.caseCompare("WSStatus") == 0 && !right.empty())
+			{
+				String b = right.trim();
+				
+				if (b.compare("0") == 0 || b.caseCompare("FALSE") == 0 ||
+					b.caseCompare("NO") == 0 || b.caseCompare("OFF") == 0)
+					wsStatus = false;
+			}
 			else if (left.caseCompare("DEBUG") == 0 && !right.empty())
 			{
 				String b = right.trim();
