@@ -50,6 +50,7 @@ class Config
 		strings::String getWebSocketServer() { return webSocketServer; }
 		strings::String getHashTablePath() { return hashTablePath; }
 		std::vector<strings::String>& getHashTable(const strings::String& path);
+		bool getWSStatus() { return wsStatus; }
 
 		void setHOME(const strings::String& hm) { HOME = hm.data(); }
 
@@ -89,6 +90,7 @@ class Config
 		strings::String usr;
 		const char *HOME;
 		bool initialized;
+		bool wsStatus;
 };
 
 #endif  // __CONFIG_H__

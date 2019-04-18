@@ -68,6 +68,8 @@ void WebSocket::setConStatus(bool s)
 void WebSocket::run()
 {
 	sysl->TRACE(std::string("WebSocket::run()"));
+	bool stopped = false;
+//	int conCount = 0;
 	// Create a server endpoint
 
 	try
@@ -81,11 +83,22 @@ void WebSocket::run()
 		sock_server.set_reuse_addr(true);
 
 		// Register our message handler
-		sock_server.set_message_handler(bind(&on_message,&sock_server,::_1,::_2));
-		sock_server.set_http_handler(bind(&on_http,&sock_server,::_1));
-		sock_server.set_fail_handler(bind(&on_fail,&sock_server,::_1));
+		if (Configuration->getWSStatus())
+		{
+			sock_server.set_message_handler(bind(&on_message,&sock_server,::_1,::_2));
+			sock_server.set_http_handler(bind(&on_http,&sock_server,::_1));
+			sock_server.set_fail_handler(bind(&on_fail,&sock_server,::_1));
+		}
+		else
+		{
+			sock_server.set_message_handler(bind(&on_message_ws,&sock_server_ws,::_1,::_2));
+			sock_server.set_http_handler(bind(&on_http_ws,&sock_server_ws,::_1));
+			sock_server.set_fail_handler(bind(&on_fail_ws,&sock_server_ws,::_1));
+		}
 		sock_server.set_close_handler(&on_close);
-		sock_server.set_tls_init_handler(bind(&on_tls_init,MOZILLA_MODERN,::_1));
+		
+		if (Configuration->getWSStatus())
+			sock_server.set_tls_init_handler(bind(&on_tls_init,MOZILLA_MODERN,::_1));
 
 		// Listen on port 11012
 		sock_server.listen(Configuration->getSidePort());
@@ -98,8 +111,9 @@ void WebSocket::run()
 	}
 	catch (websocketpp::exception const & e)
 	{
-		sysl->errlog(std::string("WebSocket::run: ")+e.what());
+		sysl->errlog(std::string("WebSocket::run: WEBSocketPP exception:")+e.what());
 		setConStatus(false);
+		stopped = true;
 
 		if (cbInitStop)
 			fcallStop();
@@ -108,6 +122,7 @@ void WebSocket::run()
 	{
 		sysl->errlog(std::string("WebSocket::run: ")+e.what());
 		setConStatus(false);
+		stopped = true;
 
 		if (cbInitStop)
 			fcallStop();
@@ -116,15 +131,19 @@ void WebSocket::run()
 	{
 		sysl->errlog(std::string("WebSocket::run: Other exception!"));
 		setConStatus(false);
+		stopped = true;
 
 		if (cbInitStop)
 			fcallStop();
 	}
 
-	setConStatus(false);
+	if (!stopped)
+	{
+		setConStatus(false);
 
-	if (cbInitStop)
-		fcallStop();
+		if (cbInitStop)
+			fcallStop();
+	}
 }
 
 WebSocket::~WebSocket()
@@ -178,6 +197,20 @@ void WebSocket::on_http(server* s, websocketpp::connection_hdl hdl)
 	con->set_status(websocketpp::http::status_code::ok);
 }
 
+void WebSocket::on_http_ws(server_ws* s, websocketpp::connection_hdl hdl)
+{
+	sysl->TRACE(std::string("WebSocket::on_http_ws(server_ws* s, websocketpp::connection_hdl hdl)"));
+	server_ws::connection_ptr con = s->get_con_from_hdl(hdl);
+	
+	std::string res = con->get_request_body();
+	
+	std::stringstream ss;
+	ss << "got HTTP request with " << res.size() << " bytes of body data.";
+	
+	con->set_body(ss.str());
+	con->set_status(websocketpp::http::status_code::ok);
+}
+
 
 // Define a callback to handle incoming messages
 void WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg)
@@ -198,11 +231,37 @@ void WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_p
 	fcall(send);
 }
 
+void WebSocket::on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg)
+{
+	sysl->TRACE(std::string("WebSocket::on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg)"));
+	
+	setConStatus(true);
+	server_hdl = hdl;
+	std::string send = msg->get_payload();
+	sysl->TRACE(std::string("WebSocket::on_message_ws: Called with hdl: message: ")+send);
+	
+	if (!cbInit)
+	{
+		sysl->warnlog(std::string("WebSocket::on_message_ws: No callback function registered!"));
+		return;
+	}
+	
+	fcall(send);
+}
+
 void WebSocket::on_fail(server* s, websocketpp::connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_fail(server* s, websocketpp::connection_hdl hdl)"));
 	server::connection_ptr con = s->get_con_from_hdl(hdl);
 	sysl->errlog(std::string("WebSocket::on_fail: Fail handler: ")+con->get_ec().message());
+	setConStatus(false);
+}
+
+void WebSocket::on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl)
+{
+	sysl->TRACE(std::string("WebSocket::on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl)"));
+	server_ws::connection_ptr con = s->get_con_from_hdl(hdl);
+	sysl->errlog(std::string("WebSocket::on_fail_ws: Fail handler: ")+con->get_ec().message());
 	setConStatus(false);
 }
 
