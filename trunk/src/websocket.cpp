@@ -69,45 +69,53 @@ void WebSocket::run()
 {
 	sysl->TRACE(std::string("WebSocket::run()"));
 	bool stopped = false;
-//	int conCount = 0;
 	// Create a server endpoint
 
 	try
 	{
-		// Set logging settings
-		sock_server.set_access_channels(websocketpp::log::alevel::all);
-		sock_server.clear_access_channels(websocketpp::log::alevel::frame_payload);
-
-		// Initialize ASIO
-		sock_server.init_asio();
-		sock_server.set_reuse_addr(true);
-
-		// Register our message handler
 		if (Configuration->getWSStatus())
 		{
+			sysl->TRACE(std::string("WebSocket::run: Using encrypted communication."));
+			// Set logging settings
+			sock_server.set_access_channels(websocketpp::log::alevel::all);
+			sock_server.clear_access_channels(websocketpp::log::alevel::frame_payload);
+			// Initialize ASIO
+			sock_server.init_asio();
+			sock_server.set_reuse_addr(true);
+			// Register our message handler
 			sock_server.set_message_handler(bind(&on_message,&sock_server,::_1,::_2));
 			sock_server.set_http_handler(bind(&on_http,&sock_server,::_1));
 			sock_server.set_fail_handler(bind(&on_fail,&sock_server,::_1));
+			sock_server.set_close_handler(&on_close);
+			sock_server.set_tls_init_handler(bind(&on_tls_init,MOZILLA_MODERN,::_1));
+			// Listen on port 11012
+			sock_server.listen(Configuration->getSidePort());
+			// Start the server accept loop
+			sock_server.start_accept();
+			// Start the ASIO io_service run loop
+			sock_server.run();
 		}
 		else
 		{
-			sock_server.set_message_handler(bind(&on_message_ws,&sock_server_ws,::_1,::_2));
-			sock_server.set_http_handler(bind(&on_http_ws,&sock_server_ws,::_1));
-			sock_server.set_fail_handler(bind(&on_fail_ws,&sock_server_ws,::_1));
+			sysl->TRACE(std::string("WebSocket::run: Using plain communication!"));
+			// Set logging settings
+			sock_server_ws.set_access_channels(websocketpp::log::alevel::all);
+			sock_server_ws.clear_access_channels(websocketpp::log::alevel::frame_payload);
+			// Initialize ASIO
+			sock_server_ws.init_asio();
+			sock_server_ws.set_reuse_addr(true);
+			// Register our message handler
+			sock_server_ws.set_message_handler(bind(&on_message_ws,&sock_server_ws,::_1,::_2));
+			sock_server_ws.set_http_handler(bind(&on_http_ws,&sock_server_ws,::_1));
+			sock_server_ws.set_fail_handler(bind(&on_fail_ws,&sock_server_ws,::_1));
+			sock_server_ws.set_close_handler(&on_close);
+			// Listen on port 11012
+			sock_server_ws.listen(Configuration->getSidePort());
+			// Start the server accept loop
+			sock_server_ws.start_accept();
+			// Start the ASIO io_service run loop
+			sock_server_ws.run();
 		}
-		sock_server.set_close_handler(&on_close);
-		
-		if (Configuration->getWSStatus())
-			sock_server.set_tls_init_handler(bind(&on_tls_init,MOZILLA_MODERN,::_1));
-
-		// Listen on port 11012
-		sock_server.listen(Configuration->getSidePort());
-
-		// Start the server accept loop
-		sock_server.start_accept();
-
-		// Start the ASIO io_service run loop
-		sock_server.run();
 	}
 	catch (websocketpp::exception const & e)
 	{
@@ -151,8 +159,11 @@ WebSocket::~WebSocket()
 	sysl->TRACE(Syslog::EXIT, std::string("WebSocket::WebSocket()"));
 
 	websocketpp::lib::error_code ec;
-	server& echo_server = getServer();
-	echo_server.stop_listening(ec);
+
+	if (Configuration->getWSStatus())
+		getServer().stop_listening(ec);
+	else
+		getServer_ws().stop_listening(ec);
 
 	if (ec)
 	{
@@ -160,7 +171,10 @@ WebSocket::~WebSocket()
 		return;
 	}
 
-	echo_server.stop();
+	if (Configuration->getWSStatus())
+		getServer().stop();
+	else
+		getServer_ws().stop();
 }
 
 bool WebSocket::send(strings::String& msg)
@@ -172,7 +186,10 @@ bool WebSocket::send(strings::String& msg)
 
 	try
 	{
-		sock_server.send(server_hdl, msg.toString(), websocketpp::frame::opcode::text);
+		if (Configuration->getWSStatus())
+			sock_server.send(server_hdl, msg.toString(), websocketpp::frame::opcode::text);
+		else
+			sock_server_ws.send(server_hdl, msg.toString(), websocketpp::frame::opcode::text);
 	}
 	catch (websocketpp::exception const & e)
 	{
