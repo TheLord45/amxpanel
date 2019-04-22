@@ -53,6 +53,7 @@ namespace amx
 			void run();
 			bool send(strings::String& msg);
 			static server& getServer() { return sock_server; }
+			static server_ws& getServer_ws() { return sock_server_ws; }
 			static bool getConStatus() { return connected; }
 			static void setConStatus(bool s);
 

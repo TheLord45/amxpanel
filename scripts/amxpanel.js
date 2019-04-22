@@ -2718,12 +2718,15 @@ function getRegistrationID()
 		if (wsocket.readyState == WebSocket.CLOSED)
 		{
 			connect();
+			debug("getRegistrationID: regID: "+registrationID);
 			return registrationID;
 		}
 
 		writeTextOut("REGISTER:"+registrationID);
 		return registrationID;
 	}
+	else
+		errlog("getRegistrationID: Calculation of fingerprint didn't succeed!");
 
 	var requestedBytes = 1024*1024;
 
