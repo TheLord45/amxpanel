@@ -318,16 +318,13 @@ int TouchPanel::findPage(const String& name)
 
 	return 0;
 }
+
 void TouchPanel::readPages()
 {
 	sysl->TRACE(String("TouchPanel::readPages()"));
 
-	if (gotPages)
+	if (gotPages || isParsed())
 		return;
-
-	// delete all chameleon images
-//	String cmd = String("rm ")+Configuration->getHTTProot()+"/chameleon/ChamImage_*.png";
-//	std::system(cmd.data());
 
 	try
 	{
@@ -451,24 +448,8 @@ bool TouchPanel::parsePages()
 
 	fstream pgFile, cssFile, jsFile, cacheFile;
 	// Did we've already parsed?
-	try
-	{
-		std::string nm = Configuration->getHTTProot().toString()+"/.parsed";
-		pgFile.open(nm, ios::in);
-
-		if (pgFile.is_open())
-		{
-			sysl->log(Syslog::INFO, String("TouchPanel::parsePages: Pages are already parsed. Skipping!"));
-			pgFile.close();
-			return true;
-		}
-
-		pgFile.close();
-	}
-	catch(const std::fstream::failure e)
-	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
-	}
+	if (isParsed())
+		return true;
 
 	std::string fname = Configuration->getHTTProot().toString()+"/index.html";
 	std::string cssname = Configuration->getHTTProot().toString()+"/amxpanel.css";
@@ -529,10 +510,22 @@ bool TouchPanel::parsePages()
 		jsFile << "\t\t\t\"type\": \"image/png\"," << std::endl;
 		jsFile << "\t\t\t\"sizes\": \"256x256\"" << std::endl << "\t\t}" << std::endl;
 		jsFile << "\t]," << std::endl;
-		jsFile << "\t\"start_url\": \"" << "https://" << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation().toString() << "/index.html\"," << std::endl;
+
+		if (Configuration->getWSStatus())
+			jsFile << "\t\"start_url\": \"https://";
+		else
+			jsFile << "\t\"start_url\": \"http://";
+
+		jsFile << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation().toString() << "/index.html\"," << std::endl;
 		jsFile << "\t\"background_color\": \"#5a005a\"," << std::endl;
 		jsFile << "\t\"display\": \"standalone\"," << std::endl;
-		jsFile << "\t\"scope\": \"" << "https://" << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation().toString() << "/\"," << std::endl;
+
+		if (Configuration->getWSStatus())
+			jsFile << "\t\"scope\": \"https://";
+		else
+			jsFile << "\t\"scope\": \"http://";
+
+		jsFile << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation().toString() << "/\"," << std::endl;
 		jsFile << "\t\"theme_color\": \"#5a005a\"," << std::endl;
 		jsFile << "\t\"orientation\": \"landscape\"" << std::endl << "}" << std::endl;
 		jsFile.close();
@@ -542,7 +535,7 @@ bool TouchPanel::parsePages()
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		return false;
 	}
-
+/****
 	std::string cacheName = Configuration->getHTTProot().toString()+"/cache.appcache";
 
 	try
@@ -562,11 +555,13 @@ bool TouchPanel::parsePages()
 	}
 
 	cacheFile << "CACHE MANIFEST" << std::endl;
+****/
 	getFontList()->serializeToJson();
 
 	// Page header
 	pgFile << "<!DOCTYPE html>\n";
-	pgFile << "<html manifest=\"cache.appcache\">\n<head>\n<meta charset=\"UTF-8\">\n";
+//	pgFile << "<html manifest=\"cache.appcache\">\n<head>\n<meta charset=\"UTF-8\">\n";
+	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
 	pgFile << "<meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=0.7, minimum-scale=0.7, maximum-scale=1.0, user-scalable=yes\"/>\n";
 	pgFile << "<meta name=\"mobile-web-app-capable\" content=\"yes\" />" << std::endl;
@@ -613,7 +608,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-		cacheFile.close();
+//		cacheFile.close();
 		return false;
 	}
 
@@ -637,7 +632,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-		cacheFile.close();
+//		cacheFile.close();
 		return false;
 	}
 
@@ -661,7 +656,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-		cacheFile.close();
+//		cacheFile.close();
 		return false;
 	}
 
@@ -685,7 +680,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-		cacheFile.close();
+//		cacheFile.close();
 		return false;
 	}
 
@@ -708,7 +703,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-		cacheFile.close();
+//		cacheFile.close();
 		return false;
 	}
 
@@ -731,7 +726,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-		cacheFile.close();
+//		cacheFile.close();
 		return false;
 	}
 
@@ -754,7 +749,7 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-		cacheFile.close();
+//		cacheFile.close();
 		return false;
 	}
 
@@ -768,7 +763,7 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl << std::endl;
-
+/****
 	cacheFile << "scripts/pages.js" << std::endl;
 	cacheFile << "scripts/popups.js" << std::endl;
 	cacheFile << "scripts/groups.js" << std::endl;
@@ -778,11 +773,11 @@ bool TouchPanel::parsePages()
 	cacheFile << "scripts/palette.js" << std::endl;
 	cacheFile << "scripts/fonts.js" << std::endl;
 	cacheFile << "scripts/chameleon.js" << std::endl;
-
+****/
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
 		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPages[i].ID << ".js\"></script>" << std::endl;
-		cacheFile << "scripts/Page" << stPages[i].ID << ".js" << std::endl;
+//		cacheFile << "scripts/Page" << stPages[i].ID << ".js" << std::endl;
 	}
 
 	pgFile << std::endl;
@@ -790,11 +785,12 @@ bool TouchPanel::parsePages()
 	for (size_t i = 0; i < stPopups.size(); i++)
 	{
 		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPopups[i].ID << ".js\"></script>" << std::endl;
-		cacheFile << "scripts/Page" << stPopups[i].ID << ".js" << std::endl;
+//		cacheFile << "scripts/Page" << stPopups[i].ID << ".js" << std::endl;
 	}
 
 	pgFile << std::endl << "<script type=\"text/javascript\" src=\"scripts/page.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>" << std::endl;
+/****
 	cacheFile << "scripts/page.js" << std::endl;
 	cacheFile << "scripts/amxpanel.js" << std::endl;
 	cacheFile << "amxpanel.css" << std::endl;
@@ -844,7 +840,7 @@ bool TouchPanel::parsePages()
 
 	cacheFile << "NETWORK:" << std::endl << "*" << std::endl;
 	cacheFile.close();
-
+****/
 	// Add some special script functions
 	pgFile << "<script>\n";
 	pgFile << scrBuffer << "\n";
@@ -1083,4 +1079,30 @@ void TouchPanel::writeBargraphs(std::fstream& pgFile)
 {
 	sysl->TRACE(String("TouchPanel::writeBargraphs(std::fstream& pgFile)"));
 	pgFile << "var bargraphs = {\"bargraphs\":[\n" << sBargraphs << "\n]};\n";
+}
+
+bool amx::TouchPanel::isParsed()
+{
+	fstream pgFile;
+	// Did we've already parsed?
+	try
+	{
+		std::string nm = Configuration->getHTTProot().toString()+"/.parsed";
+		pgFile.open(nm, ios::in);
+
+		if (pgFile.is_open())
+		{
+			sysl->log(Syslog::INFO, String("TouchPanel::parsePages: Pages are already parsed. Skipping!"));
+			pgFile.close();
+			return true;
+		}
+
+		pgFile.close();
+	}
+	catch(const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+	}
+
+	return false;
 }

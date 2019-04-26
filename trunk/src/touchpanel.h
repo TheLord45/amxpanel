@@ -89,6 +89,7 @@ namespace amx
 			void writeIconTable(std::fstream& pgFile);
 			void writeBargraphs(std::fstream& pgFile);
 			bool isPresent(const std::vector<strings::String>& vs, const strings::String& str);
+			bool isParsed();
 
 			AMXNet *amxnet;
 			strings::String scrBuffer;
