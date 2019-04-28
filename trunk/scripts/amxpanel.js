@@ -1230,6 +1230,22 @@ function pushButton(cport, cnum, stat)
 {
 	writeTextOut("PUSH:"+cport+":"+cnum+":"+stat);
 }
+function textToWeb(txt)
+{
+	// Spaces
+	var nt = txt.replace(/ /g, "&nbsp;");
+	// Line break
+	nt = nt.replace(/\n/g, "<br>");
+	// Special characters
+	nt = nt.replace(/ö/gi, "&ouml;");
+	nt = nt.replace(/ä/gi, "&auml;");
+	nt = nt.replace(/ü/gi, "&uuml;");
+	nt = nt.replace(/ß/gi, "&szlig;");
+	nt = nt.replace(/Ö/gi, "&Ouml;");
+	nt = nt.replace(/Ä/gi, "&Auml;");
+	nt = nt.replace(/Ü/gi, "&Uuml;");
+	return nt;
+}
 function setON(msg)
 {
 	var b;
@@ -2134,7 +2150,15 @@ async function doICO(msg)
 						{
 							try
 							{
-								document.getElementById(name+'_img').src = "images/"+iFile;
+								var img = document.getElementById(name+'_img');
+								img.src = "images/"+iFile;
+								var dim = getIconDim(idx);
+								img.width = dim[0];
+								img.height = dim[1];
+								img.removeAttribute("style");
+								img.style.display = "flex";
+								img.style.order = 2;
+								justifyImage(img, getButton(bt[b].pnum, bt[b].bi), CENTER_CODE.SC_ICON, z);
 							}
 							catch(e)
 							{
@@ -2291,6 +2315,7 @@ async function doTXT(msg)
 
 	var addrRange = getRange(addr);
 	var btRange = getRange(bts);
+	text = textToWeb(text);
 
 	for (i = 0; i < addrRange.length; i++)
 	{
@@ -2555,7 +2580,7 @@ function calcImagePosition(width, height, button, cc, inst=0)
 }
 function justifyImage(img, button, cc, inst=0)
 {
-	var sr, code, sz, border;
+	var sr, code, sz, border, posx, posy;
 
 	if (img === null || button === null)
 		return;
@@ -2583,17 +2608,31 @@ function justifyImage(img, button, cc, inst=0)
 
 	switch(cc)
 	{
-		case CENTER_CODE.SC_ICON: 	code = sr.ji; break;
-		case CENTER_CODE.SC_BITMAP:	code = sr.jb; break;
-		case CENTER_CODE.SC_TEXT:	code = sr.jt; break;
+		case CENTER_CODE.SC_ICON:
+			code = sr.ji;
+			posx = sr.ix;
+			posy = sr.iy;
+		break;
+
+		case CENTER_CODE.SC_BITMAP:
+			code = sr.jb;
+			posx = sr.ix;
+			posy = sr.iy;
+		break;
+
+		case CENTER_CODE.SC_TEXT:
+			code = sr.jt;
+			posx = sr.tx;
+			posy = sr.ty;
+		break;
 	}
 
 	switch (code)
 	{
 		case 0:	// absolute position
-			sz = calcImageSize(width, height, button.wt - sr.ix, button.ht - sr.iy, border);
-			img.style.left = sr.ix+'px';
-			img.style.top = sr.iy+'px';
+			sz = calcImageSize(width, height, button.wt - posx, button.ht - posy, border);
+			img.style.left = posx+'px';
+			img.style.top = posy+'px';
 			img.style.width = sz[0];
 			img.style.height = sz[1];
 		break;
@@ -2714,7 +2753,7 @@ function getRegistrationID()
 	if (fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
 	{
 		registrationID = fingerprint;
-		
+
 		if (wsocket.readyState == WebSocket.CLOSED)
 		{
 			connect();

@@ -311,6 +311,12 @@ namespace amx
 		FB_BLINK
 	};
 
+	typedef struct PUSH_FUNC
+	{
+		strings::String pfType;	// command to execute when button was pushed
+		strings::String pfName;	// Name of popup
+	}PUSH_FUNC_T;
+
 	typedef struct BUTTON
 	{
 		BUTTONTYPE type;
@@ -335,8 +341,7 @@ namespace amx
 		int rv;
 		int rl;					// Range low
 		int rh;					// Range high
-		strings::String pfType;	// command to execute when button was pushed
-		strings::String pfName;	// Name of popup
+		std::vector<PUSH_FUNC_T> pushFunc;	// Push functions: This are executed on button press
 		std::vector<SR_T> sr;
 
 		void clear()
@@ -360,9 +365,8 @@ namespace amx
 			rv = 0;
 			rl = 0;
 			rh = 0;
-            lv = 0;
-			pfType.clear();
-			pfName.clear();
+			lv = 0;
+			pushFunc.clear();
 			sr.clear();
 		}
 	}BUTTON_T;

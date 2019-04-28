@@ -33,7 +33,7 @@ function makeURL(name)
 	var getUrl = window.location;
 	var parts = getUrl.pathname.split('/');
 	var baseUrl = getUrl.protocol + "//" + getUrl.host;
-	
+
 	for (var i = 1; i < parts.length; i++)
 		baseUrl += "/" + parts[i];
 
@@ -409,6 +409,88 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 	else
 	{
 		errlog("drawBargraph: Error getting context for canvas "+name+"!");
+		return false;
+	}
+
+	return true;
+}
+
+// The same as above but without predefined graphics
+async function drawBargraphLight(name, level, width, height, col1, col2, dir, feedback = false, button = null)
+{
+	if (width <= 0 || height <= 0)
+	{
+		debug("drawBargraphLight: name="+name+", width="+width+", height="+height+", level="+level);
+		return;
+	}
+
+	var canvas1 = document.createElement('canvas');
+
+	if (canvas1.getContext)
+	{
+		var ctx1 = canvas1.getContext('2d');
+
+		canvas1.width = width;
+		canvas1.height = height;
+		// Draw the bargraph
+		ctx1.fillStyle = col2;
+		ctx1.fillRect(0, 0, width, height);
+		ctx1.fillStyle = col1;
+
+		var lev = 0;
+
+		if (dir)
+		{
+			lev = 100 - ~~(100.0 / height * level);
+			ctx1.fillRect(0, 0, lev, height);
+		}
+		else
+		{
+			lev = ~~(100.0 / width * level);
+			ctx1.fillRect(0, height - lev, width, lev);
+		}
+
+		// Display the bargraph
+		var div = document.getElementById(name);
+
+		if (div === null)
+			return;
+
+		try
+		{
+			div.replaceChild(canvas1, document.getElementById(name+"_canvas"));
+		}
+		catch(e)
+		{
+			div.appendChild(canvas1);
+			div.insertBefore(canvas1, div.firstChild);
+		}
+
+		if (feedback)
+        {
+            canvas1.addEventListener('click', function(evt)
+            {
+                var mousePos = getMousePos(canvas1, evt);
+                var lev = 0;
+
+                if (dir)
+                    lev = 100 - ~~(100.0 / height * mousePos.y);
+                else
+                    lev = ~~(100.0 / width * mousePos.x);
+
+				drawBargraphLight(name, lev, width, height, col1, col2, dir);
+
+				if (button !== null)
+				{
+					var l = ~~((button.rh - button.rl) / 100.0 * lev) + button.rl;
+					writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l+";");
+				}
+            }, false);
+        }
+	}
+	else
+	{
+		errlog("drawBargraphLight: Error getting context for canvas "+name+"!");
 		return false;
 	}
 

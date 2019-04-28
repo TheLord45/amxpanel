@@ -769,7 +769,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.message_value.port = s.port;
 			com.data.message_value.system = com.system;
 			com.data.message_value.value = s.level;
-			com.data.message_value.type = 0x20;		// unsigned iteger
+			com.data.message_value.type = 0x20;		// unsigned integer
 			com.data.message_value.content.integer = s.value;
 			com.hlen = 0x0016 - 0x0003 + 11;
 			comStack.push_back(com);
