@@ -285,16 +285,23 @@ String PushButton::getWebCode()
 
 		code += String("      <div id=\"")+nm+"\" class=\""+nm+"\"";
 
-		if (!button.pfName.empty() && !button.pfType.empty())
+		if (button.pushFunc.size() > 0)
 		{
-			sysl->TRACE(String("PushButton::getWebCode: Button ")+button.na+" show/hide popup page "+button.pfName+".");
+			code += " onclick=\"";
 
-			if (button.pfType.caseCompare("sShow") == 0)		// show popup
-				code += String(" onclick=\"showPopup('")+button.pfName+"');\"";
-			else if (button.pfType.caseCompare("sHide") == 0)	// hide popup
-				code += String(" onclick=\"hidePopup('")+button.pfName+"');\"";
-			else if (button.pfType.caseCompare("scGroup") == 0)	// hide group
-				code += String(" onclick=\"hideGroup('")+button.pfName+"');\"";
+			for (size_t j = 0; j < button.pushFunc.size(); j++)
+			{
+				sysl->TRACE(String("PushButton::getWebCode: Button ")+button.na+" show/hide popup page "+button.pushFunc[j].pfName+".");
+
+				if (button.pushFunc[j].pfType.caseCompare("sShow") == 0)		// show popup
+					code += String("showPopup('")+button.pushFunc[j].pfName+"');";
+				else if (button.pushFunc[j].pfType.caseCompare("sHide") == 0)	// hide popup
+					code += String("hidePopup('")+button.pushFunc[j].pfName+"');";
+				else if (button.pushFunc[j].pfType.caseCompare("scGroup") == 0)	// hide group
+					code += String("hideGroup('")+button.pushFunc[j].pfName+"');";
+			}
+
+			code += "\"";
 		}
 		else if (((button.type == GENERAL && button.fb == FB_MOMENTARY && (i == 0 || i == 1)) ||
 				button.type == BARGRAPH) && button.cp > 0 && button.ch > 0)

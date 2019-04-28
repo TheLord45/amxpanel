@@ -286,16 +286,18 @@ bool amx::Page::parsePage()
 					page.buttons.back().dr = reader.get_value().c_str();
 				else if (name.caseCompare("pf") == 0 && reader.has_value())
 				{
-					page.buttons.back().pfName = reader.get_value().c_str();
-					sysl->TRACE(String("Page::parsePage: found push page: ")+page.buttons.back().pfName);
+					page.buttons.back().pushFunc.back().pfName = reader.get_value().c_str();
+					sysl->TRACE(String("Page::parsePage: found push page: ")+page.buttons.back().pushFunc.back().pfType+": "+page.buttons.back().pushFunc.back().pfName);
 				}
 			}
 			else if (inButton && reader.get_depth() == 3)	// Attributes
 			{
 				if (name.caseCompare("pf") == 0 && reader.has_attributes())
 				{
-					page.buttons.back().pfType = reader.get_attribute(0).c_str();	// FIXME: Find all commands and make an enum.
-					sysl->TRACE(String("Page::parsePage: found push command: ")+page.buttons.back().pfType);
+					PUSH_FUNC_T pf;
+					pf.pfType = reader.get_attribute(0).c_str();	// FIXME: Find all commands and make an enum.
+					page.buttons.back().pushFunc.push_back(pf);
+					sysl->TRACE(String("Page::parsePage: found push command: ")+pf.pfType);
 					// Known commands:
 					// sShow      show popup
 					// sHide      hide popup
@@ -583,7 +585,23 @@ void Page::serializeToFile()
 		pgFile << "\t\t \"fb\":" << page.buttons[i].fb << ",\"ap\":" << page.buttons[i].ap << ",\"ad\":" << page.buttons[i].ad << ",\"ch\":" << page.buttons[i].ch << "," << std::endl;
 		pgFile << "\t\t \"cp\":" << page.buttons[i].cp << ",\"lp\":" << page.buttons[i].lp << ",\"lv\":" << page.buttons[i].lv << ",\"dr\":\"" << page.buttons[i].dr << "\"," << std::endl;
 		pgFile << "\t\t \"va\":" << page.buttons[i].va << ",\"rv\":" << page.buttons[i].rv << ",\"rl\":" << page.buttons[i].rl << ",\"rh\":" << page.buttons[i].rh << "," << std::endl;
-		pgFile << "\t\t \"pfType\":\"" << page.buttons[i].pfType << "\",\"pfName\":\"" << page.buttons[i].pfName << "\",\"sr\":[";
+
+		if (page.buttons[i].pushFunc.size() > 0)
+		{
+			pgFile << "\t\t \"pf\":[";
+
+			for (size_t j = 0; j < page.buttons[i].pushFunc.size(); j++)
+			{
+				if (j > 0)
+					pgFile << ",";
+
+				pgFile << "\n\t\t\t {\"pfType\":\"" << page.buttons[i].pushFunc[j].pfType << "\",\"pfName\":\"" << page.buttons[i].pushFunc[j].pfName << "\"}";
+			}
+
+			pgFile << "\n\t\t\t], \"sr\":[";
+		}
+		else
+			pgFile << "\t\t \"pf\":[ ],\"sr\":[";
 
 		for (size_t j = 0; j < page.buttons[i].sr.size(); j++)
 		{

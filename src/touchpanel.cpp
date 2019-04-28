@@ -109,7 +109,7 @@ bool TouchPanel::startClient()
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -192,7 +192,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 
 				com = msg.port;
 				com.append("|");
-				com.append((char *)&msg.content);
+				com.append(NameFormat::cp1250ToUTF8((char *)&msg.content));
 				send(com);
 			break;
 		}
@@ -230,36 +230,22 @@ void TouchPanel::webMsg(std::string& msg)
 		else
 			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
 	}
-/*	else if (registrated && msg.find("ON:") != std::string::npos)
+	else if (registrated && msg.find("LEVEL:") != std::string::npos)
 	{
 		std::vector<String> parts = String(msg).split(":");
 		ANET_SEND as;
-		as.MC = 0x0088;
 		as.port = atoi(parts[1].data());
 		as.channel = atoi(parts[2].data());
-		int value = 1;
-		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", value: "+value+", MC: 0x"+NameFormat::toHex(as.MC, 4));
+		as.level = as.channel;
+		as.value = atoi(parts[3].data());
+		as.MC = 0x008a;
+		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", value: "+as.value+", MC: 0x"+NameFormat::toHex(as.MC, 4));
 
 		if (amxnet != 0)
 			amxnet->sendCommand(as);
 		else
 			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
 	}
-	else if (registrated && msg.find("OFF:") != std::string::npos)
-	{
-		std::vector<String> parts = String(msg).split(":");
-		ANET_SEND as;
-		as.MC = 0x0089;
-		as.port = atoi(parts[1].data());
-		as.channel = atoi(parts[2].data());
-		int value = 0;
-		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", value: "+value+", MC: 0x"+NameFormat::toHex(as.MC, 4));
-
-		if (amxnet != 0)
-			amxnet->sendCommand(as);
-		else
-			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
-	} */
 	else if (msg.find("REGISTER:") != std::string::npos)
 	{
 		std::vector<String> parts = String(msg).split(":");
@@ -847,7 +833,7 @@ bool TouchPanel::parsePages()
 	// This is the WebSocket connection function
 	pgFile << "function connect()\n{\n";
 	pgFile << "\ttry\n\t{\n";
-	
+
 	if (Configuration->getWSStatus())
 		pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
 	else

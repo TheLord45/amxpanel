@@ -808,12 +808,17 @@ function doDraw(pgKey, pageID, what)
 					}
 				}
 
-				if (button.pfType == "sShow")			// show popup
-					bt.addEventListener('click', showPopup.bind(null, button.pfName));
-				else if (button.pfType == "sHide")		// hide popup
-					bt.addEventListener('click', hidePopup.bind(null, button.pfName));
-				else if (button.pfType == "scGroup")	// hide group
-					bt.addEventListener('click', hideGroup.bind(null, button.pfName));
+				for (x in button.pf)
+				{
+					var pf = button.pf[x];
+
+					if (pf.pfType == "sShow")			// show popup
+						bt.addEventListener('click', showPopup.bind(null, pf.pfName));
+					else if (pf.pfType == "sHide")		// hide popup
+						bt.addEventListener('click', hidePopup.bind(null, pf.pfName));
+					else if (pf.pfType == "scGroup")	// hide group
+						bt.addEventListener('click', hideGroup.bind(null, pf.pfName));
+				}
 			}
 
 			for (j in button.sr)
@@ -901,6 +906,24 @@ function doDraw(pgKey, pageID, what)
 					}
 					else
 						drawArea(makeURL("images/"+sr.mi), nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+				}
+				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length == 0 && idx == 0)
+				{
+					var width = sr.wt;
+					var height = sr.ht;
+					var css = calcImagePosition(width, height, button, CENTER_CODE.SC_BITMAP, sr.number);
+					setCSSclass(nm+sr.number+"_canvas", css+"display: flex; order: 1;");
+
+					var lev = getBargraphLevel(pgKey.ID, button.bID);
+					var level = parseInt(100.0 / button.rh * lev);
+					var dir = false;
+
+					if (button.dr == "horizontal")
+						dir = false;
+					else
+						dir = true;
+
+					drawBargraphLight(nm+sr.number, level, width, height, getWebColor(button.sr[idx+1].cf), getWebColor(sr.cf), dir, true, button);
 				}
 				else if (sr.bm.length > 0)
 				{
