@@ -235,6 +235,74 @@ function setColor(img1, img2, col1, col2, level, dir)
 	return data;
 }
 
+function roundRect(ctx, x, y, width, height, radius, lnwidth, level, stroke, col1, col2, fcol, dir)
+{
+	if (typeof stroke == "undefined" )
+		stroke = true;
+	
+	if (typeof radius === "undefined")
+		radius = 5;
+
+	ctx.strokeStyle = fcol;
+	ctx.fillStyle = col2;
+	ctx.lineWidth = lnwidth;
+	// Background
+	ctx.beginPath();
+	ctx.moveTo(x + radius, y);
+	ctx.lineTo(x + width - radius, y);
+	ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+	ctx.lineTo(x + width, y + height - radius);
+	ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+	ctx.lineTo(x + radius, y + height);
+	ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+	ctx.lineTo(x, y + radius);
+	ctx.quadraticCurveTo(x, y, x + radius, y);
+	ctx.closePath();
+
+	if (stroke)
+		ctx.stroke();
+
+	ctx.fill();
+
+	// Foreground (the bargraph)
+	var hw, hh, ny, nx;
+
+	if (dir)	// vertical?
+	{
+		hw = width;
+		hh = level;
+		ny = height - level;
+		nx = x;
+	}
+	else		// horizontal
+	{
+		hw = level;
+		hh = height;
+		nx = width - level;
+		ny = y;
+	}
+
+	ctx.fillStyle = col1;
+	ctx.beginPath();
+//	ctx.moveTo(x + radius, y);
+//	ctx.lineTo(x + width - radius, y);
+	ctx.moveTo(nx, ny);
+	ctx.lineTo(nx + hw, ny);
+//	ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+	ctx.lineTo(nx + hw, ny + hh - radius);
+	ctx.quadraticCurveTo(nx + hw, ny + hh, nx + hw - radius, ny + hh);
+	ctx.lineTo(nx + radius, ny + hh);
+	ctx.quadraticCurveTo(nx, ny + hh, nx, ny + hh - radius);
+	ctx.lineTo(nx, ny);
+//	ctx.quadraticCurveTo(x, y, x + radius, y);
+	ctx.closePath();
+
+	if (stroke)
+		ctx.stroke();
+
+	ctx.fill();
+}
+
 /**
  * this function takes 2 URIs. One for a special mask where the green and/or
  * red channel marks whether there should be used col1 or col2.
@@ -282,7 +350,7 @@ function setColor(img1, img2, col1, col2, level, dir)
  * Boolean option to set the direction of the bargraph. FALSE means vertical
  * and TRUE means horizontal.
  */
-async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, col2, dir, feedback = false)
+async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, col2, dir, feedback = false, button = null)
 {
 	if (width <= 0 || height <= 0 || uriRed.length == 0 || uriMask.length == 0)
 	{
@@ -294,7 +362,26 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 	var readyPic2 = false;
 	var canvas1 = document.createElement('canvas');
 	var canvas2 = document.createElement('canvas');
-	var canvas3 = document.createElement('canvas');
+	var canvas3;
+	var old = false;
+
+	try
+	{
+		canvas3 = document.getElementById(name+'_canvas');
+
+		if (canvas3.getContext)
+			old = true;
+		else
+		{
+			canvas3 = document.createElement('canvas');
+			old = false;
+		}
+	}
+	catch(e)
+	{
+		canvas3 = document.createElement('canvas');
+		old = false;
+	}
 
 	if (canvas1.getContext && canvas2.getContext && canvas3.getContext)
 	{
@@ -380,11 +467,7 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 		if (div === null)
 			return;
 
-		try
-		{
-			div.replaceChild(canvas3, document.getElementById(name+"_canvas"));
-		}
-		catch(e)
+		if (!old)
 		{
 			div.appendChild(canvas3);
 			div.insertBefore(canvas3, div.firstChild);
@@ -392,7 +475,7 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 
 		if (feedback)
         {
-            canvas3.addEventListener('click', function(evt)
+            div.addEventListener('click', function(evt)
             {
                 var mousePos = getMousePos(canvas3, evt);
                 var lev = 0;
@@ -403,6 +486,16 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
                     lev = ~~(100.0 / width * mousePos.x);
 
                 drawBargraph(uriRed, uriMask, name, lev, width, height, col1, col2, dir);
+
+				if (button !== null)
+				{
+					var l = ~~((button.rh - button.rl) / 100.0 * lev);
+					writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l);
+					var butKenn = getButtonKennung(name);
+
+					if (butKenn !== null)
+						setBargraphLevel(butKenn[0], butKenn[1], l);
+				}
             }, false);
         }
 	}
@@ -415,39 +508,112 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 	return true;
 }
 
-// The same as above but without predefined graphics
+/**
+ * This function draws a bargraph without graphics. All elements are
+ * defined in the parameters and consist of areas with a frame and
+ * colors.
+ *
+ * @param name
+ * This is the name of the element where the new \b canvas should be
+ * inserted.
+ *
+ * @param level
+ * This is a level in the range of 0 to 100 (percent). Only the given
+ * percentage part of mask \a uriRed will be visible. Everything else of
+ * this mask will be transparent and therefore invisible.
+ *
+ * @param width
+ * The width of the image.
+ *
+ * @param height
+ * The hight of the image.
+ *
+ * @param col1
+ * This color must be an rgba() color. This color is taken for the
+ * foreground.
+ *
+ * @param col2
+ * This color must be an rgba() color. This color is taken for the
+ * background.
+ *
+ * @param dir
+ * Boolean option to set the direction of the bargraph. FALSE means vertical
+ * and TRUE means horizontal.
+ * 
+ * @param feedback
+ * Boolean optional option to make the bargraph send a level back to the
+ * controller.
+ * 
+ * @param button
+ * An optional array containing the defination for the "button" to draw.
+ * This should be used when the bargraph sets the level with a click and
+ * send back the level to the controller.
+ */
 async function drawBargraphLight(name, level, width, height, col1, col2, dir, feedback = false, button = null)
 {
-	if (width <= 0 || height <= 0)
+	if (width === null || width <= 0 || height === null || height <= 0)
 	{
 		debug("drawBargraphLight: name="+name+", width="+width+", height="+height+", level="+level);
 		return;
 	}
 
-	var canvas1 = document.createElement('canvas');
+	var canvas1;
+	var old = false;
+
+	try
+	{
+		canvas1 = document.getElementById(name+'_canvas');
+
+		if (canvas1.getContext)
+			old = true;
+		else
+		{
+			canvas1 = document.createElement('canvas');
+			old = false;
+		}
+	}
+	catch(e)
+	{
+		canvas1 = document.createElement('canvas');
+		old = false;
+	}
 
 	if (canvas1.getContext)
 	{
 		var ctx1 = canvas1.getContext('2d');
 
-		canvas1.width = width;
-		canvas1.height = height;
-		// Draw the bargraph
-		ctx1.fillStyle = col2;
-		ctx1.fillRect(0, 0, width, height);
-		ctx1.fillStyle = col1;
+		if (!old)
+		{
+			canvas1.width = width;
+			canvas1.height = height;
+			canvas1.id = name+"_canvas";
+			canvas1.className = name+"_canvas";
+		}
 
 		var lev = 0;
 
-		if (dir)
+		if (dir)	// vertical?
+			lev = ~~(height / 100.0 * level);
+		else		// horizontal (left to right)
+			lev = ~~(width / 100.0 * level);
+
+		// Draw the bargraph
+		if (button === null || button.bs.length == 0)
 		{
-			lev = 100 - ~~(100.0 / height * level);
-			ctx1.fillRect(0, 0, lev, height);
+			ctx1.fillStyle = col2;
+			ctx1.fillRect(0, 0, width, height);
+			ctx1.fillStyle = col1;
+			var l = 0;
+
+			if (dir)	// vertical?
+				ctx1.fillRect(0, height - lev, width, lev);
+			else		// horizontal
+				ctx1.fillRect(0, 0, lev, height);
 		}
 		else
 		{
-			lev = ~~(100.0 / width * level);
-			ctx1.fillRect(0, height - lev, width, lev);
+			var brd = getBorderStyle(button.bs);
+			roundRect(ctx1, 0, 0, width, height, parseInt(brd[2]), parseInt(brd[1]), lev, true, col1, col2, getWebColor(button.sr[0].cb), dir);
 		}
 
 		// Display the bargraph
@@ -456,11 +622,7 @@ async function drawBargraphLight(name, level, width, height, col1, col2, dir, fe
 		if (div === null)
 			return;
 
-		try
-		{
-			div.replaceChild(canvas1, document.getElementById(name+"_canvas"));
-		}
-		catch(e)
+		if (!old)
 		{
 			div.appendChild(canvas1);
 			div.insertBefore(canvas1, div.firstChild);
@@ -468,7 +630,7 @@ async function drawBargraphLight(name, level, width, height, col1, col2, dir, fe
 
 		if (feedback)
         {
-            canvas1.addEventListener('click', function(evt)
+            div.addEventListener('click', function(evt)
             {
                 var mousePos = getMousePos(canvas1, evt);
                 var lev = 0;
@@ -478,12 +640,16 @@ async function drawBargraphLight(name, level, width, height, col1, col2, dir, fe
                 else
                     lev = ~~(100.0 / width * mousePos.x);
 
-				drawBargraphLight(name, lev, width, height, col1, col2, dir);
+				drawBargraphLight(name, lev, width, height, col1, col2, dir, false, button);
 
 				if (button !== null)
 				{
-					var l = ~~((button.rh - button.rl) / 100.0 * lev) + button.rl;
-					writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l+";");
+					var l = ~~((button.rh - button.rl) / 100.0 * lev);
+					writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l);
+					var butKenn = getButtonKennung(name);
+
+					if (butKenn !== null)
+						setBargraphLevel(butKenn[0], butKenn[1], l);
 				}
             }, false);
         }

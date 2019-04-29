@@ -895,36 +895,43 @@ function doDraw(pgKey, pageID, what)
 					{
 						var lev = getBargraphLevel(pgKey.ID, button.bID);
 						var level = parseInt(100.0 / button.rh * lev);
-						var dir = false;
+						var dir = true;
+						var clickable = false;
 
 						if (button.dr == "horizontal")
 							dir = false;
-						else
-							dir = true;
 
-						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(button.sr[idx+1].cf), getAMXColor(button.sr[idx+1].cb), dir);
+						if (button.cp > 0 && button.ch > 0)
+							clickable = true;
+	
+						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(button.sr[idx+1].cf), getAMXColor(button.sr[idx+1].cb), dir, clickable, button);
 					}
 					else
 						drawArea(makeURL("images/"+sr.mi), nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 				}
-				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length == 0 && idx == 0)
+				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && !hasGraphic(button, idx) && idx == 0)
 				{
-					var width = sr.wt;
-					var height = sr.ht;
-					var css = calcImagePosition(width, height, button, CENTER_CODE.SC_BITMAP, sr.number);
-					setCSSclass(nm+sr.number+"_canvas", css+"display: flex; order: 1;");
+					var width = button.wt;
+					var height = button.ht;
+					setCSSclass(nm+sr.number+"_canvas", "display: flex; order: 1;");
 
 					var lev = getBargraphLevel(pgKey.ID, button.bID);
-					var level = parseInt(100.0 / button.rh * lev);
-					var dir = false;
+					var level = parseInt(100.0 / (button.rh - button.rl) * lev);
+					var dir = true;
+					var clickable = false;
 
 					if (button.dr == "horizontal")
 						dir = false;
-					else
-						dir = true;
 
-					drawBargraphLight(nm+sr.number, level, width, height, getWebColor(button.sr[idx+1].cf), getWebColor(sr.cf), dir, true, button);
+					if (button.cp > 0 && button.ch > 0)
+						clickable = true;
+
+					drawBargraphLight(nm+sr.number, level, width, height, getWebColor(button.sr[idx+1].cf), getWebColor(sr.cf), dir, clickable, button);
 				}
+//				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length == 0 && idx == 0)
+//				{
+
+//				}
 				else if (sr.bm.length > 0)
 				{
 					bsr.style.backgroundImage = "url('images/"+sr.bm+"')";
