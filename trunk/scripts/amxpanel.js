@@ -170,6 +170,8 @@ const CENTER_CODE = Object.freeze({
 	SC_TEXT:	2
 });
 
+var __regCounter = 0;		// Counts the number of failed registrations
+
 function rgb(red, green, blue)
 {
 	return "rgb("+red+","+green+","+blue+")";
@@ -292,7 +294,21 @@ function getBargraphPC(pnum, id)
 		var bg = bargraphs.bargraphs[i];
 
 		if (bg.pnum == pnum && bg.bi == id)
-			return [bg.ap, bg.ac];
+			return [bg.lp, bg.lv];
+	}
+
+	return -1;
+}
+function getBargraphPars(pnum, id)
+{
+	var i;
+
+	for (i in bargraphs.bargraphs)
+	{
+		var bg = bargraphs.bargraphs[i];
+
+		if (bg.pnum == pnum && bg.bi == id)
+			return bg;
 	}
 
 	return -1;
@@ -309,16 +325,12 @@ function setBargraphLevel(pnum, id, level)
 	{
 		var bg = bargraphs.bargraphs[i];
 
-		if (bg.ap >= 0 && bg.ac >= 0)
-		{
-			if (bg.ap == PC[0] && bg.ac == PC[1])
-				bargraphs.bargraphs[i].level = level;
-		}
-		else if (bg.pnum == pnum && bg.bi == id)
-		{
+		if (bg.lp == PC[0] && bg.lv == PC[1])
 			bargraphs.bargraphs[i].level = level;
-		}
+		else if (bg.pnum == pnum && bg.bi == id)
+			bargraphs.bargraphs[i].level = level;
 	}
+	debug("setBargraphLevel: SAVED! pnum="+pnum+", id="+id+", level="+level);
 }
 function saveTextReplace(port, channel, text, inst=[])
 {
@@ -2349,7 +2361,7 @@ async function doTXT(msg)
 							var cnt = 0;
 							var err = "";
 
-							while(!hasParent && cnt < 5)
+							while(!hasParent && cnt < 2)
 							{
 								try
 								{
@@ -2750,7 +2762,7 @@ function storageAvailable(type)
 }
 function getRegistrationID()
 {
-	if (fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
+	if (__regCounter > 2 && fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
 	{
 		registrationID = fingerprint;
 
@@ -2764,8 +2776,12 @@ function getRegistrationID()
 		writeTextOut("REGISTER:"+registrationID);
 		return registrationID;
 	}
-	else
+	else if (__regCounter > 2)
+	{
 		errlog("getRegistrationID: Calculation of fingerprint didn't succeed!");
+		registrationID = "";
+		return registrationID;
+	}
 
 	var requestedBytes = 1024*1024;
 
@@ -2774,15 +2790,6 @@ function getRegistrationID()
 		navigator.storage.persist().then(granted => {
 			if (granted)
 			{
-				if (!storageAvailable(window.localStorage))
-				{
-					errlog("getRegistrationID: Local storage is not (completely) supported by the browser!");
-					registrationID = "";
-					return registrationID;
-				}
-				else
-					debug("getRegistrationID: Local storage is fully supported.");
-
 				try
 				{
 					registrationID = window.localStorage.getItem("regID");
@@ -2795,19 +2802,31 @@ function getRegistrationID()
 							window.localStorage.setItem("regID", ID);
 							registrationID = ID;
 							writeTextOut("REGISTER:"+registrationID);
+							__regCounter = 0;
 						}
 						catch(e)
 						{
 							errlog("getRegistrationID: Error: "+e);
-							registrationID = "";
+
+							if (fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
+								registrationID = fingerprint;
+							else
+								registrationID = "";
+
+							__regCounter++;
 							return registrationID;
 						}
 					}
 					else
+					{
 						writeTextOut("REGISTER:"+registrationID);
+						__regCounter = 0;
+					}
 				}
 				catch(e)
 				{
+					__regCounter++;
+
 					try
 					{
 						var ID = 'T' + Math.random().toString(36).substr(2, 9);
@@ -2818,13 +2837,19 @@ function getRegistrationID()
 					catch(e)
 					{
 						errlog("getRegistrationID: Error: "+e);
-						registrationID = "";
+
+						if (fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
+							registrationID = fingerprint;
+						else
+							registrationID = "";
+
 						return registrationID;
 					}
 				}
 			}
 			else
 			{
+				__regCounter++;
 				navigator.webkitPersistentStorage.requestQuota (
 					requestedBytes, function(grantedBytes) {
 						window.webkitRequestFileSystem(PERSISTENT, grantedBytes, onInitFs, errorHandler);
@@ -2837,7 +2862,13 @@ function getRegistrationID()
 	else
 	{
 		errlog("getRegistrationID: Local storage is not supported by the browser!");
-		registrationID = "";
+
+		if (fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
+			registrationID = fingerprint;
+		else
+			registrationID = "";
+
+		__regCounter++;
 		return registrationID;
 	}
 
