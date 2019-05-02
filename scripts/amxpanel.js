@@ -261,7 +261,7 @@ function getButton(pnum, bi)
 	pgKey = eval("structPage"+pnum);
 
 	if (pgKey === null)
-		return;
+		return null;
 
 	for (var i in pgKey.buttons)
 	{
@@ -807,7 +807,7 @@ function findBargraphs(port, channel)
 	{
 		var bg = bargraphs.bargraphs[i];
 
-		if (bg.lp == port && bg.lc == channel)
+		if (bg.lp == port && bg.lv == channel)
 			bgArray.push(bg);
 	}
 
@@ -1337,7 +1337,7 @@ function setLEVEL(msg)
 
 	for (i in bgArray)
 	{
-		var value = parseInt(100.0 / bgArray[i].rh * level);
+		var value = parseInt(100.0 / (bgArray[i].rh - bgArray[i].rl) * level);
 		var name = "Page_" + bgArray[i].pnum + "_Button_" + bgArray[i].bi + "_1";
 		var width, height, dir;
 
@@ -1353,8 +1353,18 @@ function setLEVEL(msg)
 		}
 		else
 		{
-			width = 0;
-			height = 0;
+			var button = getButton(bgArray[i].pnum, bgArray[i].bi);
+
+			if (button !== null)
+			{
+				width = button.wt;
+				height = button.ht;
+			}
+			else
+			{
+				width = 0;
+				height = 0;
+			}
 		}
 
 		if (bgArray[i].dr == "horizontal")
@@ -1364,16 +1374,35 @@ function setLEVEL(msg)
 
 		if (bgArray[i].states[0].mi.length > 0 && bgArray[i].states[1].bm.length > 0)
 		{
-			setBargraphLevel(bgArray[i].pnum, bgArray[i].bi, value);
+			setBargraphLevel(bgArray[i].pnum, bgArray[i].bi, level);
 
 			try
 			{
-				var cv = document.getElementById(name+'_canvas');
-
-				if (cv !== null)
-					cv.parentNode.removeChild(cv);
-
 				drawBargraph(makeURL("images/"+bgArray[i].states[0].mi), makeURL("images/"+bgArray[i].states[1].bm), name, value, width, height, getAMXColor(bgArray[i].states[1].cf), getAMXColor(bgArray[i].states[1].cb), dir);
+			}
+			catch(e)
+			{
+				errlog("setLEVEL: Error: "+e);
+			}
+		}
+		else if (bgArray[i].states[0].mi.length == 0 && bgArray[i].states[0].bm.length == 0 &&	// No graphics at all
+				 bgArray[i].states[1].mi.length == 0 && bgArray[i].states[1].bm.length == 0)
+		{
+			try
+			{
+				drawBargraphLight(name, value, width, height, getWebColor(bgArray[i].states[1].cf), getWebColor(bgArray[i].states[0].cf), dir);
+			}
+			catch(e)
+			{
+				errlog("setLEVEL: Error: "+e);
+			}
+		}
+		else if (bgArray[i].states[0].mi.length == 0 && bgArray[i].states[0].bm.length > 0 &&
+				 bgArray[i].states[1].mi.length == 0 && bgArray[i].states[1].bm.length > 0)
+		{
+			try
+			{
+				drawBargraph2Graph(makeURL("images/"+bgArray[i].states[1].bm), makeURL("images/"+bgArray[i].states[0].bm), name, value, width, height, dir);
 			}
 			catch(e)
 			{
@@ -2949,6 +2978,100 @@ function checkTime(i)
 		i = "0" + i;
 
 	return i;
+}
+
+function setSystemBattery(hook = false)
+{
+	var battery = navigator.battery || navigator.webkitBattery || navigator.mozBattery || navigator.msBattery;
+
+	if (battery === null || typeof battery == "undefined")
+	{
+		errlog("setSystemBattery: The browser doesn't support battery status!");
+		return false;
+	}
+
+	try
+	{
+		var level = battery.level * 100;
+		curPort = 0;
+		var batStatus = findButtonPort(SYSTEMS.OBJ_BAT_LEVEL);
+		var batCharge = findButtonPort(SYSTEMS.OBJ_BAT_CHARGE);
+
+		if (!battery.charging)
+		{
+			for (var i in batStatus)
+			{
+				setBargraphLevel(batStatus[i].pnum, batStatus[i].bi, level);
+				var button = getButton(batStatus[i].pnum, batStatus[i].bi);
+				var name = "";
+
+				if (button.ap == 0 && isSystemReserved(button.ad))
+					name = getSystemReservedName(button.ad);
+				else
+					name = "Page_"+batStatus[i].pnum+"_Button_"+batStatus[i].bi+"_1";
+
+				document.getElementById(name).style.display = 'inline';
+				var dir = true;
+
+				if (button.dr == "horizontal")
+					dir = false;
+
+				drawBargraph2Graph(makeURL('image/'+button.sr[1].bm),makeURL('image/'+button.sr[0].bm),name,level,button.wt,button.ht,dir);
+			}
+		}
+		else
+		{
+			for (var i in batCharge)
+			{
+				setBargraphLevel(batCharge[i].pnum, batCharge[i].bi, level);
+				var button = getButton(batStatus[i].pnum, batStatus[i].bi);
+				var name = "";
+
+				if (button.ap == 0 && isSystemReserved(button.ad))
+					name = getSystemReservedName(button.ad);
+				else
+					name = "Page_"+batStatus[i].pnum+"_Button_"+batStatus[i].bi+"_1";
+
+				document.getElementById(name).style.display = 'inline';
+				var dir = true;
+
+				if (button.dr == "horizontal")
+					dir = false;
+
+				drawBargraph2Graph(makeURL('image/'+button.sr[1].bm),makeURL('image/'+button.sr[0].bm),name,level,button.wt,button.ht,dir);
+			}
+		}
+
+		if (battery.charging)
+		{
+			for (var i in batStatus)
+			{
+				var name = "Page_"+batStatus[i].pnum+"_Button_"+batStatus[i].bi+"_1";
+				document.getElementById(name).style.display = 'none';
+			}
+		}
+		else
+		{
+			for (var i in batCharge)
+			{
+				var name = "Page_"+batCharge[i].pnum+"_Button_"+batCharge[i].bi+"_1";
+				document.getElementById(name).style.display = 'none';
+			}
+		}
+
+		if (hook)
+		{
+			battery.onchargingchange = function() { setSystemBattery(); };
+			battery.onlevelchange = function() { setSystemBattery(); };
+		}
+	}
+	catch(e)
+	{
+		errlog("setSystemBattery: Browser doesn't support a battery!");
+		return false;
+	}
+
+	return true;
 }
 
 function setWiFi()
