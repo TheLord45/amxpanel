@@ -330,7 +330,6 @@ function setBargraphLevel(pnum, id, level)
 		else if (bg.pnum == pnum && bg.bi == id)
 			bargraphs.bargraphs[i].level = level;
 	}
-	debug("setBargraphLevel: SAVED! pnum="+pnum+", id="+id+", level="+level);
 }
 function saveTextReplace(port, channel, text, inst=[])
 {

@@ -338,6 +338,13 @@ namespace amx
 		int lv;					// Level code
 		strings::String dr;		// Level "horizontal" or "vertical"
 		int va;
+		int stateCount;			// State count with multistate buttons
+		int rm;					// State count with multistate buttons?
+		int nu;					// Animate time up
+		int nd;					// Animate time down
+		int ar;					// Auto repeat (1 = true)
+		int ru;					// Animate time up (again)
+		int rd;					// Animate time down (again)
 		int rv;
 		int rl;					// Range low
 		int rh;					// Range high
@@ -366,6 +373,13 @@ namespace amx
 			rl = 0;
 			rh = 0;
 			lv = 0;
+			stateCount = 0;
+			rm = 0;
+			nu = 0;
+			nd = 0;
+			ar = 0;
+			ru = 0;
+			rd = 0;
 			pushFunc.clear();
 			sr.clear();
 		}

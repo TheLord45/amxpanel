@@ -349,6 +349,15 @@ function roundRect(ctx, x, y, width, height, radius, lnwidth, level, stroke, col
  * @param dir
  * Boolean option to set the direction of the bargraph. FALSE means vertical
  * and TRUE means horizontal.
+ * 
+ * @param feedback
+ * Boolean optional option to make the bargraph send a level back to the
+ * controller.
+ *
+ * @param button
+ * An optional array containing the defination for the "button" to draw.
+ * This should be used when the bargraph sets the level with a click and
+ * send back the level to the controller.
  */
 async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, col2, dir, feedback = false, button = null)
 {
@@ -879,7 +888,242 @@ async function drawBargraph2Graph(uriFg, uriBg, name, level, width, height, dir,
 
 	return true;
 }
+/*
+ *
+ */
+async function drawBargraphMultistate(button, name, level)
+{
+	if (button === null || typeof button == "undefined" || level === null || typeof level == "undefined")
+	{
+		debug("drawBargraphMultistate: Button not defined!");
+		return;
+	}
 
+	var state = ~~((button.rh - button.rl + 1) / 100 * level);
+
+	for (var i in button.sr)
+	{
+		var sr = button.sr[i];
+
+		if (sr.number == state)
+		{
+			if (sr.mi.length > 0 && sr.bm.length > 0)		// Chameleon?
+				drawButton(makeURL('image/'+sr.mi),makeURL('image/'+sr.bm), name+sr.number, sr.nm_width, sr.nm_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+			else if (sr.mi.length > 0 && sr.bm.length == 0)
+				drawArea(makeURL('image/'+sr.mi), name+sr.number, sr.nm_width, sr.nm_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+			else if (sr.mi.length == 0 && sr.bm.length > 0)
+			{
+				try
+				{
+					var bsr = document.getElementById(name+sr.number);
+					bsr.style.backgroundImage = "url('images/"+sr.bm+"')";
+					bsr.style.backgroundRepeat = "no-repeat";
+
+					switch (sr.jb)
+					{
+						case 0:
+							bsr.style.backgroundPositionX = sr.ix+'px';
+							bsr.style.backgroundPositionY = sr.iy+'px';
+						break;
+
+						case 1: bsr.style.backgroundPosition = "left top"; break;
+						case 2: bsr.style.backgroundPosition = "center top"; break;
+						case 3: bsr.style.backgroundPosition = "right top"; break;
+						case 4: bsr.style.backgroundPosition = "left center"; break;
+						case 6: bsr.style.backgroundPosition = "right center"; break;
+						case 7: bsr.style.backgroundPosition = "left bottom"; break;
+						case 8: bsr.style.backgroundPosition = "center bottom"; break;
+						case 9: bsr.style.backgroundPosition = "right bottom"; break;
+						default:
+							bsr.style.backgroundPosition = "center center";
+					}
+				}
+				catch(e)
+				{
+					errlog("drawBargraphMultistate: Error: "+e);
+				}
+			}
+
+			if (sr.ii > 0)		// Icon?
+			{
+				var ico = getIconFile(sr.ii);
+				var dim = getIconDim(sr.ii);
+
+				if (ico !== -1)
+				{
+					var img = document.createElement('img');
+					img.src = makeURL('images/'+ico);
+					img.id = nm+sr.number+'_img';
+					img.width = dim[0];
+					img.height = dim[1];
+					justifyImage(img, button, CENTER_CODE.SC_ICON, sr.number);
+					img.style.display = "flex";
+					img.style.order = 2;
+
+					try
+					{
+						var bsr = document.getElementById(name+sr.number);
+						bsr.appendChild(img);
+					}
+					catch(e)
+					{
+						errlog("drawBargraphMultistate: Error: "+e);
+					}
+				}
+			}
+		}
+	}
+/**
+	if (feedback)
+	{
+		div.addEventListener('click', function(evt)
+		{
+			var mousePos = getMousePos(canvas3, evt);
+			var lev = 0;
+
+			if (dir)
+				lev = 100 - ~~(100.0 / height * mousePos.y);
+			else
+				lev = ~~(100.0 / width * mousePos.x);
+
+			drawBargraph(uriRed, uriMask, name, lev, width, height, col1, col2, dir);
+
+			if (button !== null)
+			{
+				var l = ~~((button.rh - button.rl) / 100.0 * lev);
+				writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l);
+				var butKenn = getButtonKennung(name);
+
+				if (butKenn !== null)
+					setBargraphLevel(butKenn[0], butKenn[1], l);
+			}
+		}, false);
+	}
+**/
+	return true;
+}
+async function drawButtonMultistateAni(button, name)
+{
+	if (button === null || typeof button == "undefined" || name === null || typeof name == "undefined")
+	{
+		debug("drawButtonMultistateAni: Button not defined!");
+		return;
+	}
+
+	if (button.ar != 1)
+	{
+		errlog("drawButtonMultistateAni: "+name+" is not an automatic animated button!");
+		return;
+	}
+
+	var state = 1;
+	var idx = 0;
+
+	var handle = setInterval(function() {
+		var sr = button.sr[idx];
+
+		if (sr.mi.length > 0 && sr.bm.length > 0)		// Chameleon?
+		{
+			try
+			{
+				drawButton(makeURL('image/'+sr.mi),makeURL('image/'+sr.bm), name+"1", sr.nm_width, sr.nm_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+			}
+			catch(e)
+			{
+				clearInterval(handle);
+			}
+		}
+		else if (sr.mi.length > 0 && sr.bm.length == 0)
+		{
+			try
+			{
+				drawArea(makeURL('image/'+sr.mi), name+"1", sr.nm_width, sr.nm_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+			}
+			catch(e)
+			{
+				clearInterval(handle);
+			}
+		}
+		else if (sr.mi.length == 0 && sr.bm.length > 0)
+		{
+			try
+			{
+				var bsr = document.getElementById(name+"1");
+
+				try
+				{
+					var img = document.getElementById(name+"1_img");
+					img.src = makeURL('images/'+sr.bm);
+				}
+				catch(e)
+				{
+					var img = document.createElement('img');
+					img.src = makeURL('images/'+sr.bm);
+					img.id = name+'1_img';
+					img.width = sr.bm_width;
+					img.height = sr.bm_height;
+					justifyImage(img, button, CENTER_CODE.SC_ICON, 1);
+					img.style.display = "flex";
+					img.style.order = 2;
+	
+					try
+					{
+						var bsr = document.getElementById(name+"1");
+						bsr.appendChild(img);
+					}
+					catch(e)
+					{
+						errlog("drawButtonMultistateAni: Error: "+e);
+						clearInterval(handle);
+					}
+				}
+			}
+			catch(e)
+			{
+				errlog("drawButtonMultistateAni: Error: "+e);
+				clearInterval(handle);
+			}
+		}
+
+		if (sr.ii > 0)		// Icon?
+		{
+			var ico = getIconFile(sr.ii);
+			var dim = getIconDim(sr.ii);
+
+			if (ico !== -1)
+			{
+				var img = document.createElement('img');
+				img.src = makeURL('images/'+ico);
+				img.id = name+'1_img';
+				img.width = dim[0];
+				img.height = dim[1];
+				justifyImage(img, button, CENTER_CODE.SC_ICON, 1);
+				img.style.display = "flex";
+				img.style.order = 2;
+
+				try
+				{
+					var bsr = document.getElementById(name+"1");
+					bsr.appendChild(img);
+				}
+				catch(e)
+				{
+					errlog("drawButtonMultistateAni: Error: "+e);
+					clearInterval(handle);
+				}
+			}
+		}
+
+		state++;
+		idx++;
+
+		if (state > button.stateCount)
+		{
+			state = 1;
+			idx = 0;
+		}
+	}, button.nu * 10);
+}
 /**
  * this function takes 2 URIs. One for a special mask where the green and/or
  * red channel marks whether there should be used col1 or col2.

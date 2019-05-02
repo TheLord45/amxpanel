@@ -276,12 +276,26 @@ bool amx::Page::parsePage()
 					page.buttons.back().lv = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("va") == 0 && reader.has_value())
 					page.buttons.back().va = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("rm") == 0 && reader.has_value())
+					page.buttons.back().rm = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("nu") == 0 && reader.has_value())
+					page.buttons.back().nu = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("nd") == 0 && reader.has_value())
+					page.buttons.back().nd = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("ar") == 0 && reader.has_value())
+					page.buttons.back().ar = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("ru") == 0 && reader.has_value())
+					page.buttons.back().ru = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("rd") == 0 && reader.has_value())
+					page.buttons.back().rd = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("rv") == 0 && reader.has_value())
 					page.buttons.back().rv = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("rl") == 0 && reader.has_value())
 					page.buttons.back().rl = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("rh") == 0 && reader.has_value())
 					page.buttons.back().rh = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("stateCount") == 0 && reader.has_value())
+					page.buttons.back().stateCount = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("dr") == 0 && reader.has_value())
 					page.buttons.back().dr = reader.get_value().c_str();
 				else if (name.caseCompare("pf") == 0 && reader.has_value())
@@ -585,6 +599,8 @@ void Page::serializeToFile()
 		pgFile << "\t\t \"fb\":" << page.buttons[i].fb << ",\"ap\":" << page.buttons[i].ap << ",\"ad\":" << page.buttons[i].ad << ",\"ch\":" << page.buttons[i].ch << "," << std::endl;
 		pgFile << "\t\t \"cp\":" << page.buttons[i].cp << ",\"lp\":" << page.buttons[i].lp << ",\"lv\":" << page.buttons[i].lv << ",\"dr\":\"" << page.buttons[i].dr << "\"," << std::endl;
 		pgFile << "\t\t \"va\":" << page.buttons[i].va << ",\"rv\":" << page.buttons[i].rv << ",\"rl\":" << page.buttons[i].rl << ",\"rh\":" << page.buttons[i].rh << "," << std::endl;
+		pgFile << "\t\t \"rm\":" << page.buttons[i].rm << ",\"nu\":" << page.buttons[i].nu << ",\"nd\":" << page.buttons[i].nd << ",\"ar\":" << page.buttons[i].ar << "," << std::endl;
+		pgFile << "\t\t \"ru\":" << page.buttons[i].ru << ",\"rd\":" << page.buttons[i].rd << ",\"stateCount\":" << page.buttons[i].stateCount << "," << std::endl;
 
 		if (page.buttons[i].pushFunc.size() > 0)
 		{
