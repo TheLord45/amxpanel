@@ -479,8 +479,6 @@ function activeTouch(event, name, object)
 				var name1 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_1";
 				var name2 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_2";
 
-				debug("activeTouch: Button "+button.bname+" found.");
-
 				if (button.cp >= 0 && button.ch > 0)
 				{
 					if (event.type == "mousedown" || event.type == "pointerdown" || event.type == "touchdown")
@@ -820,6 +818,8 @@ function doDraw(pgKey, pageID, what)
 				}
 			}
 
+			var block = false;
+
 			for (j in button.sr)
 			{
 				var sr = button.sr[j];
@@ -871,7 +871,8 @@ function doDraw(pgKey, pageID, what)
 
 				var idx = parseInt(j);
 
-				if ((button.btype != BUTTONTYPE.BARGRAPH || button.sr.length != 2) && sr.mi.length > 0)	// chameleon image?
+				if (((button.btype != BUTTONTYPE.BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_GENERAL) ||
+					button.sr.length != 2) && sr.mi.length > 0)	// chameleon image?
 				{
 					var width = sr.mi_width;
 					var height = sr.mi_height;
@@ -883,12 +884,18 @@ function doDraw(pgKey, pageID, what)
 					else
 						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 				}
+				else if (button.btype == BUTTONTYPE.MULTISTATE_GENERAL && button.ar == 1 && idx == 0)
+				{
+					block = true;
+					drawButtonMultistateAni(button, nm);
+				}
 				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
 				{
 					var width = sr.mi_width;
 					var height = sr.mi_height;
 					var css = calcImagePosition(width, height, button, CENTER_CODE.SC_BITMAP, sr.number);
 					setCSSclass(nm+sr.number+"_canvas", css+"display: flex; order: 1;");
+					block = true;
 
 					if (button.sr[idx+1].bm.length > 0)
 					{
@@ -913,6 +920,7 @@ function doDraw(pgKey, pageID, what)
 					var width = button.wt;
 					var height = button.ht;
 					setCSSclass(nm+sr.number+"_canvas", "display: flex; order: 1;");
+					block = true;
 
 					var lev = getBargraphLevel(pgKey.ID, button.bID);
 					var level = parseInt(100.0 / (button.rh - button.rl) * lev);
@@ -928,11 +936,12 @@ function doDraw(pgKey, pageID, what)
 					drawBargraphLight(nm+sr.number, level, width, height, getWebColor(button.sr[idx+1].cf), getWebColor(sr.cf), dir, clickable, button);
 				}
 				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length == 0 && sr.bm.length > 0 &&
-						 hasGraphic(button, idx) && idx == 0)
+						 hasGraphic(button, 1) && idx == 0)
 				{
 					var width = button.wt;
 					var height = button.ht;
 					setCSSclass(nm+sr.number+"_canvas", "display: flex; order: 1;");
+					block = true;
 
 					var lev = getBargraphLevel(pgKey.ID, button.bID);
 					var level = parseInt(100.0 / (button.rh - button.rl) * lev);
@@ -947,7 +956,14 @@ function doDraw(pgKey, pageID, what)
 
 					drawBargraph2Graph(makeURL("images/"+button.sr[idx+1].bm), makeURL("images/"+button.sr[idx].bm), nm+sr.number, level, width, height, dir, clickable, button);
 				}
-				else if (sr.bm.length > 0)
+				else if (button.btype == BUTTONTYPE.MULTISTATE_BARGRAPH && idx == 0)
+				{
+					var lev = getBargraphLevel(pgKey.ID, button.bID);
+					var level = parseInt(100.0 / (button.rh - button.rl) * lev);
+					block = true;
+					drawBargraphMultistate(button, nm, level);
+				}
+				else if (sr.bm.length > 0 && !block)
 				{
 					bsr.style.backgroundImage = "url('images/"+sr.bm+"')";
 					bsr.style.backgroundRepeat = "no-repeat";
