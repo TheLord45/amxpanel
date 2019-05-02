@@ -83,6 +83,22 @@ const SHOWEFFECT = Object.freeze({
 	SE_SLIDE_BOTTOM_FADE:	9
 });
 
+const SYSTEMS = Object.freeze({
+	OBJ_TIME_STANDARD:			141,
+	OBJ_TIME_AMPM:				142,
+	OBJ_TIME_24:				143,
+	OBJ_DATE_151:				151,
+	OBJ_DATE_152:				152,
+	OBJ_DATE_153:				153,
+	OBJ_DATE_154:				154,
+	OBJ_DATE_155:				155,
+	OBJ_DATE_156:				156,
+	OBJ_DATE_157:				157,
+	OBJ_DATE_158:				158,
+	OBJ_BAT_LEVEL:				242,
+	OBJ_BAT_CHARGE:				234
+});
+
 var sysBorders = { "borders":[
 	{ "name": "Single Line", "border_style": "solid", "border_width": "1px", "border_radius": "" },
 	{ "name": "Double Line", "border_style": "solid", "border_width": "2px", "border_radius": "" },
@@ -153,25 +169,6 @@ function isSystemReserved(channel)
 	}
 
 	return false;
-}
-function getSystemReservedFunc(channel)
-{
-	var i;
-
-	try
-	{
-		for (i in sysReserved.dttm)
-		{
-			if (sysReserved.dttm[i].channel == channel)
-				return sysReserved.dttm[i].func;
-		}
-	}
-	catch(e)
-	{
-		errlog("getSystemReservedFunc: Error: "+e);
-	}
-
-	return -1;
 }
 function getSystemReservedName(channel)
 {
@@ -369,6 +366,8 @@ function onlineStatus()
 		else
 			setOnlineStatus(0);
 	}
+
+	setSystemBattery(true);
 }
 function onOnline()
 {
@@ -591,7 +590,7 @@ function doDraw(pgKey, pageID, what)
 	}
 	catch(e)
 	{
-		errlog("doDraw: Error: "+e);
+		errlog("doDraw: Error getting page type: "+e);
 		return false;
 	}
 
@@ -631,7 +630,7 @@ function doDraw(pgKey, pageID, what)
 			}
 			catch(e)
 			{
-				errlog("doDraw: Error: "+e);
+				errlog("doDraw: Error getting image dimensions: "+e);
 				return false;
 			}
 		}
@@ -894,7 +893,7 @@ function doDraw(pgKey, pageID, what)
 					if (button.sr[idx+1].bm.length > 0)
 					{
 						var lev = getBargraphLevel(pgKey.ID, button.bID);
-						var level = parseInt(100.0 / button.rh * lev);
+						var level = parseInt(100.0 / (button.rh - button.rl) * lev);
 						var dir = true;
 						var clickable = false;
 
@@ -903,7 +902,7 @@ function doDraw(pgKey, pageID, what)
 
 						if (button.cp > 0 && button.ch > 0)
 							clickable = true;
-	
+
 						drawBargraph(makeURL("images/"+sr.mi), makeURL("images/"+button.sr[idx+1].bm), nm+sr.number, level, width, height, getAMXColor(button.sr[idx+1].cf), getAMXColor(button.sr[idx+1].cb), dir, clickable, button);
 					}
 					else
@@ -928,10 +927,26 @@ function doDraw(pgKey, pageID, what)
 
 					drawBargraphLight(nm+sr.number, level, width, height, getWebColor(button.sr[idx+1].cf), getWebColor(sr.cf), dir, clickable, button);
 				}
-//				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length == 0 && idx == 0)
-//				{
+				else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length == 0 && sr.bm.length > 0 &&
+						 hasGraphic(button, idx) && idx == 0)
+				{
+					var width = button.wt;
+					var height = button.ht;
+					setCSSclass(nm+sr.number+"_canvas", "display: flex; order: 1;");
 
-//				}
+					var lev = getBargraphLevel(pgKey.ID, button.bID);
+					var level = parseInt(100.0 / (button.rh - button.rl) * lev);
+					var dir = true;
+					var clickable = false;
+
+					if (button.dr == "horizontal")
+						dir = false;
+
+					if (button.cp > 0 && button.ch > 0)
+						clickable = true;
+
+					drawBargraph2Graph(makeURL("images/"+button.sr[idx+1].bm), makeURL("images/"+button.sr[idx].bm), nm+sr.number, level, width, height, dir, clickable, button);
+				}
 				else if (sr.bm.length > 0)
 				{
 					bsr.style.backgroundImage = "url('images/"+sr.bm+"')";
@@ -1097,7 +1112,7 @@ function doDraw(pgKey, pageID, what)
 		}
 		catch(e)
 		{
-			errlog("doDraw: Error: "+e);
+			errlog("doDraw: Error on button '"+button.bname+"': "+e);
 			return false;
 		}
 	}

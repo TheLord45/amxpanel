@@ -239,7 +239,7 @@ function roundRect(ctx, x, y, width, height, radius, lnwidth, level, stroke, col
 {
 	if (typeof stroke == "undefined" )
 		stroke = true;
-	
+
 	if (typeof radius === "undefined")
 		radius = 5;
 
@@ -539,11 +539,11 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
  * @param dir
  * Boolean option to set the direction of the bargraph. FALSE means vertical
  * and TRUE means horizontal.
- * 
+ *
  * @param feedback
  * Boolean optional option to make the bargraph send a level back to the
  * controller.
- * 
+ *
  * @param button
  * An optional array containing the defination for the "button" to draw.
  * This should be used when the bargraph sets the level with a click and
@@ -662,6 +662,224 @@ async function drawBargraphLight(name, level, width, height, col1, col2, dir, fe
 
 	return true;
 }
+/**
+ * this function takes 2 URIs. It draws a background image and overlays it
+ * with a part of the foreground image. The size of the part depends on the
+ * level.
+ *
+ * @param uriFg
+ * This URI should point to an image. The image is used as the foreground
+ * image. Depending on the level, the apropriate part of the image will be
+ * drawn above the background image.
+ *
+ * @param uriBg
+ * This URI points to an image. This image is used as a background image.
+ *
+ * @param name
+ * This is the name of the element where the new \b canvas should be
+ * inserted.
+ *
+ * @param level
+ * This is a level in the range of 0 to 100 (percent). Only the given
+ * percentage part of mask \a uriRed will be visible. Everything else of
+ * this mask will be transparent and therefore invisible.
+ *
+ * @param width
+ * The width of the image.
+ *
+ * @param height
+ * The hight of the image.
+ *
+ * @param dir
+ * Boolean option to set the direction of the bargraph. FALSE means vertical
+ * and TRUE means horizontal.
+ *
+ * @param feedback
+ * Boolean optional option to make the bargraph send a level back to the
+ * controller.
+ *
+ * @param button
+ * An optional array containing the defination for the "button" to draw.
+ * This should be used when the bargraph sets the level with a click and
+ * send back the level to the controller.
+ */
+async function drawBargraph2Graph(uriFg, uriBg, name, level, width, height, dir, feedback = false, button = null)
+{
+	if (width <= 0 || height <= 0 || uriFg.length == 0 || uriBg.length == 0)
+	{
+		debug("drawBargraph: name="+name+", uriRed="+uriFg+", uriMask="+uriBg+", width="+width+", height="+height+", level="+level);
+		return;
+	}
+
+	var readyPic1 = false;
+	var readyPic2 = false;
+	var canvas1 = document.createElement('canvas');
+	var canvas2 = document.createElement('canvas');
+	var canvas3;
+	var old = false;
+
+	try
+	{
+		canvas3 = document.getElementById(name+'_canvas');
+
+		if (canvas3.getContext)
+			old = true;
+		else
+		{
+			canvas3 = document.createElement('canvas');
+			old = false;
+		}
+	}
+	catch(e)
+	{
+		canvas3 = document.createElement('canvas');
+		old = false;
+	}
+
+	if (canvas1.getContext && canvas2.getContext && canvas3.getContext)
+	{
+		var ctx1 = canvas1.getContext('2d');
+		var ctx2 = canvas2.getContext('2d');
+		var ctx3 = canvas3.getContext('2d');
+
+		var imgFg = new Image();
+		var imgBg = new Image();
+		imgFg.src = uriFg;
+		imgFg.setAttribute('crossOrigin', '');
+		imgBg.src = uriBg;
+		imgBg.setAttribute('crossOrigin', '');
+
+		canvas1.width = width;
+		canvas1.height = height;
+		canvas2.width = width;
+		canvas2.height = height;
+		canvas3.width = width;
+		canvas3.height = height;
+
+		if (!imgFg.complete)
+		{
+			imgFg.onload = function()
+			{
+				ctx1.drawImage(imgFg, 0, 0);
+				readyPic1 = true;
+			}
+		}
+		else
+		{
+			ctx1.drawImage(imgFg, 0, 0);
+			readyPic1 = true;
+		}
+
+		if (!imgBg.complete)
+		{
+			imgBg.onload = function()
+			{
+				ctx2.drawImage(imgBg, 0, 0);
+				readyPic2 = true;
+			}
+		}
+		else
+		{
+			ctx2.drawImage(imgBg, 0, 0);
+			readyPic2 = true;
+		}
+
+		var cnt = 0;
+
+		while((!readyPic1 || !readyPic2) && cnt < 20)
+		{
+			await new Promise(r => setTimeout(r, 200));
+			cnt++;
+		}
+
+		if (!readyPic1)
+		{
+			errlog("drawBargraph2Graph: WARNING: "+uriFg+" not loaded!");
+			ctx1.drawImage(imgFg, 0, 0);
+		}
+
+		if (!readyPic2)
+		{
+			errlog("drawBargraph2Graph: WARNING: "+uriBg+" not loaded!");
+			ctx2.drawImage(imgBg, 0, 0);
+		}
+
+		// Draw a part of the foreground image over the full background image.
+		var imgData;
+
+		if (dir)	// vertical?
+		{
+			var ht = height / 100 * level;
+
+			if (ht <= 0)
+				ht = 1;
+
+			imgData = ctx1.getImageData(0, height - ht, width, ht);
+			ctx1.putImageData(imgData, 0, height - ht);
+		}
+		else
+		{
+			var wt = width / 100 * level;
+
+			if (wt <= 0)
+				wt = 1;
+
+			imgData = ctx1.getImageData(0, 0, wt, height);
+			ctx1.putImageData(imgData, 0, 0);
+		}
+
+		ctx3.drawImage(canvas2, 0, 0);
+		ctx3.globalCompositeOperation = "source-atop";
+		ctx3.drawImage(canvas1, 0, 0);
+
+		canvas3.id = name+"_canvas";
+		canvas3.className = name+"_canvas";
+		var div = document.getElementById(name);
+
+		if (div === null)
+			return;
+
+		if (!old)
+		{
+			div.appendChild(canvas3);
+			div.insertBefore(canvas3, div.firstChild);
+		}
+
+		if (feedback)
+        {
+            div.addEventListener('click', function(evt)
+            {
+                var mousePos = getMousePos(canvas3, evt);
+                var lev = 0;
+
+                if (dir)
+                    lev = 100 - ~~(100.0 / height * mousePos.y);
+                else
+                    lev = ~~(100.0 / width * mousePos.x);
+
+                drawBargraph2Graph(uriRed, uriMask, name, lev, width, height, dir);
+
+				if (button !== null)
+				{
+					var l = ~~((button.rh - button.rl) / 100.0 * lev);
+					writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l);
+					var butKenn = getButtonKennung(name);
+
+					if (butKenn !== null)
+						setBargraphLevel(butKenn[0], butKenn[1], l);
+				}
+            }, false);
+        }
+	}
+	else
+	{
+		errlog("drawBargraph2Graph: Error getting context for canvas "+name+"!");
+		return false;
+	}
+
+	return true;
+}
+
 /**
  * this function takes 2 URIs. One for a special mask where the green and/or
  * red channel marks whether there should be used col1 or col2.
