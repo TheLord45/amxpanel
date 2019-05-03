@@ -971,8 +971,11 @@ function hideGroup(name)
 	var i;
 	group = popupGroups[name];
 
-	if (name == "")
+	if (group === null || typeof group == "undefined" || name === null || typeof name == "undefined" || name.length == 0)
+	{
+		errlog("hideGroup: Invalid group name '"+name+"'!");
 		return;
+	}
 
 	for (i in group)
 	{

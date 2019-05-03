@@ -805,7 +805,7 @@ function doDraw(pgKey, pageID, what)
 					}
 				}
 
-				for (x in button.pf)
+				for (var x in button.pf)
 				{
 					var pf = button.pf[x];
 
