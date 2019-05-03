@@ -31,8 +31,6 @@ Syslog *sysl;
 amx::TouchPanel *pTouchPanel;
 bool killed;
 
-#define VERSION		"1.0"
-
 using namespace strings;
 using namespace std;
 

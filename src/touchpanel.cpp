@@ -109,7 +109,7 @@ bool TouchPanel::startClient()
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -489,7 +489,7 @@ bool TouchPanel::parsePages()
 			return false;
 		}
 
-		jsFile << "{" << std::endl << "\t\"short_name\": \"AMXP\"," << std::endl;
+		jsFile << "{" << std::endl << "\t\"short_name\": \"AMXPanel\"," << std::endl;
 		jsFile << "\t\"name\": \"AMX Panel\"," << std::endl;
 		jsFile << "\t\"icons\": [" << std::endl << "\t\t{" << std::endl;
 		jsFile << "\t\t\t\"src\": \"images/icon.png\"," << std::endl;
@@ -521,11 +521,13 @@ bool TouchPanel::parsePages()
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		return false;
 	}
-/****
-	std::string cacheName = Configuration->getHTTProot().toString()+"/cache.appcache";
 
+	getFontList()->serializeToJson();
+
+	// Service worker code
 	try
 	{
+		std::string cacheName = Configuration->getHTTProot().toString()+"/scripts/sw.js";
 		cacheFile.open(cacheName, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!cacheFile.is_open())
@@ -533,6 +535,28 @@ bool TouchPanel::parsePages()
 			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+cacheName);
 			return false;
 		}
+
+		cacheFile << std::endl << "// This is the Service Worker needed to run as a stand allone app." << std::endl;
+		cacheFile << "if('serviceWorker' in navigator)\n{" << std::endl;
+		cacheFile << "\twindow.addEventListener('load', () => {" << std::endl;
+		cacheFile << "\t\tnavigator.serviceWorker.register('scripts/sw.js').then((registration) => {" << std::endl;
+		cacheFile << "\t\t\tdebug(\"Service Worker registration successful: \"+registration);" << std::endl;
+		cacheFile << "\t\t}, (err) => {\n\t\t\terrlog(\"Registration failed:\"+err);" << std::endl;
+		cacheFile << "\t\t})\n\t})\n}" << std::endl << std::endl;
+		cacheFile << "let cache_name = 'amxpanel-" << VERSION << "'" << std::endl << std::endl;
+		cacheFile << "let urls_to_cache = [" << std::endl;
+		cacheFile << "\t'" << Configuration->getWebLocation() << "'," << std::endl;
+		cacheFile << "\t'" << Configuration->getWebLocation() << "/scripts/'," << std::endl;
+		cacheFile << "\t'" << Configuration->getWebLocation() << "/images/'" << std::endl;
+		cacheFile << "]" << std::endl << std::endl;
+		cacheFile << "self.addEventListener('install', (e) => {" << std::endl;
+		cacheFile << "\te.waitUntil(caches.open(cache_name).then((cache) => {" << std::endl;
+		cacheFile << "\t\treturn cache.addAll(urls_to_cache)\n\t}) )\n})" << std::endl << std::endl;
+		cacheFile << "self.addEventListener('fetch', (e) => {" << std::endl;
+		cacheFile << "\te.respondWith(caches.match(e.request).then((response) => {" << std::endl;
+		cacheFile << "\t\tif(response)\n\t\t\treturn response\n\t\telse\n\t\t\treturn fetch(e.request)" << std::endl;
+		cacheFile << "\t}) )\n})" << std::endl << std::endl;
+		cacheFile.close();
 	}
 	catch (const std::fstream::failure e)
 	{
@@ -540,13 +564,8 @@ bool TouchPanel::parsePages()
 		return false;
 	}
 
-	cacheFile << "CACHE MANIFEST" << std::endl;
-****/
-	getFontList()->serializeToJson();
-
 	// Page header
 	pgFile << "<!DOCTYPE html>\n";
-//	pgFile << "<html manifest=\"cache.appcache\">\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
 	pgFile << "<meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=0.7, minimum-scale=0.7, maximum-scale=1.0, user-scalable=yes\"/>\n";
@@ -555,9 +574,10 @@ bool TouchPanel::parsePages()
 	pgFile << "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\" />" << std::endl;
 	pgFile << "<link rel=\"manifest\" href=\"manifest.json\">" << std::endl;
 	pgFile << "<link rel=\"icon\" sizes=\"256x256\" href=\"images/icon.png\">" << std::endl;
-	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">\n";
+	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">" << std::endl;
 	// Scripts
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/imprint.min.js\"></script>\n";
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/sw.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/imprint.min.js\"></script>" << std::endl;
 	pgFile << "<script>\n";
 	pgFile << "\"use strict\";\n";
 	pgFile << "var fingerprint = \"\";\n";
@@ -749,21 +769,10 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl << std::endl;
-/****
-	cacheFile << "scripts/pages.js" << std::endl;
-	cacheFile << "scripts/popups.js" << std::endl;
-	cacheFile << "scripts/groups.js" << std::endl;
-	cacheFile << "scripts/btarray.js" << std::endl;
-	cacheFile << "scripts/icons.js" << std::endl;
-	cacheFile << "scripts/bargraphs.js" << std::endl;
-	cacheFile << "scripts/palette.js" << std::endl;
-	cacheFile << "scripts/fonts.js" << std::endl;
-	cacheFile << "scripts/chameleon.js" << std::endl;
-****/
+
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
 		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPages[i].ID << ".js\"></script>" << std::endl;
-//		cacheFile << "scripts/Page" << stPages[i].ID << ".js" << std::endl;
 	}
 
 	pgFile << std::endl;
@@ -771,65 +780,13 @@ bool TouchPanel::parsePages()
 	for (size_t i = 0; i < stPopups.size(); i++)
 	{
 		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPopups[i].ID << ".js\"></script>" << std::endl;
-//		cacheFile << "scripts/Page" << stPopups[i].ID << ".js" << std::endl;
 	}
 
 	pgFile << std::endl << "<script type=\"text/javascript\" src=\"scripts/page.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>" << std::endl;
-/****
-	cacheFile << "scripts/page.js" << std::endl;
-	cacheFile << "scripts/amxpanel.js" << std::endl;
-	cacheFile << "amxpanel.css" << std::endl;
-	cacheFile << "index.html" << std::endl;
-	cacheFile << "manifest.json" << std::endl;
-
-	std::vector<String> bitmaps;
-
-	for (size_t i = 0; i < pageList.size(); i++)
-	{
-		for (size_t j = 0; j < pageList[i].sr.size(); j++)
-		{
-			if (pageList[i].sr[j].bm.length() > 0 && pageList[i].sr[j].sb == 0)
-			{
-				if (!isPresent(bitmaps, pageList[i].sr[j].bm))
-					bitmaps.push_back(NameFormat::toURL(pageList[i].sr[j].bm));
-			}
-
-			if (pageList[i].sr[j].mi.length() > 0)
-			{
-				if (!isPresent(bitmaps, pageList[i].sr[j].mi))
-					bitmaps.push_back(NameFormat::toURL(pageList[i].sr[j].mi));
-			}
-		}
-
-		for (size_t z = 0; z < pageList[i].buttons.size(); z++)
-		{
-			for (size_t j = 0; j < pageList[i].buttons[z].sr.size(); j++)
-			{
-				if (pageList[i].buttons[z].sr[j].bm.length() > 0 && pageList[i].buttons[z].sr[j].sb == 0)
-				{
-					if (!isPresent(bitmaps, pageList[i].buttons[z].sr[j].bm))
-						bitmaps.push_back(NameFormat::toURL(pageList[i].buttons[z].sr[j].bm));
-				}
-
-				if (pageList[i].buttons[z].sr[j].mi.length() > 0)
-				{
-					if (!isPresent(bitmaps, pageList[i].buttons[z].sr[j].mi))
-						bitmaps.push_back(NameFormat::toURL(pageList[i].buttons[z].sr[j].mi));
-				}
-			}
-		}
-	}
-
-	for (size_t i = 0; i < bitmaps.size(); i++)
-		cacheFile << "images/" << bitmaps[i] << std::endl;
-
-	cacheFile << "NETWORK:" << std::endl << "*" << std::endl;
-	cacheFile.close();
-****/
 	// Add some special script functions
 	pgFile << "<script>\n";
-	pgFile << scrBuffer << "\n";
+	pgFile << scrBuffer << std::endl;
 	// This is the WebSocket connection function
 	pgFile << "function connect()\n{\n";
 	pgFile << "\ttry\n\t{\n";
@@ -877,13 +834,6 @@ bool TouchPanel::parsePages()
 	// The page body
 	pgFile << "<body onload=\"makeFingerprint(); main(); connect(); onlineStatus();\">" << std::endl;
 	pgFile << "   <div id=\"main\"></div>" << std::endl;
-/*
-	for (size_t i = 0; i < stPages.size(); i++)
-	{
-		pgFile << stPages[i].webcode;
-		writeAllPopups(pgFile);
-	}
-*/
 	pgFile << "</body>\n</html>\n";
 	pgFile.close();
 	// Mark as parsed

@@ -33,6 +33,8 @@
 #include "websocket.h"
 #include "fontlist.h"
 
+#define VERSION		"1.0"
+
 namespace amx
 {
 	typedef struct ST_PAGE

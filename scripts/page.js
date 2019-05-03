@@ -788,7 +788,7 @@ function doDraw(pgKey, pageID, what)
 					{
 						if (button.hs.length == 0)
 						{
-							bt.addEventListener('click', function(event) {
+							bt.addEventListener('pointerdown', function(event) {
 								var pos = this.id.lastIndexOf('_');
 								var nm;
 
@@ -801,7 +801,7 @@ function doDraw(pgKey, pageID, what)
 							},false);
 						}
 						else
-							bt.addEventListener('click', pushButton.bind(null, button.cp,button.ch,1));
+							bt.addEventListener('pointerdown', pushButton.bind(null, button.cp,button.ch,1));
 					}
 				}
 
@@ -810,11 +810,11 @@ function doDraw(pgKey, pageID, what)
 					var pf = button.pf[x];
 
 					if (pf.pfType == "sShow")			// show popup
-						bt.addEventListener('click', showPopup.bind(null, pf.pfName));
+						bt.addEventListener('pointerup', showPopup.bind(null, pf.pfName));
 					else if (pf.pfType == "sHide")		// hide popup
-						bt.addEventListener('click', hidePopup.bind(null, pf.pfName));
+						bt.addEventListener('pointerup', hidePopup.bind(null, pf.pfName));
 					else if (pf.pfType == "scGroup")	// hide group
-						bt.addEventListener('click', hideGroup.bind(null, pf.pfName));
+						bt.addEventListener('pointerup', hideGroup.bind(null, pf.pfName));
 				}
 			}
 
