@@ -1642,14 +1642,14 @@ function doAPF(msg)
 				num = bt[b].instances;
 
 				for (j = 0; j < num; j++)
-					document.getElementById('Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+j).addEventListener("click", showPopup(name));
+					document.getElementById('Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+j).addEventListener("pointerup", showPopup(name));
 			}
 			else if (cmd.search('Hide') >= 0)
 			{
 				num = bt[b].instances;
 
 				for (j = 0; j < num; j++)
-					document.getElementById('Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+j).addEventListener("click", hidePopup(name));
+					document.getElementById('Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+j).addEventListener("pointerup", hidePopup(name));
 			}
 			// FIXME: There are more commands!
 		}
@@ -2099,7 +2099,28 @@ function doCPF(msg)
 
 			try
 			{
-				document.getElementById(name).addEventListener('click', null);
+				var elem = document.getElementById(name);
+				
+				try
+				{
+					elem.removeEventListener('pointerup', showPopup);
+				}
+				catch(e)
+				{}
+				
+				try
+				{
+					elem.removeEventListener('pointerup', hidePopup);
+				}
+				catch(e)
+				{}
+				
+				try
+				{
+					elem.removeEventListener('pointerup', hideGroup);
+				}
+				catch(e)
+				{}
 			}
 			catch(e)
 			{

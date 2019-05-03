@@ -484,7 +484,7 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 
 		if (feedback)
         {
-            div.addEventListener('click', function(evt)
+            div.addEventListener('pointerdown', function(evt)
             {
                 var mousePos = getMousePos(canvas3, evt);
                 var lev = 0;
@@ -639,7 +639,7 @@ async function drawBargraphLight(name, level, width, height, col1, col2, dir, fe
 
 		if (feedback)
         {
-            div.addEventListener('click', function(evt)
+            div.addEventListener('pointerdown', function(evt)
             {
                 var mousePos = getMousePos(canvas1, evt);
                 var lev = 0;
@@ -856,7 +856,7 @@ async function drawBargraph2Graph(uriFg, uriBg, name, level, width, height, dir,
 
 		if (feedback)
         {
-            div.addEventListener('click', function(evt)
+            div.addEventListener('pointerdown', function(evt)
             {
                 var mousePos = getMousePos(canvas3, evt);
                 var lev = 0;
@@ -976,7 +976,7 @@ async function drawBargraphMultistate(button, name, level)
 /**
 	if (feedback)
 	{
-		div.addEventListener('click', function(evt)
+		div.addEventListener('pointerdown', function(evt)
 		{
 			var mousePos = getMousePos(canvas3, evt);
 			var lev = 0;
