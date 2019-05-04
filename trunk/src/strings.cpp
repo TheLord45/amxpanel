@@ -2029,6 +2029,11 @@ char *String::getMemory(size_t l, size_t& a, char *p) const
 
 int String::_comp(char* s1, char* s2, size_t l)
 {
+	if (s1 == 0 && s2 == 0)
+		return 0;
+	else if (s1 == 0 || s2 == 0)
+		return 1;
+
 	for (size_t i = 0; i < l; i++)
 	{
 		if (*(s1+i) == 0)

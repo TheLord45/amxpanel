@@ -709,7 +709,6 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-//		cacheFile.close();
 		return false;
 	}
 
@@ -732,7 +731,6 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-//		cacheFile.close();
 		return false;
 	}
 
@@ -755,7 +753,54 @@ bool TouchPanel::parsePages()
 	{
 		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-//		cacheFile.close();
+		return false;
+	}
+
+	try
+	{
+		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/resource.js";
+		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
+
+		if (!jsFile.is_open())
+		{
+			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			pgFile.close();
+			return false;
+		}
+
+		PROJECT_T prj = getProject();
+		std::vector<RESOURCE_LIST_T>& resList = prj.resourceLists;
+		jsFile << "var ressources = { \"ressources\":[" << std::endl;
+
+		for (size_t i = 0; i < resList.size(); i++)
+		{
+			if (i > 0)
+				jsFile << "," << std::endl;
+
+			std::vector<RESOURCE_T>& res = resList[i].ressource;
+			jsFile << "\t{\"type\":\"" << resList[i].type << "\",\"ressource\":[" << std::endl;
+
+			for (size_t j = 0; j < res.size(); j++)
+			{
+				if (j > 0)
+					jsFile << "," << std::endl;
+
+				jsFile << "\t\t{\"name\":\"" << res[j].name << "\",\"protocol\":\"" << res[j].protocol << "\"," << std::endl;
+				jsFile << "\t\t \"user\":\"" << res[j].user << "\",\"password\":\"" << res[j].password << "\"," << std::endl;
+				jsFile << "\t\t \"encrypted\":" << ((res[j].encrypted)?"true":"false") << ",\"host\":\"" << res[j].host << "\"," << std::endl;
+				jsFile << "\t\t \"path\":\"" << res[j].path << "\",\"file\":\"" << res[j].file << "\",\"refresh\":" << ((res[j].refresh)?"true":"false") << "}";
+			}
+
+			jsFile << std::endl << "\t]}";
+		}
+
+		jsFile << std::endl << "]};" << std::endl;
+		jsFile.close();
+	}
+	catch (const std::fstream::failure e)
+	{
+		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		pgFile.close();
 		return false;
 	}
 
