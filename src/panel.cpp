@@ -204,8 +204,6 @@ void amx::Panel::readProject()
 				{
 					value = string(reader.get_value());
 					value.trim();
-//					value.replace("\n", "");
-//					value.replace("\r", "");
 				}
 
 				if (reader.has_attributes())
@@ -594,28 +592,37 @@ void amx::Panel::setResourceList(const strings::String& name, const strings::Str
 	if (rl.ressource.size() == 0)
 		return;
 
+	bool hasValue = false, hasAttr = false;
 	RESOURCE_T& rs = rl.ressource.back();
+	sysl->TRACE(String("Panel::setResourceList: name=")+name+", value="+value+", attr="+attr);
 
-	if (name.caseCompare("name") == 0)
+	if (value.length() > 0)
+		hasValue = true;
+
+	if (attr.length() > 0)
+		hasAttr = true;
+
+	if (name.caseCompare("name") == 0 && hasValue)
 		rs.name = value;
-	else if (name.caseCompare("protocol") == 0)
+	else if (name.caseCompare("protocol") == 0 && hasValue)
 		rs.protocol = value;
-	else if (name.caseCompare("user") == 0)
+	else if (name.caseCompare("user") == 0 && hasValue)
 		rs.user = value;
 	else if (name.caseCompare("password") == 0)
 	{
-		rs.password = value;
+		if (hasValue)
+			rs.password = value;
 
-		if (attr.length() > 0 && attr.isNumeric())
+		if (hasAttr && attr.isNumeric())
 			rs.encrypted = atoi(attr.data());
 	}
-	else if (name.caseCompare("host") == 0)
+	else if (name.caseCompare("host") == 0 && hasValue)
 		rs.host = value;
-	else if (name.caseCompare("path") == 0)
+	else if (name.caseCompare("path") == 0 && hasValue)
 		rs.path = value;
-	else if (name.caseCompare("file") == 0)
+	else if (name.caseCompare("file") == 0 && hasValue)
 		rs.file = value;
-	else if (name.caseCompare("refresh") == 0)
+	else if (name.caseCompare("refresh") == 0 && hasValue)
 		rs.refresh = atoi(value.data());
 }
 
