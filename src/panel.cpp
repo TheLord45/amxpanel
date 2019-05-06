@@ -170,7 +170,7 @@ void amx::Panel::readProject()
 					sysl->TRACE(String("Panel::readProject: Added a RESOURCE_LIST_T entry!"));
 				}
 			}
-			else if (!endElement && Part == eResourceList && name.caseCompare("resource") == 0 && reader.get_depth() > depth)
+			else if (!endElement && Part == eResourceList && name.caseCompare("resource") == 0 && reader.get_depth() >= depth)
 			{
 				if (Project.resourceLists.size() > 0)
 				{
