@@ -145,9 +145,9 @@ var cmdArray =
 			{"cmd":"^VKS-","call":unsupported},
 			{"cmd":"@PWD-","call":unsupported},
 			{"cmd":"^PWD-","call":unsupported},
-			{"cmd":"^BBR-","call":unsupported},
-			{"cmd":"^RAF-","call":unsupported},
-			{"cmd":"^RFR-","call":unsupported},
+			{"cmd":"^BBR-","call":doBBR},			// Set the bitmap of a button to use a particular resource.
+			{"cmd":"^RAF-","call":doRAF},			// Add new resources.
+			{"cmd":"^RFR-","call":doRFR},			// Force a refresh for a given resource.
 			{"cmd":"^RMF-","call":unsupported},
 			{"cmd":"^RSR-","call":unsupported},
 			{"cmd":"^MODEL?","call":unsupported},
@@ -1761,6 +1761,50 @@ function doBAT(msg)
 	}
 }
 /*
+ * Set the bitmap of a button to use a particular ressource.
+ */
+function doBBR(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getFild(msg, 1, ',');
+	var name = getField(msg, 2, ',');
+
+	var addrRange = getRange(addr);
+	var btRange = getRange(bts);
+
+	for (var i = 0; i < addrRange.length; i++)
+	{
+		var bt = findButtonPort(addrRange[i]);
+
+		if (bt.length == 0)
+		{
+			errlog('doBBR: Error button '+addrRange[i]+' not found!');
+			continue;
+		}
+
+		for (var b = 0; b < bt.length; b++)
+		{
+			for (var z = 1; z <= bt[b].instances; z++)
+			{
+				for (var j = 0; j < btRange.length; j++)
+				{
+					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+					{
+						var name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
+						var button = getButton(bt[b].pnum, bt[b].bi);
+						var idx = parseInt(z) - 1;
+
+						button.sr[idx].sb = 1;
+						button.sr[idx].bm = name;
+					}
+				}
+			}
+		}
+	}
+
+	refreshResource(name);
+}
+/*
  * Set the border color to the specified color.
  */
 function doBCB(msg)
@@ -2314,6 +2358,57 @@ async function doICO(msg)
 			}
 		}
 	}
+}
+/*
+ * Add new resources.
+ */
+function doRAF(msg)
+{
+	var protocol = "", host = "", path = "", file = "";
+	var name = getField(msg, 0, ',');
+	var data = getField(msg, 1, ',');
+//	var res = {"name":name, "protocol":"", "host":"", "path":"", "file":"", "user":"", "password":"", "refresh":false, "encrypted":false};
+
+	// split the data field
+	var parts = data.split(RegExp("%[PHAF]"));
+
+	for (var i in parts)
+	{
+		var str = parts.replace("%%", "%");
+
+		switch(str.charAt(0))
+		{
+			case 'P':	// Protocol
+				protocol = str.substr(1);
+			break;
+
+			case 'H':	// Host
+				host = str.substr(1);
+			break;
+
+			case 'A':	// Path
+				path = str.substr(1);
+			break;
+
+			case 'F':	// File
+				file = str.substr(1);
+			break;
+		}
+	}
+
+	addResource(name, protocol, host, path, file);
+}
+/*
+ * Force a refresh for a given resource.
+ */
+function doRFR(msg)
+{
+	var name = getField(msg, 0, ',');
+	refreshResource(name);
+}
+function doRMF(msg)
+{
+	
 }
 /*
  * Show or hide a button with a set variable text range.

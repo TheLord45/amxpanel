@@ -871,8 +871,8 @@ function doDraw(pgKey, pageID, what)
 
 				var idx = parseInt(j);
 
-				if (((button.btype != BUTTONTYPE.BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_GENERAL) ||
-					button.sr.length != 2) && sr.mi.length > 0)	// chameleon image?
+				if ((button.btype != BUTTONTYPE.BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_GENERAL) &&
+					button.sr.length == 2 && sr.mi.length > 0)	// chameleon image?
 				{
 					var width = sr.mi_width;
 					var height = sr.mi_height;
@@ -883,6 +883,10 @@ function doDraw(pgKey, pageID, what)
 						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 					else
 						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+				}
+				else if (button.btype == BUTTONTYPE.GENERAL && sr.sb == 1 && sr.bm.length > 0)
+				{
+					drawButtonRemote(button, nm+sr.number, idx);
 				}
 				else if (button.btype == BUTTONTYPE.MULTISTATE_GENERAL && button.ar == 1 && idx == 0)
 				{

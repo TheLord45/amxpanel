@@ -109,7 +109,7 @@ bool TouchPanel::startClient()
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse ÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -539,7 +539,7 @@ bool TouchPanel::parsePages()
 		cacheFile << std::endl << "// This is the Service Worker needed to run as a stand allone app." << std::endl;
 		cacheFile << "if('serviceWorker' in navigator)\n{" << std::endl;
 		cacheFile << "\twindow.addEventListener('load', () => {" << std::endl;
-		cacheFile << "\t\tnavigator.serviceWorker.register('scripts/sw.js').then((registration) => {" << std::endl;
+		cacheFile << "\t\tnavigator.serviceWorker.register('" << Configuration->getWebLocation() << "/scripts/sw.js').then((registration) => {" << std::endl;
 		cacheFile << "\t\t\tdebug(\"Service Worker registration successful: \"+registration);" << std::endl;
 		cacheFile << "\t\t}, (err) => {\n\t\t\terrlog(\"Registration failed:\"+err);" << std::endl;
 		cacheFile << "\t\t})\n\t})\n}" << std::endl << std::endl;
@@ -788,7 +788,7 @@ bool TouchPanel::parsePages()
 				jsFile << "\t\t{\"name\":\"" << res[j].name << "\",\"protocol\":\"" << res[j].protocol << "\"," << std::endl;
 				jsFile << "\t\t \"user\":\"" << res[j].user << "\",\"password\":\"" << res[j].password << "\"," << std::endl;
 				jsFile << "\t\t \"encrypted\":" << ((res[j].encrypted)?"true":"false") << ",\"host\":\"" << res[j].host << "\"," << std::endl;
-				jsFile << "\t\t \"path\":\"" << res[j].path << "\",\"file\":\"" << res[j].file << "\",\"refresh\":" << ((res[j].refresh)?"true":"false") << "}";
+				jsFile << "\t\t \"path\":\"" << res[j].path << "\",\"file\":\"" << res[j].file << "\",\"refresh\":" << res[j].refresh << "}";
 			}
 
 			jsFile << std::endl << "\t]}";
@@ -814,6 +814,8 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/resource.js\"></script>" << std::endl << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/movie.js\"></script>" << std::endl << std::endl;
 
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
