@@ -105,7 +105,7 @@ bool amx::Page::parsePage()
 		try
 		{
 			xml.seekg(0, xml.end);
-			int length = xml.tellg();
+			size_t length = xml.tellg();
 			xml.seekg(0, xml.beg);
 			buffer.resize(length, ' ');
 			char *begin = &*buffer.begin();
@@ -120,12 +120,10 @@ bool amx::Page::parsePage()
 
 		xml.close();
 		sysl->TRACE(String("Page::parsePage: length=")+buffer.length());
-		// Convert from ISO-8859-15 to UTF-8.
-//		String cbuf = isoToUTF(buffer);
+		// Convert from CP1250 (Windblows) to UTF-8.
 		String cbuf = NameFormat::cp1250ToUTF8(buffer);
 		buffer.clear();
 
-//		xmlpp::TextReader reader(uri.toString());
 		xmlpp::TextReader reader((const unsigned char *)cbuf.data(), cbuf.length());
 
 		while (reader.read())
