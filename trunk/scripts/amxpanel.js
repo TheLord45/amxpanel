@@ -3015,7 +3015,7 @@ function getRegistrationID()
 		else
 			registrationID = "";
 
-		__regCounter++;
+		__regCounter = 3;
 		return registrationID;
 	}
 
