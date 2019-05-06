@@ -133,7 +133,16 @@ function refreshResource(name)
 				try
 				{
 					var div = document.getElementById(nm);
-					debug("refreshResource: Button "+nm+" found.");
+
+					if (uri.indexOf("random=") < 0)
+					{
+						if (uri.indexOf('?') >= 0)
+							uri = uri + "&random="+Math.random();
+						else
+							uri = uri + "?random="+Math.random();
+					}
+
+					debug("refreshResource: Image URI: "+uri);
 					div.style.backgroundImage = "url('"+uri+"')";
 					div.style.backgroundRepeat = "no-repeat";
 
@@ -159,6 +168,7 @@ function refreshResource(name)
 				catch(e)
 				{
 					errlog("refreshResource: Error on image "+name+" at button "+nm+" with URL: "+uri);
+					errlog("refreshResource: Error: "+e);
 					// If this is a refreshing image, try to stop the interval
 					for (var x in refreshing.ref)
 					{

@@ -1766,7 +1766,7 @@ function doBAT(msg)
 function doBBR(msg)
 {
 	var addr = getField(msg, 0, ',');
-	var bts = getFild(msg, 1, ',');
+	var bts = getField(msg, 1, ',');
 	var name = getField(msg, 2, ',');
 
 	var addrRange = getRange(addr);
@@ -2144,21 +2144,21 @@ function doCPF(msg)
 			try
 			{
 				var elem = document.getElementById(name);
-				
+
 				try
 				{
 					elem.removeEventListener('pointerup', showPopup);
 				}
 				catch(e)
 				{}
-				
+
 				try
 				{
 					elem.removeEventListener('pointerup', hidePopup);
 				}
 				catch(e)
 				{}
-				
+
 				try
 				{
 					elem.removeEventListener('pointerup', hideGroup);
@@ -2408,7 +2408,7 @@ function doRFR(msg)
 }
 function doRMF(msg)
 {
-	
+
 }
 /*
  * Show or hide a button with a set variable text range.
