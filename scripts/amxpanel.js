@@ -118,8 +118,8 @@ var cmdArray =
 			{"cmd":"?TXT-","call":unsupported},
 			{"cmd":"ABEEP","call":doABEEP},
 			{"cmd":"ADBEEP","call":doADBEEP},
-			{"cmd":"@AKB-","call":unsupported},
-			{"cmd":"AKEYB-","call":unsupported},
+			{"cmd":"@AKB-","call":doAKB},			// Pop up the keyboard icon and initialize the text string to that specified.
+			{"cmd":"AKEYB-","call":doAKB},			// Pop up the keyboard icon and initialize the text string to that specified.
 			{"cmd":"AKEYP-","call":unsupported},
 			{"cmd":"AKEYR-","call":unsupported},
 			{"cmd":"@AKP-","call":unsupported},
@@ -148,8 +148,8 @@ var cmdArray =
 			{"cmd":"^BBR-","call":doBBR},			// Set the bitmap of a button to use a particular resource.
 			{"cmd":"^RAF-","call":doRAF},			// Add new resources.
 			{"cmd":"^RFR-","call":doRFR},			// Force a refresh for a given resource.
-			{"cmd":"^RMF-","call":unsupported},
-			{"cmd":"^RSR-","call":unsupported},
+			{"cmd":"^RMF-","call":doRMF},			// Modify an existing resource.
+			{"cmd":"^RSR-","call":doRSR},			// Change the refresh rate for a given resource.
 			{"cmd":"^MODEL?","call":unsupported},
 			{"cmd":"^ICS-","call":unsupported},
 			{"cmd":"^ICE-","call":unsupported},
@@ -1434,6 +1434,31 @@ function doAFP(msg)
 	showPopup(pg);
 }
 /*
+ * Pop up the keyboard icon and initialize the text string to that
+ * specified.
+ */
+function doAKB(msg)
+{
+	var initText = getField(msg, 0, ';');
+	var promptText = getField(msg, 1, ';');
+
+	let Keyboard = window.SimpleKeyboard.default;
+
+	let myKeyboard = new Keyboard({
+		onChange: input => onChange(input),
+		onKeyPress: button => onKeyPress(button)
+	});
+
+	function onChange(input) {
+		document.querySelector(".input").value = input;
+		debug("Input changed", input);
+	}
+
+	function onKeyPress(button) {
+		debug("Button pressed", button);
+	}
+}
+/*
  * Add a specific popup page to a specified popup group.
  */
 function doAPG(msg)
@@ -2367,10 +2392,9 @@ function doRAF(msg)
 	var protocol = "", host = "", path = "", file = "";
 	var name = getField(msg, 0, ',');
 	var data = getField(msg, 1, ',');
-//	var res = {"name":name, "protocol":"", "host":"", "path":"", "file":"", "user":"", "password":"", "refresh":false, "encrypted":false};
 
 	// split the data field
-	var parts = data.split(RegExp("%[PHAF]"));
+	var parts = data.split(RegExp("%[PHAFUSR]"));
 
 	for (var i in parts)
 	{
@@ -2393,10 +2417,22 @@ function doRAF(msg)
 			case 'F':	// File
 				file = str.substr(1);
 			break;
+
+			case 'U':	// User
+				user = str.substr(1);
+			break;
+
+			case 'S':	// Password
+				pass = str.substr(1);
+			break;
+
+			case 'R':	// Refresh
+				refresh = parseInt(str.substr(1));
+			break;
 		}
 	}
 
-	addResource(name, protocol, host, path, file);
+	addResource(name, protocol, host, path, file, user, pass, refresh);
 }
 /*
  * Force a refresh for a given resource.
@@ -2406,9 +2442,81 @@ function doRFR(msg)
 	var name = getField(msg, 0, ',');
 	refreshResource(name);
 }
+/*
+ * Modify an existing resource.
+ */
 function doRMF(msg)
 {
+	var protocol = "", host = "", path = "", file = "", user = "", pass = "";
+	var refresh = -1;
+	var name = getField(msg, 0, ',');
+	var data = getField(msg, 1, ',');
 
+	// split the data field
+	var parts = data.split(RegExp("%[PHAFUSR]"));
+
+	for (var i in parts)
+	{
+		var str = parts.replace("%%", "%");
+
+		switch(str.charAt(0))
+		{
+			case 'P':	// Protocol
+				protocol = str.substr(1);
+			break;
+
+			case 'H':	// Host
+				host = str.substr(1);
+			break;
+
+			case 'A':	// Path
+				path = str.substr(1);
+			break;
+
+			case 'F':	// File
+				file = str.substr(1);
+			break;
+
+			case 'U':	// User
+				user = str.substr(1);
+			break;
+
+			case 'S':	// Password
+				pass = str.substr(1);
+			break;
+
+			case 'R':	// Refresh
+				refresh = parseInt(str.substr(1));
+			break;
+		}
+	}
+
+	var r = findRessource(name);
+
+	if (refresh == -1)
+		refresh = r.refresh;
+
+	var res = {"name":name, "protocol":protocol, "host":host, "path":path, "file":file, "user":user, "password":pass, "refresh":refresh, "encrypted":false};
+	updateResource(res);
+}
+/*
+ * Change the refresh rate for a given resource.
+ */
+function doRSR(msg)
+{
+	var name = getField(msg, 0, ',');
+	var refresh = getField(msg, 1, ',');
+
+	var res = findRessource(name);
+
+	if (res === null)
+	{
+		errlog("doRSR: Resource "+name+" not found!");
+		return;
+	}
+
+	res.refresh = parseInt(refresh);
+	updateResource(res);
 }
 /*
  * Show or hide a button with a set variable text range.
@@ -2873,152 +2981,61 @@ function beep()
 	var snd = new Audio("data:audio/wav;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQRDiMcCBcH3Cc+CDv/7xA4Tvh9Rz/y8QADBwMWgQAZG/ILNAARQ4GLTcDeIIIhxGOBAuD7hOfBB3/94gcJ3w+o5/5eIAIAAAVwWgQAVQ2ORaIQwEMAJiDg95G4nQL7mQVWI6GwRcfsZAcsKkJvxgxEjzFUgfHoSQ9Qq7KNwqHwuB13MA4a1q/DmBrHgPcmjiGoh//EwC5nGPEmS4RcfkVKOhJf+WOgoxJclFz3kgn//dBA+ya1GhurNn8zb//9NNutNuhz31f////9vt///z+IdAEAAAK4LQIAKobHItEIYCGAExBwe8jcToF9zIKrEdDYIuP2MgOWFSE34wYiR5iqQPj0JIeoVdlG4VD4XA67mAcNa1fhzA1jwHuTRxDUQ//iYBczjHiTJcIuPyKlHQkv/LHQUYkuSi57yQT//uggfZNajQ3Vmz+Zt//+mm3Wm3Q576v////+32///5/EOgAAADVghQAAAAA//uQZAUAB1WI0PZugAAAAAoQwAAAEk3nRd2qAAAAACiDgAAAAAAABCqEEQRLCgwpBGMlJkIz8jKhGvj4k6jzRnqasNKIeoh5gI7BJaC1A1AoNBjJgbyApVS4IDlZgDU5WUAxEKDNmmALHzZp0Fkz1FMTmGFl1FMEyodIavcCAUHDWrKAIA4aa2oCgILEBupZgHvAhEBcZ6joQBxS76AgccrFlczBvKLC0QI2cBoCFvfTDAo7eoOQInqDPBtvrDEZBNYN5xwNwxQRfw8ZQ5wQVLvO8OYU+mHvFLlDh05Mdg7BT6YrRPpCBznMB2r//xKJjyyOh+cImr2/4doscwD6neZjuZR4AgAABYAAAABy1xcdQtxYBYYZdifkUDgzzXaXn98Z0oi9ILU5mBjFANmRwlVJ3/6jYDAmxaiDG3/6xjQQCCKkRb/6kg/wW+kSJ5//rLobkLSiKmqP/0ikJuDaSaSf/6JiLYLEYnW/+kXg1WRVJL/9EmQ1YZIsv/6Qzwy5qk7/+tEU0nkls3/zIUMPKNX/6yZLf+kFgAfgGyLFAUwY//uQZAUABcd5UiNPVXAAAApAAAAAE0VZQKw9ISAAACgAAAAAVQIygIElVrFkBS+Jhi+EAuu+lKAkYUEIsmEAEoMeDmCETMvfSHTGkF5RWH7kz/ESHWPAq/kcCRhqBtMdokPdM7vil7RG98A2sc7zO6ZvTdM7pmOUAZTnJW+NXxqmd41dqJ6mLTXxrPpnV8avaIf5SvL7pndPvPpndJR9Kuu8fePvuiuhorgWjp7Mf/PRjxcFCPDkW31srioCExivv9lcwKEaHsf/7ow2Fl1T/9RkXgEhYElAoCLFtMArxwivDJJ+bR1HTKJdlEoTELCIqgEwVGSQ+hIm0NbK8WXcTEI0UPoa2NbG4y2K00JEWbZavJXkYaqo9CRHS55FcZTjKEk3NKoCYUnSQ0rWxrZbFKbKIhOKPZe1cJKzZSaQrIyULHDZmV5K4xySsDRKWOruanGtjLJXFEmwaIbDLX0hIPBUQPVFVkQkDoUNfSoDgQGKPekoxeGzA4DUvnn4bxzcZrtJyipKfPNy5w+9lnXwgqsiyHNeSVpemw4bWb9psYeq//uQZBoABQt4yMVxYAIAAAkQoAAAHvYpL5m6AAgAACXDAAAAD59jblTirQe9upFsmZbpMudy7Lz1X1DYsxOOSWpfPqNX2WqktK0DMvuGwlbNj44TleLPQ+Gsfb+GOWOKJoIrWb3cIMeeON6lz2umTqMXV8Mj30yWPpjoSa9ujK8SyeJP5y5mOW1D6hvLepeveEAEDo0mgCRClOEgANv3B9a6fikgUSu/DmAMATrGx7nng5p5iimPNZsfQLYB2sDLIkzRKZOHGAaUyDcpFBSLG9MCQALgAIgQs2YunOszLSAyQYPVC2YdGGeHD2dTdJk1pAHGAWDjnkcLKFymS3RQZTInzySoBwMG0QueC3gMsCEYxUqlrcxK6k1LQQcsmyYeQPdC2YfuGPASCBkcVMQQqpVJshui1tkXQJQV0OXGAZMXSOEEBRirXbVRQW7ugq7IM7rPWSZyDlM3IuNEkxzCOJ0ny2ThNkyRai1b6ev//3dzNGzNb//4uAvHT5sURcZCFcuKLhOFs8mLAAEAt4UWAAIABAAAAAB4qbHo0tIjVkUU//uQZAwABfSFz3ZqQAAAAAngwAAAE1HjMp2qAAAAACZDgAAAD5UkTE1UgZEUExqYynN1qZvqIOREEFmBcJQkwdxiFtw0qEOkGYfRDifBui9MQg4QAHAqWtAWHoCxu1Yf4VfWLPIM2mHDFsbQEVGwyqQoQcwnfHeIkNt9YnkiaS1oizycqJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=");
 	snd.play();
 }
-function storageAvailable(type)
-{
-    var storage;
-
-	try
-	{
-        storage = window[type];
-        var x = '__storage_test__';
-		storage.setItem(x, x);
-		var y = sorage.getItem(x);
-		storage.removeItem(x);
-
-		if (x == y)
-			return true;
-
-		errlog("storageAvailable: "+x+" != "+y);
-		return false;
-    }
-	catch(e)
-	{
-        return e instanceof DOMException && (
-            // everything except Firefox
-            e.code === 22 ||
-            // Firefox
-            e.code === 1014 ||
-            // test name field too, because code might not be present
-            // everything except Firefox
-            e.name === 'QuotaExceededError' ||
-            // Firefox
-            e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
-            // acknowledge QuotaExceededError only if there's something already stored
-            (storage && storage.length !== 0);
-    }
-}
 function getRegistrationID()
 {
-	if (__regCounter > 2 && fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
-	{
-		registrationID = fingerprint;
+	var regID = store.get("regID");
 
-		if (wsocket.readyState == WebSocket.CLOSED)
+	if (regID == null || regID.length == 0)
+	{
+		if (fingerprint !== null && fingerprint.length > 0)
+			registrationID = fingerprint;
+		else
 		{
-			connect();
-			debug("getRegistrationID: regID: "+registrationID);
-			return registrationID;
-		}
-
-		writeTextOut("REGISTER:"+registrationID);
-		return registrationID;
-	}
-	else if (__regCounter > 2)
-	{
-		errlog("getRegistrationID: Calculation of fingerprint didn't succeed!");
-		registrationID = "";
-		return registrationID;
-	}
-
-	var requestedBytes = 1024*1024;
-
-	if (navigator.storage && navigator.storage.persist)
-	{
-		navigator.storage.persist().then(granted => {
-			if (granted)
+			try
 			{
+				var ID = 'T' + Math.random().toString(36).substr(2, 9);
+				store.set("regID", ID);
+				registrationID = ID;
+			}
+			catch(e)
+			{
+				errlog("getRegistrationID: Error: "+e);
+
 				try
 				{
-					registrationID = window.localStorage.getItem("regID");
+					var d = new Date();
 
-					if (registrationID === null)
+					for (var i = 0; i < d.length; i++)
 					{
-						try
-						{
-							var ID = 'T' + Math.random().toString(36).substr(2, 9);
-							window.localStorage.setItem("regID", ID);
-							registrationID = ID;
-							writeTextOut("REGISTER:"+registrationID);
-							__regCounter = 0;
-						}
-						catch(e)
-						{
-							errlog("getRegistrationID: Error: "+e);
-
-							if (fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
-								registrationID = fingerprint;
-							else
-								registrationID = "";
-
-							__regCounter++;
-							return registrationID;
-						}
+						var ID = "";
+						var c = d.charCodeAt(i);
+						var str = Number(c).toString(16);
+						ID = ID + ((str.length == 1) ? "0" + str : str);
 					}
-					else
-					{
-						writeTextOut("REGISTER:"+registrationID);
-						__regCounter = 0;
-					}
+
+					store.set("regID", ID);
+					registrationID = ID;
 				}
 				catch(e)
 				{
-					__regCounter++;
-
-					try
-					{
-						var ID = 'T' + Math.random().toString(36).substr(2, 9);
-						window.localStorage.setItem("regID", ID);
-						registrationID = ID;
-						writeTextOut("REGISTER:"+registrationID);
-					}
-					catch(e)
-					{
-						errlog("getRegistrationID: Error: "+e);
-
-						if (fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
-							registrationID = fingerprint;
-						else
-							registrationID = "";
-
-						return registrationID;
-					}
+					errlog("getRegistrationID: Error: "+e);
+					registrationID = "";
+					return registrationID;
 				}
 			}
-			else
-			{
-				__regCounter++;
-				navigator.webkitPersistentStorage.requestQuota (
-					requestedBytes, function(grantedBytes) {
-						window.webkitRequestFileSystem(PERSISTENT, grantedBytes, onInitFs, errorHandler);
-					}, function(e) {
-						console.log('getRegistrationID: Error: ', e);
-				});
-			}
-		});
+		}
 	}
 	else
+		registrationID = regID;
+
+	if (wsocket.readyState == WebSocket.CLOSED)
 	{
-		errlog("getRegistrationID: Local storage is not supported by the browser!");
-
-		if (fingerprint !== null && typeof fingerprint == "string" && fingerprint.length > 0)
-			registrationID = fingerprint;
-		else
-			registrationID = "";
-
-		__regCounter = 3;
+		connect();
+		debug("getRegistrationID: regID: "+registrationID);
 		return registrationID;
 	}
 
+	writeTextOut("REGISTER:"+registrationID);
 	return registrationID;
 }
 function onInitFs(name, root)

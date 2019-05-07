@@ -109,7 +109,7 @@ bool TouchPanel::startClient()
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse ÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -539,7 +539,7 @@ bool TouchPanel::parsePages()
 		cacheFile << std::endl << "// This is the Service Worker needed to run as a stand allone app." << std::endl;
 		cacheFile << "if('serviceWorker' in navigator)\n{" << std::endl;
 		cacheFile << "\twindow.addEventListener('load', () => {" << std::endl;
-		cacheFile << "\t\tnavigator.serviceWorker.register('" << Configuration->getWebLocation() << "/scripts/sw.js').then((registration) => {" << std::endl;
+		cacheFile << "\t\tnavigator.serviceWorker.register('/" << Configuration->getWebLocation() << "/scripts/sw.js').then((registration) => {" << std::endl;
 		cacheFile << "\t\t\tdebug(\"Service Worker registration successful: \"+registration);" << std::endl;
 		cacheFile << "\t\t}, (err) => {\n\t\t\terrlog(\"Registration failed:\"+err);" << std::endl;
 		cacheFile << "\t\t})\n\t})\n}" << std::endl << std::endl;
@@ -575,9 +575,12 @@ bool TouchPanel::parsePages()
 	pgFile << "<link rel=\"manifest\" href=\"manifest.json\">" << std::endl;
 	pgFile << "<link rel=\"icon\" sizes=\"256x256\" href=\"images/icon.png\">" << std::endl;
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">" << std::endl;
+	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"scripts/keyboard/css/index.css\">" << std::endl;
 	// Scripts
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/sw.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/imprint.min.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/store.modern.min.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/keyboard/index.js\"></script>" << std::endl;
 	pgFile << "<script>\n";
 	pgFile << "\"use strict\";\n";
 	pgFile << "var fingerprint = \"\";\n";
@@ -813,8 +816,8 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/bargraphs.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/resource.js\"></script>" << std::endl << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/resource.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/movie.js\"></script>" << std::endl << std::endl;
 
 	for (size_t i = 0; i < stPages.size(); i++)
