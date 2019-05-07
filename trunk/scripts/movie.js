@@ -34,9 +34,9 @@ function getRessourceURL(name)
 
 	return url;
 }
-function addRessource(name, protocol, host, path, file)
+function addRessource(name, protocol="HTTP", host="", path="", file="", user="", pass="", refresh=0)
 {
-	var res = {"name":name, "protocol":protocol, "host":host, "path":path, "file":file, "user":"", "password":"", "refresh":0, "encrypted":false};
+	var res = {"name":name, "protocol":protocol, "host":host, "path":path, "file":file, "user":user, "password":pass, "refresh":refresh, "encrypted":false};
 
 	if (findRessource(name) !== null)
 	{
