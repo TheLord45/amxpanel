@@ -35,7 +35,15 @@ function makeURL(name)
 	var baseUrl = getUrl.protocol + "//" + getUrl.host;
 
 	for (var i = 1; i < parts.length; i++)
+	{
+		if (parts[i].length == 0)
+			continue;
+
+		if (parts[i].indexOf("index.html") >= 0)
+			break;
+
 		baseUrl += "/" + parts[i];
+	}
 
 	return baseUrl+"/"+name;
 }
@@ -349,7 +357,7 @@ function roundRect(ctx, x, y, width, height, radius, lnwidth, level, stroke, col
  * @param dir
  * Boolean option to set the direction of the bargraph. FALSE means vertical
  * and TRUE means horizontal.
- * 
+ *
  * @param feedback
  * Boolean optional option to make the bargraph send a level back to the
  * controller.
@@ -1065,7 +1073,7 @@ async function drawButtonMultistateAni(button, name)
 					justifyImage(img, button, CENTER_CODE.SC_ICON, 1);
 					img.style.display = "flex";
 					img.style.order = 2;
-	
+
 					try
 					{
 						var bsr = document.getElementById(name+"1");

@@ -1639,20 +1639,15 @@ function doAPF(msg)
 	var cmd;
 	var addr;
 	var addrRange;
-	var bt;
-	var i;
-	var j;
-	var b;
-	var num;
 
 	addr = getField(msg, 0, ',');
 	addrRange = getRange(addr);
 	cmd = getField(msg, 1, ',');
 	name = getField(msg, 2,',');
 
-	for (i = 0; i < addrRange.length; i++)
+	for (var i = 0; i < addrRange.length; i++)
 	{
-		bt = findButton(addrRange[i]);
+		var bt = findButton(addrRange[i]);
 
 		if (bt.length == 0)
 		{
@@ -1660,21 +1655,20 @@ function doAPF(msg)
 			continue;
 		}
 
-		for (b = 0; b < bt.length; b++)
+		for (var b = 0; b < bt.length; b++)
 		{
+			var nm = 'Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+j;
+			var num = bt[b].instances;
+
 			if (cmd.search('Show') >= 0)
 			{
-				num = bt[b].instances;
-
-				for (j = 0; j < num; j++)
-					document.getElementById('Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+j).addEventListener("pointerup", showPopup(name));
+				for (var j = 0; j < num; j++)
+					document.getElementById(nm).addEventListener("pointerup", showPopup.bind(null, name), false);
 			}
 			else if (cmd.search('Hide') >= 0)
 			{
-				num = bt[b].instances;
-
-				for (j = 0; j < num; j++)
-					document.getElementById('Page_'+bt[b].pnum+'_Button_'+bt[b].bi+'_'+j).addEventListener("pointerup", hidePopup(name));
+				for (var j = 0; j < num; j++)
+					document.getElementById(nm).addEventListener("pointerup", hidePopup.bind(null, name), false);
 			}
 			// FIXME: There are more commands!
 		}
@@ -3236,7 +3230,7 @@ function setWiFi()
 		{
 			debug("Band width value: "+connection.bandwidth);
 			debug("Metered value:"+(connection.metered ? '' : 'not ') + 'metered');
-		});
+		}, false);
 
 		connection.dispatchEvent(new Event('change'));
 	}
@@ -3252,7 +3246,7 @@ function setWiFi()
 		connection.addEventListener('typechange', function (event)
 		{
 			debug("Connection type: "+connection.type);
-		});
+		}, false);
 
 		connection.dispatchEvent(new Event('typechange'));
 	}
