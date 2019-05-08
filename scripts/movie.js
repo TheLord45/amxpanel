@@ -136,14 +136,17 @@ function refreshResource(name)
 
 					if (uri.indexOf("random=") < 0)
 					{
-						if (uri.indexOf('?') >= 0)
+						if (uri.indexOf('?') >= 0 || uri.indexOf("%3f") >= 0)
 							uri = uri + "&random="+Math.random();
 						else
 							uri = uri + "?random="+Math.random();
 					}
 
-					debug("refreshResource: Image URI: "+uri);
-					div.style.backgroundImage = "url('"+uri+"')";
+                    uri = uri.replace("?", "%3f");
+                    uri = uri.replace("&", "%26");
+                    var proxy = makeURL("scripts/proxy.php?csurl="+uri);
+					debug("refreshResource: Image URI: "+proxy);
+					div.style.backgroundImage = "url('"+proxy+"')";
 					div.style.backgroundRepeat = "no-repeat";
 
 					switch (sr.jb)
