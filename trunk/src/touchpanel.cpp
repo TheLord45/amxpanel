@@ -808,6 +808,7 @@ bool TouchPanel::parsePages()
 	}
 
 	pgFile << "</script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/browser.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/pages.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/popups.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/groups.js\"></script>" << std::endl;
@@ -864,6 +865,8 @@ bool TouchPanel::parsePages()
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
+	pgFile << "\tif (isFirefox() || isSafari() || isIOS() || (isSafari() && isMacOS()))" << std::endl;
+	pgFile << "\t{\n\t\tEVENT_DOWN = \"mousedown\";\n\t\tEVENT_UP = \"mouseup\";\n\t\tEVENT_MOVE = \"mousemove\";\n\t}\n" << std::endl;
 	pgFile << "\tvar elem = document.documentElement;\n\n\tif (elem.requestFullscreen)\n";
     pgFile << "\t\telem.requestFullscreen();\n";
 	pgFile << "\telse if (elem.mozRequestFullScreen)\t/* Firefox */\n";
