@@ -1663,12 +1663,12 @@ function doAPF(msg)
 			if (cmd.search('Show') >= 0)
 			{
 				for (var j = 0; j < num; j++)
-					document.getElementById(nm).addEventListener("pointerup", showPopup.bind(null, name), false);
+					document.getElementById(nm).addEventListener(EVENT_UP, showPopup.bind(null, name), false);
 			}
 			else if (cmd.search('Hide') >= 0)
 			{
 				for (var j = 0; j < num; j++)
-					document.getElementById(nm).addEventListener("pointerup", hidePopup.bind(null, name), false);
+					document.getElementById(nm).addEventListener(EVENT_UP, hidePopup.bind(null, name), false);
 			}
 			// FIXME: There are more commands!
 		}
@@ -2166,21 +2166,21 @@ function doCPF(msg)
 
 				try
 				{
-					elem.removeEventListener('pointerup', showPopup);
+					elem.removeEventListener(EVENT_UP, showPopup);
 				}
 				catch(e)
 				{}
 
 				try
 				{
-					elem.removeEventListener('pointerup', hidePopup);
+					elem.removeEventListener(EVENT_UP, hidePopup);
 				}
 				catch(e)
 				{}
 
 				try
 				{
-					elem.removeEventListener('pointerup', hideGroup);
+					elem.removeEventListener(EVENT_UP, hideGroup);
 				}
 				catch(e)
 				{}
