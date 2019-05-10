@@ -794,13 +794,13 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 }
 
 /*
- * Die Maske unter pix1 definiert ÃÂÃÂÃÂÃÂ¼ber den roten und/oder grÃÂÃÂÃÂÃÂ¼nen Farbkanal,
+ * Die Maske unter pix1 definiert über den roten und/oder grünen Farbkanal,
  * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
- * Farbe unter "fill" zurÃÂÃÂÃÂÃÂ¼ckgegeben. Ist der grÃÂÃÂÃÂÃÂ¼ne Farbkanal gesetzt, wird die
- * Farbe unter "border" zurÃÂÃÂÃÂÃÂ¼ckgegeben. Der blaue Farbkanal wird nicht
+ * Farbe unter "fill" zurückgegeben. Ist der grüne Farbkanal gesetzt, wird die
+ * Farbe unter "border" zurückgegeben. Der blaue Farbkanal wird nicht
  * verwendet.
  * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
- * grÃÂÃÂÃÂÃÂ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
+ * grüne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
  */
 int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 {

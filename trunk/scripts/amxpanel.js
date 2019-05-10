@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2019 by Andreas Theofilu <andreas@theosys.at>
+ *
+ * All rights reserved. No warranty, explicit or implicit, provided.
+ *
+ * NOTICE:  All information contained herein is, and remains
+ * the property of Andreas Theofilu and his suppliers, if any.
+ * The intellectual and technical concepts contained
+ * herein are proprietary to Andreas Theofilu and its suppliers and
+ * may be covered by European and Foreign Patents, patents in process,
+ * and are protected by trade secret or copyright law.
+ * Dissemination of this information or reproduction of this material
+ * is strictly forbidden unless prior written permission is obtained
+ * from Andreas Theofilu.
+ */
+'use strict';
+
 const sleep = (milliseconds) => {
 	return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
@@ -258,7 +275,7 @@ function splittCmd(msg)
 }
 function getButton(pnum, bi)
 {
-	pgKey = eval("structPage"+pnum);
+	var pgKey = eval("structPage"+pnum);
 
 	if (pgKey === null)
 		return null;
@@ -682,7 +699,7 @@ function getWebColor(value)
 
 	if (value.length > 6)
 	{
-		alpha = parseInt(value.substr(7, 2), 16);
+		var alpha = parseInt(value.substr(7, 2), 16);
 		alpha = 1.0 / 256.0 * alpha;
 		return rgba(red,green,blue,alpha);
 	}
@@ -864,11 +881,7 @@ function getPopupStatus(name)	// return true if popup is shown
 }
 function getPageStatus(name)	// return true if popup is shown
 {
-	var pID;
-	var pname;
-	var stat;
-
-	for (i in basePages)
+	for (var i in basePages)
 	{
 		if (Pages.pages[i].name == name)
 			return Pages.pages[i].active;
@@ -878,9 +891,7 @@ function getPageStatus(name)	// return true if popup is shown
 }
 function getActivePage()
 {
-	var name;
-
-	for (i in Pages.pages)
+	for (var i in Pages.pages)
 	{
 		if (Pages.pages[i].active == true)
 			return Pages.pages[i].ID;
@@ -890,9 +901,7 @@ function getActivePage()
 }
 function getActivePageName()
 {
-	var name;
-
-	for (i in Pages.pages)
+	for (var i in Pages.pages)
 	{
 		if (Pages.pages[i].active)
 			return Pages.pages[i].name;
@@ -1150,7 +1159,7 @@ function showPage(name)
 		dropPage();
 		drawPage(name);
 
-		for (i in Popups.pages)
+		for (var i in Popups.pages)
 		{
 			pname = "Page_"+Popups.pages[i].ID;
 
@@ -1188,7 +1197,7 @@ function hidePage(name)
 	{
 		dropPage();
 
-		for (i in Popups.pages)
+		for (var i in Popups.pages)
 		{
 			if (Popups.pages[i].active)
 			{
@@ -1594,10 +1603,7 @@ function doPPK(msg)
  */
 function doPPX(msg)
 {
-	var name;
-	var ID;
-
-	for (i in Popups.pages)
+	for (var i in Popups.pages)
 	{
 		hidePopup(Popups.pages[i].name);
 	}
@@ -2146,7 +2152,7 @@ function doCPF(msg)
 	addr = getField(msg, 0, ',');
 	addrRange = getRange(addr);
 
-	for (i = 0; i < addrRange.length; i++)
+	for (var i = 0; i < addrRange.length; i++)
 	{
 		bt = findButtonPort(addrRange[i]);
 
@@ -2201,14 +2207,13 @@ function doENA(msg)
 	var addr;
 	var addrRange;
 	var val;
-	var name;
 	var b;
 
 	addr = getField(msg, 0, ',');
 	val = getField(msg, 1, ',');
 	addrRange = getRange(addr);
 
-	for (i = 0; i < addrRange.length; i++)
+	for (var i = 0; i < addrRange.length; i++)
 	{
 		bt = findButton(addrRange[i]);
 
@@ -2519,7 +2524,6 @@ function doSHO(msg)
 {
 	var bt;
 	var i;
-	var j;
 	var z;
 	var b;
 	var name;

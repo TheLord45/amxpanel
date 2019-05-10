@@ -13,6 +13,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Andreas Theofilu.
  */
+'use strict';
 
 const SCR_TYPE = Object.freeze({
 	SCR_NONE:			0,
@@ -718,8 +719,8 @@ function doDraw(pgKey, pageID, what)
 						}
 						else
 						{
-							bt.addEventListener(EVENT_UP, switchDisplay.bind(null, name1,name2,1,button.cp,button.ch),false);
-							bt.addEventListener(EVENT_DOWN, switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
+							bt.addEventListener(EVENT_DOWN, switchDisplay.bind(null, name1,name2,1,button.cp,button.ch),false);
+							bt.addEventListener(EVENT_UP, switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
 						}
 					}
 					else if (button.fb == FEEDBACK.FB_CHANNEL || button.fb == 0)
