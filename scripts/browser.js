@@ -20,7 +20,7 @@ const OPSYS = Object.freeze({
 var BR_TYPE = BROWSER.BR_UNDEFINED;
 var OSTYPE = OPSYS.OS_UNDEFINED;
 
-function __detectBrowser() 
+function __detectBrowser()
 {
 	if((navigator.userAgent.indexOf("Opera") || navigator.userAgent.indexOf('OPR')) != -1 )
 		BR_TYPE = BROWSER.BR_OPERA;
@@ -34,21 +34,23 @@ function __detectBrowser()
 		BR_TYPE = BROWSER.BR_IE
 	else
         BR_TYPE = BROWSER.BR_UNDEFINED;
-    
-    if (navigator.userAgent.indexOf("Android"))
+
+    if (navigator.userAgent.indexOf("Android") != -1)
         OSTYPE = OPSYS.OS_ANDROID;
-    else if (navigator.userAgent.indexOf("Linux"))
+    else if (navigator.userAgent.indexOf("Linux") != -1)
         OSTYPE = OPSYS.OS_LINUX;
-    else if (navigator.userAgent.indexOf("macOS") || navigator.userAgent.indexOf("OSX"))
-        OSTYPE = OPSYS.OS_MAC;
-    else if (navigator.userAgent.indexOf("iOS"))
+    else if (navigator.userAgent.indexOf("iPhone") != -1 || navigator.userAgent.indexOf("iPad") != -1)
         OSTYPE = OPSYS.OS_IOS;
-    else if (navigator.userAgent.indexOf("UNIX"))
+    else if (navigator.userAgent.indexOf("Mac OS X") != -1 || navigator.userAgent.indexOf("Macintosh") != -1)
+        OSTYPE = OPSYS.OS_MAC;
+    else if (navigator.userAgent.indexOf("UNIX") != -1)
         OSTYPE = OPSYS.OS_UNIX;
-    else if (navigator.userAgent.indexOf("Windows"))
+    else if (navigator.userAgent.indexOf("Windows") != -1)
         OSTYPE = OPSYS.OS_WINDOWS;
     else
         OSTYPE = OPSYS.OS_UNDEFINED;
+
+    debug("__detectBrowser: Browser: "+BR_TYPE+", System: "+OSTYPE);
 }
 
 function isOpera()
@@ -66,7 +68,7 @@ function isChrome()
     if (BR_TYPE == BROWSER.BR_UNDEFINED && OSTYPE == OPSYS.OS_UNDEFINED)
         __detectBrowser();
 
-    if (BR_TYPE == BROWSER.BR_OPERA)
+    if (BR_TYPE == BROWSER.BR_CHROME)
         return true;
 
     return false;
@@ -76,7 +78,7 @@ function isSafari()
     if (BR_TYPE == BROWSER.BR_UNDEFINED && OSTYPE == OPSYS.OS_UNDEFINED)
         __detectBrowser();
 
-    if (BR_TYPE == BROWSER.BR_OPERA)
+    if (BR_TYPE == BROWSER.BR_SAFARI)
         return true;
 
     return false;
@@ -86,7 +88,7 @@ function isFirefox()
     if (BR_TYPE == BROWSER.BR_UNDEFINED && OSTYPE == OPSYS.OS_UNDEFINED)
         __detectBrowser();
 
-    if (BR_TYPE == BROWSER.BR_OPERA)
+    if (BR_TYPE == BROWSER.BR_FIREFOX)
         return true;
 
     return false;
@@ -96,7 +98,7 @@ function isIE()
     if (BR_TYPE == BROWSER.BR_UNDEFINED && OSTYPE == OPSYS.OS_UNDEFINED)
         __detectBrowser();
 
-    if (BR_TYPE == BROWSER.BR_OPERA)
+    if (BR_TYPE == BROWSER.BR_IE)
         return true;
 
     return false;
