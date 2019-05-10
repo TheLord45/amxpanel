@@ -33,7 +33,7 @@
 #include "websocket.h"
 #include "fontlist.h"
 
-#define VERSION		"1.0"
+#define VERSION		"1.0.1"
 
 namespace amx
 {
