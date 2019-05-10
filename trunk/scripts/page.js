@@ -414,8 +414,6 @@ function activeTouch(event, name, object)
 	var rect = object.getBoundingClientRect();
 	var x = event.clientX - rect.left;
 	var y = event.clientY - rect.top;
-//	var x = event.pageX - rect.left;
-//	var y = event.pageY - rect.top;
 	var objs = allElementsFromPoint(event.clientX, event.clientY);
 
 	if (objs === null)
