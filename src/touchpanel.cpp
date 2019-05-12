@@ -109,7 +109,7 @@ bool TouchPanel::startClient()
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -245,6 +245,16 @@ void TouchPanel::webMsg(std::string& msg)
 			amxnet->sendCommand(as);
 		else
 			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
+	}
+	else if (registrated && msg.find("PING:") != std::string::npos)
+	{
+		std::vector<String> parts = String(msg).split(":");
+
+		if (parts.size() >= 3)
+		{
+			String answer = String("0|#PONG-%1,%2").arg(parts[1]).arg(parts[2]);
+			send(answer);
+		}
 	}
 	else if (msg.find("REGISTER:") != std::string::npos)
 	{
@@ -539,18 +549,18 @@ bool TouchPanel::parsePages()
 		cacheFile << std::endl << "// This is the Service Worker needed to run as a stand allone app." << std::endl;
 		cacheFile << "if('serviceWorker' in navigator)\n{" << std::endl;
 		cacheFile << "\twindow.addEventListener('load', function() {" << std::endl;
-		cacheFile << "\t\tnavigator.serviceWorker.register('/" << Configuration->getWebLocation() << "/scripts/sw.js').then(function(registration) {" << std::endl;
+		cacheFile << "\t\tnavigator.serviceWorker.register('" << Configuration->getWebLocation() << "/scripts/sw.js').then(function(registration) {" << std::endl;
 		cacheFile << "\t\t\tdebug(\"Service Worker registration successful width scope: \"+registration.scope);" << std::endl;
-		cacheFile << "\t\t}, function(err) => {\n\t\t\terrlog(\"Registration failed:\"+err);" << std::endl;
+		cacheFile << "\t\t}, function(err) {\n\t\t\terrlog(\"Registration failed:\"+err);" << std::endl;
 		cacheFile << "\t\t})\n\t})\n}" << std::endl << std::endl;
 		cacheFile << "var cache_name = 'amxpanel-" << VERSION << "'" << std::endl << std::endl;
 		cacheFile << "var urls_to_cache = [" << std::endl;
-		cacheFile << "\t'/" << Configuration->getWebLocation() << "'," << std::endl;
-		cacheFile << "\t'/" << Configuration->getWebLocation() << "/scripts/'," << std::endl;
-		cacheFile << "\t'/" << Configuration->getWebLocation() << "/images/'" << std::endl;
+		cacheFile << "\t'" << Configuration->getWebLocation() << "'," << std::endl;
+		cacheFile << "\t'" << Configuration->getWebLocation() << "/scripts/'," << std::endl;
+		cacheFile << "\t'" << Configuration->getWebLocation() << "/images/'" << std::endl;
 		cacheFile << "]" << std::endl << std::endl;
 		cacheFile << "self.addEventListener('install', function(e) {" << std::endl;
-		cacheFile << "\te.waitUntil(caches.open(cache_name).then(function(cache) => {" << std::endl;
+		cacheFile << "\te.waitUntil(caches.open(cache_name).then(function(cache) {" << std::endl;
 		cacheFile << "\t\treturn cache.addAll(urls_to_cache)\n\t}) )\n})" << std::endl << std::endl;
 		cacheFile << "self.addEventListener('fetch', function(e) {" << std::endl;
 		cacheFile << "\te.respondWith(caches.match(e.request).then(function(response) {" << std::endl;
@@ -585,7 +595,7 @@ bool TouchPanel::parsePages()
 	pgFile << "\"use strict\";\n";
 	pgFile << "var fingerprint = \"\";\n";
 	pgFile << "var pageName = \"\";\n";
-	pgFile << "var wsocket;\n";
+	pgFile << "var wsocket = null;\n";
 	pgFile << "var wsStatus = 0;" << std::endl << std::endl;
 	pgFile << "var browserTests = [\n";
 	pgFile << "\t\"audio\",\n\t\"availableScreenResolution\",\n\t\"canvas\",\n";
@@ -840,6 +850,8 @@ bool TouchPanel::parsePages()
 	pgFile << scrBuffer << std::endl;
 	// This is the WebSocket connection function
 	pgFile << "function connect()\n{\n";
+	pgFile << "\tif (wsocket !== null && (wsocket.readyState == WebSocket.OPEN || wsocket.readyState == WebSocket.CLOSING))" << std::endl;
+	pgFile << "\t\treturn;" << std::endl << std::endl;
 	pgFile << "\ttry\n\t{\n";
 
 	if (Configuration->getWSStatus())
@@ -848,13 +860,14 @@ bool TouchPanel::parsePages()
 		pgFile << "\t\twsocket = new WebSocket(\"ws://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
 
 	pgFile << "\t\twsocket.onopen = function() {" << std::endl;
-    pgFile << "\t\t\tgetRegistrationID();\n\t\t\tsetOnlineStatus(1);\n";
-	pgFile << "\t\t\tif (typeof registrationID == \"string\" && registrationID.length > 0)\n";
-	pgFile << "\t\t\t\twsocket.send('REGISTER:'+registrationID+';');\n";
-	pgFile << "\t\t\telse\n\t\t\t\terrlog(\"connect: Missing registration ID!\");\n\t\t}\n";
-	pgFile << "\t\twsocket.onerror = function(error) { errlog('WebSocket error: '+error); setOnlineStatus(0); }\n";
+    pgFile << "\t\t\tgetRegistrationID();\n\t\t\tsetOnlineStatus(1);\n" << std::endl;
+	pgFile << "\t\t\tif (!regStatus)\n\t\t\t{" << std::endl;
+	pgFile << "\t\t\t\tif (typeof registrationID == \"string\" && registrationID.length > 0)\n";
+	pgFile << "\t\t\t\t\twsocket.send('REGISTER:'+registrationID+';');\n";
+	pgFile << "\t\t\t\telse\n\t\t\t\t\terrlog(\"connect: Missing registration ID!\");\n\t\t\t}\n\t\t}" << std::endl;
+	pgFile << "\t\twsocket.onerror = function(error) { errlog('WebSocket error: '+error); setOnlineStatus(9); }\n";
 	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
-	pgFile << "\t\twsocket.onclose = function() { TRACE('WebSocket is closed!'); setOnlineStatus(0); }\n\t}\n\tcatch (exception)\n";
+	pgFile << "\t\twsocket.onclose = function() {\n\t\t\tTRACE('WebSocket is closed!');\n\t\t\tregStatus = false;\n\t\t\tsetOnlineStatus(0);\n\t\t}\n\t}\n\tcatch (exception)\n";
 	pgFile << "\t{\n\t\tsetOnlineStatus(0);\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
 	// Create a fingerprint
 	pgFile << "function makeFingerprint()\n{\n";
@@ -865,9 +878,13 @@ bool TouchPanel::parsePages()
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
-	pgFile << "\tif (isFirefox() || isSafari() || isIOS() || isMacOS())" << std::endl;
+	pgFile << "\tif (isIOS() || (isFirefox() && isAndroid()))\n\t{" << std::endl;
+	pgFile << "\t\tEVENT_DOWN = \"touchstart\";\n\t\tEVENT_UP = \"touchend\";\n\t\tEVENT_MOVE = \"touchmove\";" << std::endl;
+	pgFile << "\t\tTRACE(\"main: Events were set to TOUCH...\");\n\t}" << std::endl;
+	pgFile << "\telse if (isFirefox() || isSafari() || isMacOS())" << std::endl;
 	pgFile << "\t{\n\t\tEVENT_DOWN = \"mousedown\";\n\t\tEVENT_UP = \"mouseup\";\n\t\tEVENT_MOVE = \"mousemove\";" << std::endl;
 	pgFile << "\t\tTRACE(\"main: Events were set to MOUSE...\");\n\t}\n" << std::endl;
+	pgFile << "\thandleStandby();" << std::endl;
 	pgFile << "\tvar elem = document.documentElement;\n\n\tif (elem.requestFullscreen)\n";
     pgFile << "\t\telem.requestFullscreen();\n";
 	pgFile << "\telse if (elem.mozRequestFullScreen)\t/* Firefox */\n";
