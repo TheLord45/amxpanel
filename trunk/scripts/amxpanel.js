@@ -23,7 +23,11 @@ var curPort;			// The port number the currently processed command depends on
 var curCommand;			// The currently command stripped from the port number
 var registrationID;		// The unique ID the App is registered on Server
 var regStatus = false;	// TRUE = Registration to server was successfull
+var pingStatus = {"ptime":0,"pcount":0,"active":false};	// Ping/pong status
+var isBackground = false;	// TRUE = App is in background
+var isStandby = false;		// TRUE = Device is in standby (display is off)
 var z_index = 0;
+var hdOffTimer = null;
 var __debug = true;
 var __errlog = true;
 var __TRACE = true;
@@ -177,7 +181,8 @@ var cmdArray =
 			{"cmd":"OFF-","call":setOFF},
 			{"cmd":"LEVEL-","call":setLEVEL},
 			{"cmd":"#REG-","call":doREG},
-			{"cmd":"#ERR-","call":doERR}
+			{"cmd":"#ERR-","call":doERR},
+			{"cmd":"#PONG-","call":doPONG}
 		]
 	};
 
@@ -1815,12 +1820,12 @@ function doBBR(msg)
 				{
 					if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
 					{
-						var name = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
+						var nm = 'Page_'+bt[b].pnum+"_Button_"+bt[b].bi+"_"+z;
 						var button = getButton(bt[b].pnum, bt[b].bi);
 						var idx = parseInt(z) - 1;
 
 						button.sr[idx].sb = 1;
-						button.sr[idx].bm = name;
+						button.sr[idx].bm = nm;
 					}
 				}
 			}
@@ -2392,41 +2397,60 @@ function doRAF(msg)
 	var name = getField(msg, 0, ',');
 	var data = getField(msg, 1, ',');
 
-	// split the data field
-	var parts = data.split(RegExp("%[PHAFUSR]"));
+	var teile = data.split("%");
+	var order = [];
 
-	for (var i in parts)
+	for (var i in teile)
 	{
-		var str = parts.replace("%%", "%");
+		var str = teile[i];
 
-		switch(str.charAt(0))
+		if (teile[i].length == 0)
+			continue;
+
+		switch (str.charAt(0))
 		{
-			case 'P':	// Protocol
-				protocol = str.substr(1);
+			case 'P': order.push({"type": "P","str": str.substr(1)}); break;
+			case 'H': order.push({"type": "H","str": str.substr(1)}); break;
+			case 'A': order.push({"type": "A","str": str.substr(1)}); break;
+			case 'F': order.push({"type": "F","str": str.substr(1)}); break;
+			case 'U': order.push({"type": "U","str": str.substr(1)}); break;
+			case 'S': order.push({"type": "S","str": str.substr(1)}); break;
+			case 'R': order.push({"type": "R","str": str.substr(1)}); break;
+		}
+	}
+
+	for (var i in order)
+	{
+		var str = order[i].str.replace("%%", "%");
+
+		switch (order[i].type)
+		{
+			case 'P': // Protocol
+				protocol = str;
 			break;
 
-			case 'H':	// Host
-				host = str.substr(1);
+			case 'H': // Host
+				host = str;
 			break;
 
-			case 'A':	// Path
-				path = str.substr(1);
+			case 'A': // Path
+				path = str;
 			break;
 
-			case 'F':	// File
-				file = str.substr(1);
+			case 'F': // File
+				file = str;
 			break;
 
-			case 'U':	// User
-				user = str.substr(1);
+			case 'U': // User
+				user = str;
 			break;
 
-			case 'S':	// Password
-				pass = str.substr(1);
+			case 'S': // Password
+				pass = str;
 			break;
 
-			case 'R':	// Refresh
-				refresh = parseInt(str.substr(1));
+			case 'R': // Refresh
+				refresh = parseInt(str);
 			break;
 		}
 	}
@@ -2451,41 +2475,60 @@ function doRMF(msg)
 	var name = getField(msg, 0, ',');
 	var data = getField(msg, 1, ',');
 
-	// split the data field
-	var parts = data.split(RegExp("%[PHAFUSR]"));
+	var teile = data.split("%");
+	var order = [];
 
-	for (var i in parts)
+	for (var i in teile)
 	{
-		var str = parts.replace("%%", "%");
+		var str = teile[i];
+
+		if (teile[i].length == 0)
+			continue;
 
 		switch(str.charAt(0))
 		{
+			case 'P': order.push({"type":"P","str":str.substr(1)}); break;
+			case 'H': order.push({"type":"H","str":str.substr(1)}); break;
+			case 'A': order.push({"type":"A","str":str.substr(1)}); break;
+			case 'F': order.push({"type":"F","str":str.substr(1)}); break;
+			case 'U': order.push({"type":"U","str":str.substr(1)}); break;
+			case 'S': order.push({"type":"S","str":str.substr(1)}); break;
+			case 'R': order.push({"type":"R","str":str.substr(1)}); break;
+		}
+	}
+
+	for (var i in order)
+	{
+		var str = order[i].str.replace("%%", "%");
+
+		switch(order[i].type)
+		{
 			case 'P':	// Protocol
-				protocol = str.substr(1);
+				protocol = str;
 			break;
 
 			case 'H':	// Host
-				host = str.substr(1);
+				host = str;
 			break;
 
 			case 'A':	// Path
-				path = str.substr(1);
+				path = str;
 			break;
 
 			case 'F':	// File
-				file = str.substr(1);
+				file = str;
 			break;
 
 			case 'U':	// User
-				user = str.substr(1);
+				user = str;
 			break;
 
 			case 'S':	// Password
-				pass = str.substr(1);
+				pass = str;
 			break;
 
 			case 'R':	// Refresh
-				refresh = parseInt(str.substr(1));
+				refresh = parseInt(str);
 			break;
 		}
 	}
@@ -2679,15 +2722,26 @@ function doREG(msg)
 		regStatus = true;
 	else
 		regStatus = false;
+
+	// Start ping/pong if regStatus is OK
+	if (regStatus  == true && !pingStatus.active)
+		sendPing();
+}
+function doPONG(msg)
+{
+	var pcount = parseInt(getField(msg, 1, ','));
+
+	if (pcount != pingStatus.pcount)
+		setOnlineStatus(9);
+	else
+		setOnlineStatus(1);
 }
 function parseMessage(msg)
 {
-	var i;
-
-	errlog("parseMessage: msg="+msg);
+	TRACE("parseMessage: "+msg);
 	splittCmd(msg);
 
-	for (i in cmdArray.commands)
+	for (var i in cmdArray.commands)
 	{
 		try
 		{
@@ -2702,6 +2756,39 @@ function parseMessage(msg)
 			errlog("parseMessage WARNING: Position: "+i+": Error: "+e);
 		}
 	}
+}
+function sendPing()
+{
+	var ptime = pingStatus.ptime;
+	var pcount = pingStatus.pcount + 1;
+	var dt = new Date();
+
+	if (ptime > 0 && (ptime + 13000) < dt.getTime())
+	{
+		setOnlineStatus(9);
+		wsocket.close();
+		pingStatus.pcount = 0;
+		pingStatus.active = false;
+		setTimeout(connect, 2500);
+		return;
+	}
+
+	if (wsocket.readyState == WebSocket.OPEN)
+	{
+		pingStatus.ptime = dt.getTime();
+		pingStatus.pcount = pcount;
+		writeTextOut("PING:"+pingStatus.ptime+":"+pcount);
+	}
+	else if (wsocket.readyState == WebSocket.CLOSED && (ptime + 13000) < dt.getTime())
+	{
+		pingStatus.ptime = 0;
+		pingStatus.active = false;
+		connect();
+		return;
+	}
+
+	pingStatus.active = true;
+	setTimeout(sendPing, 10000);
 }
 function calcImageSize(imWidth, imHeight, btWidth, btHeight, btFrame)
 {
@@ -2981,6 +3068,9 @@ function beep()
 }
 function getRegistrationID()
 {
+	if (regStatus == true || (registrationID !== null && typeof registrationID == "string" && registrationID.length > 0))
+		return registrationID;
+
 	var regID = store.get("regID");
 
 	if (regID == null || regID.length == 0)
@@ -3026,7 +3116,7 @@ function getRegistrationID()
 	else
 		registrationID = regID;
 
-	if (wsocket.readyState == WebSocket.CLOSED)
+	if (wsocket === null || wsocket.readyState == WebSocket.CLOSED)
 	{
 		connect();
 		debug("getRegistrationID: regID: "+registrationID);
@@ -3063,7 +3153,7 @@ function errorHandler(err)
 }
 function setOnlineStatus(stat)
 {
-	if (stat < 0 || stat > 11)
+	if (stat < 0 || stat > 11 || stat == wsStatus)
 		return;
 
 	curPort = 0;
@@ -3104,6 +3194,85 @@ function writeTextOut(msg)
 	}
 
 	wsocket.send(msg+";");
+}
+
+(function () {
+	var timestamp = new Date().getTime();
+
+	function checkResume() {
+		var current = new Date().getTime();
+
+		if (current - timestamp > 4000)
+		{
+			var event = document.createEvent("Events");
+			event.initEvent("resume", true, true);
+			document.dispatchEvent(event);
+		}
+
+		timestamp = current;
+	}
+
+	window.setInterval(checkResume, 1000);
+})();
+
+function handleStandby()
+{
+	handleResume();
+
+	window.addEventListener('focus', function () {
+		TRACE("handleStandby: Got focus");
+		isBackground = false;
+		isStandby = false;
+
+		if (hdOffTimer !== null)
+		{
+			clearTimeout(hdOffTimer);
+			hdOffTimer = null;
+		}
+
+		if (wsocket.readyState == WebSocket.CLOSED)
+			connect();
+	}, false);
+	window.addEventListener('blur', function () {
+		TRACE("handleStandby: Lost focus");
+		isBackground = true;
+
+		if (hdOffTimer === null)
+			hdOffTimer = setTimeout(setOffline, 5000);
+	}, false);
+
+	window.addEventListener('online', function() {
+		TRACE("handleStandby: We're online");
+		isStandby = false;
+
+		if (hdOffTimer !== null) {
+			clearTimeout(hdOffTimer);
+			hdOffTimer = null;
+		}
+
+		if (wsocket.readyState == WebSocket.CLOSED)
+			connect();
+	}, false);
+
+	window.addEventListener('offline', function() {
+		TRACE("handleStandby: We're offline");
+		setOffline();
+	}, false);
+
+	window.addEventListener('resume', function() {
+		TRACE("handleStandby: We resume");
+		if (wsocket.readyState == WebSocket.CLOSED)
+			connect();
+	}, false);
+}
+function setOffline()
+{
+	if (wsocket.readyState == WebSocket.OPEN)
+	{
+		isStandby = true;
+		setOnlineStatus(0);
+		wsocket.close();
+	}
 }
 function checkTime(i)
 {

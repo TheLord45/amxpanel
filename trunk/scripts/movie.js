@@ -77,9 +77,9 @@ function updateResource(res)
 		{
 			var ressource = ressources.ressources[i];
 
-			for (var j in ressource)
+			for (var j in ressource.ressource)
 			{
-				var r = ressource[j];
+				var r = ressource.ressource[j];
 
 				if (r.name == res.name)
 				{
@@ -116,6 +116,9 @@ function updateResource(res)
 }
 function refreshResource(name)
 {
+	if (name === null || typeof name != "string" || name.length == 0)
+		return;
+
 	var uri = getRessourceURL(name);
 	debug ("refreshResource: Trying to get URI: "+uri);
 

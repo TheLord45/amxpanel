@@ -176,6 +176,12 @@ void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpo
 {
 	sysl->TRACE(std::string("AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
 
+	if (socket_.is_open())
+	{
+		stop();
+		return;
+	}
+
 	if (endpoint_iter != endpoints_.end())
 	{
 		sysl->TRACE(strings::String("AMXNet::start_connect: Trying ")+endpoint_iter->endpoint().address().to_string()+":"+endpoint_iter->endpoint().port()+" ...\n");
@@ -212,9 +218,7 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 		// Try the next available endpoint.
 		start_connect(++endpoint_iter);
     }
-
-	// Check if the connect operation failed before the deadline expired.
-	else if (error)
+	else if (error)		// Check if the connect operation failed before the deadline expired.
 	{
 		sysl->errlog(std::string("AMXNet::handle_connect: Connect error: ")+error.message());
 

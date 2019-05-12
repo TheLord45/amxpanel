@@ -194,6 +194,13 @@ bool WebSocket::send(strings::String& msg)
 	catch (websocketpp::exception const & e)
 	{
 		sysl->errlog(std::string("WebSocket::send: Error sending a message: ")+e.what());
+
+		if (Configuration->getWSStatus())
+			sock_server.close(server_hdl, 0, std::string(e.what()));
+		else
+			sock_server_ws.close(server_hdl, 0, std::string(e.what()));
+
+		setConStatus(false);
 		return false;
 	}
 
@@ -218,12 +225,12 @@ void WebSocket::on_http_ws(server_ws* s, websocketpp::connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_http_ws(server_ws* s, websocketpp::connection_hdl hdl)"));
 	server_ws::connection_ptr con = s->get_con_from_hdl(hdl);
-	
+
 	std::string res = con->get_request_body();
-	
+
 	std::stringstream ss;
 	ss << "got HTTP request with " << res.size() << " bytes of body data.";
-	
+
 	con->set_body(ss.str());
 	con->set_status(websocketpp::http::status_code::ok);
 }
@@ -251,18 +258,18 @@ void WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_p
 void WebSocket::on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg)
 {
 	sysl->TRACE(std::string("WebSocket::on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg)"));
-	
+
 	setConStatus(true);
 	server_hdl = hdl;
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message_ws: Called with hdl: message: ")+send);
-	
+
 	if (!cbInit)
 	{
 		sysl->warnlog(std::string("WebSocket::on_message_ws: No callback function registered!"));
 		return;
 	}
-	
+
 	fcall(send);
 }
 

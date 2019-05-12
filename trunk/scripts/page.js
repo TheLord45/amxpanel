@@ -351,7 +351,7 @@ function onlineStatus()
 	{
 		if (wsocket !== null)
 		{
-			if (wsocket.readyState == 1)	// online?
+			if (wsocket.readyState == WebSocket.OPEN)	// online?
 				setOnlineStatus(1);
 			else
 				setOnlineStatus(0);
@@ -363,7 +363,7 @@ function onlineStatus()
 	{
 		if (wsocket !== null)
 		{
-			if (wsocket.readyState == 1)	// online?
+			if (wsocket.readyState == WebSocket.OPEN)	// online?
 				setOnlineStatus(9);
 			else
 				setOnlineStatus(0);
