@@ -596,6 +596,7 @@ bool TouchPanel::parsePages()
 	pgFile << "var fingerprint = \"\";\n";
 	pgFile << "var pageName = \"\";\n";
 	pgFile << "var wsocket = null;\n";
+	pgFile << "var ws_online = 0;		// 0 = offline, 1 = online, 2 = connecting" << std::endl;
 	pgFile << "var wsStatus = 0;" << std::endl << std::endl;
 	pgFile << "var browserTests = [\n";
 	pgFile << "\t\"audio\",\n\t\"availableScreenResolution\",\n\t\"canvas\",\n";
@@ -850,9 +851,9 @@ bool TouchPanel::parsePages()
 	pgFile << scrBuffer << std::endl;
 	// This is the WebSocket connection function
 	pgFile << "function connect()\n{\n";
-	pgFile << "\tif (wsocket !== null && (wsocket.readyState == WebSocket.OPEN || wsocket.readyState == WebSocket.CLOSING))" << std::endl;
+	pgFile << "\tif (wsocket !== null && (wsocket.readyState == WebSocket.OPEN || wsocket.readyState == WebSocket.CLOSING) && ws_online > 0)" << std::endl;
 	pgFile << "\t\treturn;" << std::endl << std::endl;
-	pgFile << "\ttry\n\t{\n";
+	pgFile << "\ttry\n\t{\n\t\tws_online = 2;" << std::endl;
 
 	if (Configuration->getWSStatus())
 		pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
@@ -860,14 +861,15 @@ bool TouchPanel::parsePages()
 		pgFile << "\t\twsocket = new WebSocket(\"ws://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
 
 	pgFile << "\t\twsocket.onopen = function() {" << std::endl;
-    pgFile << "\t\t\tgetRegistrationID();\n\t\t\tsetOnlineStatus(1);\n" << std::endl;
+    pgFile << "\t\t\tgetRegistrationID();\n\t\t\tws_online = 1;\t\t// online\n\t\t\tsetOnlineStatus(1);\n" << std::endl;
 	pgFile << "\t\t\tif (!regStatus)\n\t\t\t{" << std::endl;
 	pgFile << "\t\t\t\tif (typeof registrationID == \"string\" && registrationID.length > 0)\n";
 	pgFile << "\t\t\t\t\twsocket.send('REGISTER:'+registrationID+';');\n";
 	pgFile << "\t\t\t\telse\n\t\t\t\t\terrlog(\"connect: Missing registration ID!\");\n\t\t\t}\n\t\t}" << std::endl;
 	pgFile << "\t\twsocket.onerror = function(error) { errlog('WebSocket error: '+error); setOnlineStatus(9); }\n";
 	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
-	pgFile << "\t\twsocket.onclose = function() {\n\t\t\tTRACE('WebSocket is closed!');\n\t\t\tregStatus = false;\n\t\t\tsetOnlineStatus(0);\n\t\t}\n\t}\n\tcatch (exception)\n";
+	pgFile << "\t\twsocket.onclose = function() {\n\t\t\tTRACE('WebSocket is closed!');" << std::endl;
+	pgFile << "\t\t\tws_online = 0;\t\t// offline\n\t\t\tregStatus = false;\n\t\t\tsetOnlineStatus(0);\n\t\t}\n\t}\n\tcatch (exception)\n";
 	pgFile << "\t{\n\t\tsetOnlineStatus(0);\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
 	// Create a fingerprint
 	pgFile << "function makeFingerprint()\n{\n";
