@@ -293,6 +293,7 @@ namespace amx
 			uint32_t makeDWord(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4);
 			unsigned char *makeBuffer(const ANET_COMMAND& s);
 			int msg97fill(ANET_COMMAND *com);
+			bool isCommand(const strings::String& cmd);
 
 			bool stopped_ = false;
 			asio::ip::tcp::resolver::results_type endpoints_;
@@ -313,6 +314,7 @@ namespace amx
 			bool ready;					// TRUE = ready for communication
 			bool write_busy;
 			std::vector<DEVICE_INFO> devInfo;
+			strings::String oldCmd;
 	};
 }
 

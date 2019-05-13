@@ -58,6 +58,29 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using namespace amx;
 
+std::string cmdList[] = {
+	"@WLD-", "@AFP-", "@GCE-", "@APG-", "@CPG-", "@DPG-", "@PDR-", "@PHE-",
+	"@PHP-", "@PHT-", "@PPA-", "@PPF-", "@PPG-", "@PPK-", "@PPM-", "@PPN-",
+	"@PPT-", "@PPX", "@PSE-", "@PSP-", "@PST-", "PAGE-", "PPOF-", "PPOG-",
+	"PPON-", "^ANI-", "^APF-", "^BAT-", "^BAU-", "^BCB-", "^BCF-", "^BCT-",
+	"^BDO-", "^BFB-", "^BIM-", "^BLN-", "^BMC-", "^BMF-", "^BMI-", "^BML-",
+	"^BMP-", "^BNC-", "^BNN-", "^BNT-", "^BOP-", "^BOR-", "^BOS-", "^BPP-",
+	"^BRD-", "^BSF-", "^BSP-", "^BSM-", "^BSO-", "^BVL-", "^BVN-", "^BVP-",
+	"^BVT-", "^BWW-", "^CPF-", "^DLD-", "^DPF-", "^ENA-", "^FON-", "^GDI-",
+	"^GIV-", "^GLH-", "^GLL-", "^GRD-", "^GRU-", "^GSC-", "^GSN-", "^ICO-",
+	"^IRM-", "^JSB-", "^JSI-", "^JST-", "^MBT-", "^MDC-", "^SHO-", "^TEC-",
+	"^TEF-", "^TOP-", "^TXT-", "^UNI-", "^LPC-", "^LPR-", "^LPS-", "?BCP-",
+	"?BCF-", "?BCT-", "?BMP-", "?BOP-", "?BRD-", "?BWW-", "?FON-", "?ICO-",
+	"?JSB-", "?JSI-", "?JST-", "?TEC-", "?TEF-", "?TXT-", "ABEEP", "ADBEEP",
+	"@AKB-", "AKEYB-", "AKEYP-", "AKEYR-", "@AKP-", "@AKR", "BEEP", "BRIT-",
+	"@BRT-", "DBEEP", "@EKP-", "PKEYP-", "@PKP-", "SETUP", "SHUTDOWN", "SLEEP",
+	"@SOU-", "@TKP-", "TPAGEON", "TPAGEOFF", "@VKB", "WAKE", "^CAL", "^KPS-",
+	"^VKS-", "@PWD-", "^PWD-", "^BBR-", "^RAF-", "^RFR-", "^RMF-", "^RSR-",
+	"^MODEL?", "^ICS-", "^ICE-", "^ICM-", "^PHN-", "?PHN-", "LEVON"
+};
+
+#define NUMBER_CMDS		143
+
 AMXNet::AMXNet(asio::io_context& io_context)
 				: socket_(io_context),
 				  deadline_(io_context),
@@ -374,6 +397,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 	size_t len;
 	bool ignore = false;
 	ANET_SEND s;		// Used to answer system requests
+	strings::String cmd;
 
 	if (!error)
 	{
@@ -517,6 +541,24 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						memcpy(&comm.data.message_string.content[0], &buff_[9], len);
 						pos = len + 10;
 						comm.checksum = buff_[pos];
+						cmd.assign((char *)&comm.data.message_string.content[0]);
+						sysl->DebugMsg(strings::String("AMXNet::handle_read: cmd=")+cmd);
+
+						if (isCommand(cmd))
+						{
+							sysl->DebugMsg(strings::String("AMXNet::handle_read: Command found!"));
+							oldCmd.assign(cmd);
+						}
+						else
+						{
+							sysl->DebugMsg(strings::String("AMXNet::handle_read: Before concatenated ..."));
+							oldCmd.append(cmd);
+							sysl->DebugMsg(strings::String("AMXNet::handle_read: Concatenated cmd=")+oldCmd);
+							memset(&comm.data.message_string.content[0], 0, 1500);
+							memcpy(&comm.data.message_string.content[0], oldCmd.data(), 1499);
+							comm.data.message_string.length = oldCmd.length();
+							oldCmd.clear();
+						}
 
 						if (callback)
 							callback(comm);
@@ -1070,6 +1112,19 @@ uint16_t AMXNet::makeWord ( unsigned char b1, unsigned char b2 )
 uint32_t AMXNet::makeDWord ( unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4 )
 {
 	return ((b1 << 24) & 0xff000000) | ((b2 << 16) & 0x00ff0000) | ((b3  << 8) & 0x0000ff00) | b4;
+}
+
+bool AMXNet::isCommand(const strings::String& cmd)
+{
+	sysl->TRACE(strings::String("AMXNet::isCommand(strings::String& cmd)"));
+
+	for (int i = 0; i < NUMBER_CMDS; i++)
+	{
+		if (cmd.findOf(cmdList[i]) == 0)
+			return true;
+	}
+
+	return false;
 }
 
 unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
