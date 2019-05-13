@@ -23,7 +23,7 @@ var curPort;			// The port number the currently processed command depends on
 var curCommand;			// The currently command stripped from the port number
 var registrationID;		// The unique ID the App is registered on Server
 var regStatus = false;	// TRUE = Registration to server was successfull
-var pingStatus = {"ptime":0,"pcount":0,"active":false};	// Ping/pong status
+var pingStatus = {"ptime":0,"pcount":0,"active":false,"handle":0};	// Ping/pong status
 var isBackground = false;	// TRUE = App is in background
 var isStandby = false;		// TRUE = Device is in standby (display is off)
 var z_index = 0;
@@ -2762,8 +2762,9 @@ function sendPing()
 	var ptime = pingStatus.ptime;
 	var pcount = pingStatus.pcount + 1;
 	var dt = new Date();
+	pingStatus.handle = 0;
 
-	if (ptime > 0 && (ptime + 13000) < dt.getTime())
+	if (ptime > 0 && (ptime + 13000) < dt.getTime() && wsocket.readyState == WebSocket.OPEN)
 	{
 		setOnlineStatus(9);
 		wsocket.close();
@@ -2781,6 +2782,9 @@ function sendPing()
 	}
 	else if (wsocket.readyState == WebSocket.CLOSED && (ptime + 13000) < dt.getTime())
 	{
+		if (!navigator.online || isStandby)
+			return;
+
 		pingStatus.ptime = 0;
 		pingStatus.active = false;
 		connect();
@@ -2788,7 +2792,7 @@ function sendPing()
 	}
 
 	pingStatus.active = true;
-	setTimeout(sendPing, 10000);
+	pingStatus.handle = setTimeout(sendPing, 10000);
 }
 function calcImageSize(imWidth, imHeight, btWidth, btHeight, btFrame)
 {
@@ -3217,8 +3221,6 @@ function writeTextOut(msg)
 
 function handleStandby()
 {
-	handleResume();
-
 	window.addEventListener('focus', function () {
 		TRACE("handleStandby: Got focus");
 		isBackground = false;
@@ -3237,7 +3239,7 @@ function handleStandby()
 		TRACE("handleStandby: Lost focus");
 		isBackground = true;
 
-		if (hdOffTimer === null)
+		if (hdOffTimer === null && (isAndroid() || isIOS()))
 			hdOffTimer = setTimeout(setOffline, 5000);
 	}, false);
 
@@ -3261,7 +3263,7 @@ function handleStandby()
 
 	window.addEventListener('resume', function() {
 		TRACE("handleStandby: We resume");
-		if (wsocket.readyState == WebSocket.CLOSED)
+		if (wsocket.readyState == WebSocket.CLOSED && navigator.online)
 			connect();
 	}, false);
 }
@@ -3271,6 +3273,10 @@ function setOffline()
 	{
 		isStandby = true;
 		setOnlineStatus(0);
+
+		if (pingStatus.handle !== 0)
+			clearTimeout(pingStatus.handle);
+
 		wsocket.close();
 	}
 }
