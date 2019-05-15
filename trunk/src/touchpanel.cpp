@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <thread>
 #include <exception>
+#include <chrono>
 #ifdef __APPLE__
 #include <boost/asio/ip/tcp.hpp>
 #else
@@ -88,7 +89,10 @@ bool TouchPanel::startClient()
 
 		while (1)
 		{
-			if (webConnected && registrated)
+			uint64_t now = getMS();
+			uint64_t elapsed = now - lastDisconnect;
+
+			if (webConnected && registrated && elapsed >= 6000)
 			{
 				sysl->TRACE(String("TouchPanel::startClient: Starting connection to controller ..."));
 				c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()));
@@ -1114,4 +1118,17 @@ bool amx::TouchPanel::isParsed()
 	}
 
 	return false;
+}
+
+uint64_t TouchPanel::getMS()
+{
+	return std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+void amx::TouchPanel::setWebConnect(bool s)
+{
+	webConnected = s;
+
+	if (!s)
+		lastDisconnect = getMS();
 }

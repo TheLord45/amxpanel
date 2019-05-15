@@ -211,6 +211,7 @@ void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpo
 
 		// Set a deadline for the connect operation.
 		deadline_.expires_after(std::chrono::seconds(60));
+		stopped_ = false;
 
 		// Start the asynchronous connect operation.
 		socket_.async_connect(endpoint_iter->endpoint(),

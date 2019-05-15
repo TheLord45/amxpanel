@@ -293,6 +293,7 @@ void WebSocket::on_close(websocketpp::connection_hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_close(websocketpp::connection_hdl)"));
 	setConStatus(false);
+	sleep(5);
 }
 
 context_ptr WebSocket::on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl)
