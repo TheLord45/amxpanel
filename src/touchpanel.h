@@ -77,7 +77,7 @@ namespace amx
 			void webMsg(std::string& msg);
 			bool startClient();
 			void stopClient();
-			void setWebConnect(bool s) { webConnected = s; }
+			void setWebConnect(bool s);
 			bool getWebConnect() { return webConnected; }
 
 		private:
@@ -92,6 +92,7 @@ namespace amx
 			void writeBargraphs(std::fstream& pgFile);
 			bool isPresent(const std::vector<strings::String>& vs, const strings::String& str);
 			bool isParsed();
+			uint64_t getMS();
 
 			AMXNet *amxnet;
 			strings::String scrBuffer;
@@ -110,6 +111,7 @@ namespace amx
 
 			std::vector<ANET_COMMAND> commands;		// Commands from controller
 			strings::String amxBuffer;				// This is the cache for incomplete commands
+			uint64_t lastDisconnect;
 	};
 }
 

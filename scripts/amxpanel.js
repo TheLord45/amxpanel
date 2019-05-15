@@ -2724,8 +2724,8 @@ function doREG(msg)
 		regStatus = false;
 
 	// Start ping/pong if regStatus is OK
-	if (regStatus  == true && !pingStatus.active)
-		sendPing();
+//	if (regStatus  == true && !pingStatus.active)
+//		sendPing();
 }
 function doPONG(msg)
 {
@@ -3221,7 +3221,7 @@ function writeTextOut(msg)
 
 function handleStandby()
 {
-	window.addEventListener('focus', function () {
+/*	window.addEventListener('focus', function () {
 		TRACE("handleStandby: Got focus");
 		isBackground = false;
 		isStandby = false;
@@ -3242,7 +3242,7 @@ function handleStandby()
 		if (hdOffTimer === null && (isAndroid() || isIOS()))
 			hdOffTimer = setTimeout(setOffline, 5000);
 	}, false);
-
+*/
 	window.addEventListener('online', function() {
 		TRACE("handleStandby: We're online");
 		isStandby = false;
@@ -3269,9 +3269,10 @@ function handleStandby()
 }
 function setOffline()
 {
+	isStandby = true;
+
 	if (wsocket.readyState == WebSocket.OPEN)
 	{
-		isStandby = true;
 		setOnlineStatus(0);
 
 		if (pingStatus.handle !== 0)
