@@ -3221,7 +3221,7 @@ function writeTextOut(msg)
 
 function handleStandby()
 {
-/*	window.addEventListener('focus', function () {
+	window.addEventListener('focus', function () {
 		TRACE("handleStandby: Got focus");
 		isBackground = false;
 		isStandby = false;
@@ -3235,19 +3235,21 @@ function handleStandby()
 		if (wsocket.readyState == WebSocket.CLOSED)
 			connect();
 	}, false);
+
 	window.addEventListener('blur', function () {
 		TRACE("handleStandby: Lost focus");
 		isBackground = true;
 
-		if (hdOffTimer === null && (isAndroid() || isIOS()))
-			hdOffTimer = setTimeout(setOffline, 5000);
+//		if (hdOffTimer === null && (isAndroid() || isIOS()))
+//			hdOffTimer = setTimeout(setOffline, 5000);
 	}, false);
-*/
+
 	window.addEventListener('online', function() {
 		TRACE("handleStandby: We're online");
 		isStandby = false;
 
-		if (hdOffTimer !== null) {
+		if (hdOffTimer !== null)
+		{
 			clearTimeout(hdOffTimer);
 			hdOffTimer = null;
 		}
