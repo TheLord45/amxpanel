@@ -15,8 +15,29 @@
  */
 'use strict';
 
- var refreshing = {"ref":[]};
+var refreshing = {"ref":[]};
 
+function strToBytes(str)
+{
+	if (str === null || typeof str != "string" || str.length == 0)
+		return null;
+
+	var bytes = "";
+
+	for (var i = 0; i < (str.length / 2); i += 2)
+	{
+		bytes += String.fromCharCode(parseInt(str.substr(i, 2)));
+	}
+
+	return bytes;
+}
+function pwdToWeb(pwd)
+{
+	if (pwd === null || typeof pwd != "string" || pwd.length == 0)
+		return null;
+
+	var sB64;
+}
 function findRessource(name)
 {
 	for (var i in ressources.ressources)
