@@ -59,6 +59,13 @@ namespace amx
 		strings::String webcode;	// The webcode
 	}ST_POPUP;
 
+	typedef struct
+	{
+		int channel;				// The channel used for the panel (>10000 && <11000)
+		strings::String regID;		// The registration ID of the client
+		bool status;
+	}REGISTRATION_T;
+
 	class TouchPanel : public Panel, WebSocket
 	{
 		public:
@@ -93,6 +100,13 @@ namespace amx
 			bool isPresent(const std::vector<strings::String>& vs, const strings::String& str);
 			bool isParsed();
 			uint64_t getMS();
+			bool haveFreeSlot();
+			int getFreeSlot();
+			bool isRegistered(strings::String& regID);
+			bool isRegistered(int channel);
+			bool registerSlot(int channel, strings::String& regID);
+			bool releaseSlot(int channel);
+			bool releaseSlot(strings::String& regID);
 
 			AMXNet *amxnet;
 			strings::String scrBuffer;
@@ -112,6 +126,7 @@ namespace amx
 			std::vector<ANET_COMMAND> commands;		// Commands from controller
 			strings::String amxBuffer;				// This is the cache for incomplete commands
 			uint64_t lastDisconnect;
+			std::vector<REGISTRATION_T> registration;
 	};
 }
 

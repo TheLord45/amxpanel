@@ -30,6 +30,7 @@ namespace amx
 {
 	typedef struct
 	{
+		uint16_t device;		// Device ID of panel
 		uint16_t MC;			// message command number
 		uint16_t port;			// port number
 		uint16_t level;			// level number (if any)

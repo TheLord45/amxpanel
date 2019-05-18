@@ -177,7 +177,12 @@ void Config::readConfig(const String &sFile)
 			else if (left.caseCompare("AMXPort") == 0 && !right.empty())
 				AMXPort = std::stoi(right.data());
 			else if (left.caseCompare("AMXChannel") == 0 && !right.empty())
+			{
 				AMXChanel = std::stoi(right.data());
+
+				if (AMXChanel >= 10000 && AMXChanel < 11000)
+					AMXChanels.push_back(AMXChanel);
+			}
 			else if (left.caseCompare("AMXSystem") == 0 && !right.empty())
 				AMXSystem = std::stoi(right.data());
 			else if (left.caseCompare("SIDEPORT") == 0 && !right.empty())
@@ -195,7 +200,7 @@ void Config::readConfig(const String &sFile)
 			else if (left.caseCompare("WSStatus") == 0 && !right.empty())
 			{
 				String b = right.trim();
-				
+
 				if (b.compare("0") == 0 || b.caseCompare("FALSE") == 0 ||
 					b.caseCompare("NO") == 0 || b.caseCompare("OFF") == 0)
 					wsStatus = false;
