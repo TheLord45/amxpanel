@@ -42,6 +42,7 @@ class Config
 		strings::String getAMXController() { return AMXController; }
 		int getAMXPort() { return AMXPort; }
 		int getAMXChannel() { return AMXChanel; }
+		std::vector<int>& getAMXChannels() { return AMXChanels; }
 		int getAMXSystem() { return AMXSystem; }
 		int getSidePort() { return sidePort; }
 		strings::String getSSHServerFile() { return sshServerFile; }
@@ -73,6 +74,7 @@ class Config
 		strings::String AMXController;
 		int AMXPort;
 		int AMXChanel;
+		std::vector<int> AMXChanels;
 		int AMXSystem;
 		int sidePort;
 		strings::String sshServerFile;

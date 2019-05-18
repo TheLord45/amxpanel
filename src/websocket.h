@@ -72,6 +72,7 @@ namespace amx
 			static void on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl);
 			static void on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg);
 			static context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl);
+			static bool on_validate(websocketpp::connection_hdl hdl);
 			static std::string getPassword();
 	};
 }

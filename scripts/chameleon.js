@@ -524,7 +524,7 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 				if (button !== null)
 				{
 					var l = ~~((button.rh - button.rl) / 100.0 * lev);
-					writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l);
+					writeTextOut("LEVEL:"+panelID+':'+button.lp+":"+button.lv+":"+l);
 					var butKenn = getButtonKennung(name);
 
 					if (butKenn !== null)
@@ -679,7 +679,7 @@ async function drawBargraphLight(name, level, width, height, col1, col2, dir, fe
 				if (button !== null)
 				{
 					var l = ~~((button.rh - button.rl) / 100.0 * lev);
-					writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l);
+					writeTextOut("LEVEL:"+panelID+':'+button.lp+":"+button.lv+":"+l);
 					var butKenn = getButtonKennung(name);
 
 					if (butKenn !== null)
@@ -896,7 +896,7 @@ async function drawBargraph2Graph(uriFg, uriBg, name, level, width, height, dir,
 				if (button !== null)
 				{
 					var l = ~~((button.rh - button.rl) / 100.0 * lev);
-					writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l);
+					writeTextOut("LEVEL:"+panelID+':'+button.lp+":"+button.lv+":"+l);
 					var butKenn = getButtonKennung(name);
 
 					if (butKenn !== null)
@@ -1016,7 +1016,7 @@ async function drawBargraphMultistate(button, name, level)
 			if (button !== null)
 			{
 				var l = ~~((button.rh - button.rl) / 100.0 * lev);
-				writeTextOut("LEVEL:"+button.lp+":"+button.lv+":"+l);
+				writeTextOut("LEVEL:"+panelID+':'+button.lp+":"+button.lv+":"+l);
 				var butKenn = getButtonKennung(name);
 
 				if (butKenn !== null)

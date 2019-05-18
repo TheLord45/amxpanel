@@ -73,6 +73,140 @@ TouchPanel::~TouchPanel()
 	sysl->TRACE(Syslog::EXIT, String("TouchPanel::TouchPanel()"));
 }
 
+bool TouchPanel::haveFreeSlot()
+{
+	if (registration.size() == 0)
+		return true;
+
+	bool loop = false;
+	std::vector<int>& slots = Configuration->getAMXChannels();
+
+	for (size_t i = 0; i < slots.size(); i++)
+	{
+		loop = false;
+
+		for (size_t j = 0; j < registration.size(); j++)
+		{
+			if (!registration[j].status && registration[j].channel == slots[i])
+				return true;
+			else if (registration[j].status && registration[j].channel == slots[i])
+			{
+				loop = true;
+				break;
+			}
+		}
+
+		if (!loop)
+			return true;
+	}
+
+	return false;
+}
+
+int TouchPanel::getFreeSlot()
+{
+	for (size_t i = 0; i < registration.size(); i++)
+	{
+		if (!registration[i].status)
+			return registration[i].channel;
+	}
+
+	std::vector<int>& slots = Configuration->getAMXChannels();
+	bool found = false;
+
+	for (size_t i = 0; i < slots.size(); i++)
+	{
+		found = false;
+
+		for (size_t j = 0; j < registration.size(); j++)
+		{
+			if (registration[j].status && registration[j].channel == slots[i])
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+			return slots[i];
+	}
+
+	return 0;
+}
+
+bool TouchPanel::registerSlot (int channel, String& regID)
+{
+	for (size_t i = 0; i < registration.size(); i++)
+	{
+		if (registration[i].channel == channel && !registration[i].status)
+		{
+			registration[i].regID = regID;
+			registration[i].status = true;
+			return true;
+		}
+		else if (registration[i].channel == channel && registration[i].status)
+			return false;
+	}
+
+	REGISTRATION_T reg;
+
+	reg.channel = channel;
+	reg.regID = regID;
+	reg.status = true;
+	registration.push_back(reg);
+	return true;
+}
+
+bool TouchPanel::releaseSlot (int channel)
+{
+	for (size_t i = 0; i < registration.size(); i++)
+	{
+		if (registration[i].channel == channel)
+		{
+			registration[i].status = false;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool TouchPanel::releaseSlot (String& regID)
+{
+	for (size_t i = 0; i < registration.size(); i++)
+	{
+		if (registration[i].regID.compare(regID) == 0)
+		{
+			registration[i].status = false;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool TouchPanel::isRegistered(String& regID)
+{
+	for (size_t i = 0; i < registration.size(); i++)
+	{
+		if (registration[i].regID.compare(regID) == 0 && registration[i].status)
+			return true;
+	}
+
+	return false;
+}
+
+bool TouchPanel::isRegistered(int channel)
+{
+	for (size_t i = 0; i < registration.size(); i++)
+	{
+		if (registration[i].channel == channel && registration[i].status)
+			return true;
+	}
+
+	return false;
+}
+
 bool TouchPanel::startClient()
 {
 	sysl->TRACE(String("TouchPanel::startClient()"));
@@ -136,14 +270,14 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 		ANET_COMMAND& bef = commands.at(0);
 		commands.erase(commands.begin());
 
-		if (bef.device1 != Configuration->getAMXChannel())
+		if (!isRegistered(bef.device1))
 			continue;
 
 		switch (bef.MC)
 		{
 			case 0x0006:
 			case 0x0018:	// feedback channel on
-				com = bef.data.chan_state.port;
+				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
 				com.append("|ON-");
 				com.append(bef.data.chan_state.channel);
 				send(com);
@@ -151,14 +285,14 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 
 			case 0x0007:
 			case 0x0019:	// feedback channel off
-				com = bef.data.chan_state.port;
+				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
 				com.append("|OFF-");
 				com.append(bef.data.chan_state.channel);
 				send(com);
 			break;
 
 			case 0x000a:	// level value change
-				com = bef.data.message_value.port;
+				com = String("%1:%2").arg(bef.device1).arg(bef.data.message_value.port);
 				com += "|LEVEL-";
 				com += bef.data.message_value.value;
 				com += ",";
@@ -194,7 +328,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 					msg.content[len] = 0;
 				}
 
-				com = msg.port;
+				com = String("%1:%2").arg(bef.device1).arg(msg.port);
 				com.append("|");
 				com.append(NameFormat::cp1250ToUTF8((char *)&msg.content));
 				send(com);
@@ -218,9 +352,10 @@ void TouchPanel::webMsg(std::string& msg)
 	{
 		std::vector<String> parts = String(msg).split(":");
 		ANET_SEND as;
-		as.port = atoi(parts[1].data());
-		as.channel = atoi(parts[2].data());
-		int value = atoi(parts[3].data());
+		as.device = atoi(parts[1].data());
+		as.port = atoi(parts[2].data());
+		as.channel = atoi(parts[3].data());
+		int value = atoi(parts[4].data());
 
 		if (value)
 			as.MC = 0x0084;
@@ -238,10 +373,11 @@ void TouchPanel::webMsg(std::string& msg)
 	{
 		std::vector<String> parts = String(msg).split(":");
 		ANET_SEND as;
-		as.port = atoi(parts[1].data());
-		as.channel = atoi(parts[2].data());
+		as.device = atoi(parts[1].data());
+		as.port = atoi(parts[2].data());
+		as.channel = atoi(parts[3].data());
 		as.level = as.channel;
-		as.value = atoi(parts[3].data());
+		as.value = atoi(parts[4].data());
 		as.MC = 0x008a;
 		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", value: "+as.value+", MC: 0x"+NameFormat::toHex(as.MC, 4));
 
@@ -256,7 +392,7 @@ void TouchPanel::webMsg(std::string& msg)
 
 		if (parts.size() >= 3)
 		{
-			String answer = String("0|#PONG-%1,%2").arg(parts[1]).arg(parts[2]);
+			String answer = String("0:0|#PONG-%1,%2").arg(parts[1]).arg(parts[2]);
 			send(answer);
 		}
 	}
@@ -273,9 +409,24 @@ void TouchPanel::webMsg(std::string& msg)
 
 		if (isPresent(ht, regID))
 		{
+			if (!haveFreeSlot() && !isRegistered(regID))
+			{
+				sysl->errlog(String("TouchPanel::webMsg: No free slots available!"));
+				registrated = false;
+				String com = "0|#REG-NAK";
+				send(com);
+				com = "0:0|#ERR-No free slots available!";
+				send(com);
+				return;
+			}
+			else if (isRegistered(regID))
+				return;
+
 			registrated = true;
+			int slot = getFreeSlot();
+			registerSlot(slot, regID);
 			sysl->warnlog(String("TouchPanel::webMsg: Registration with ID: %1 was successfull.").arg(regID));
-			String com = "0|#REG-OK";
+			String com = String("0:0|#REG-OK,%1,%2").arg(slot).arg(regID);
 			send(com);
 			return;
 		}
@@ -283,9 +434,9 @@ void TouchPanel::webMsg(std::string& msg)
 		{
 			sysl->warnlog(String("TouchPanel::webMsg: Access for ID: %1 is denied!").arg(regID));
 			registrated = false;
-			String com = "0|#REG-NAK";
+			String com = "0:0|#REG-NAK";
 			send(com);
-			com = "0|#ERR-Access denied!";
+			com = "0:0|#ERR-Access denied!";
 			send(com);
 		}
 	}

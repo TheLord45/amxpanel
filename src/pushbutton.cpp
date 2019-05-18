@@ -56,7 +56,7 @@ PushButton::~PushButton()
 void PushButton::setState(size_t s)
 {
 	if (s > 0 && s <= button.sr.size() && (button.type == MULTISTATE_GENERAL || button.type == MULTISTATE_BARGRAPH))
-		state = s - 1;
+		state = (int)(s - 1);
 }
 
 String PushButton::getStyle()
