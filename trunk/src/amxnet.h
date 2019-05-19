@@ -246,13 +246,14 @@ namespace amx
 			AMXNet(asio::io_context& io_context);
 			~AMXNet();
 
-			void start(asio::ip::tcp::resolver::results_type endpoints);
+			void start(asio::ip::tcp::resolver::results_type endpoints, int id);
 			void stop();
 
 			void setCallback(std::function<void(const ANET_COMMAND&)> func) { callback = func; }
 			void setCallbackConn(std::function<bool()> func) { cbWebConn = func; }
 			bool sendCommand(const ANET_SEND& s);
 			bool isConnected();
+			void setPanelID(int id) { panelID = id; }
 			asio::ip::tcp::socket& getSocket() { return socket_; }
 
 		private:
@@ -316,6 +317,7 @@ namespace amx
 			bool write_busy;
 			std::vector<DEVICE_INFO> devInfo;
 			strings::String oldCmd;
+			int panelID;				// Panel ID of currently legalized panel.
 	};
 }
 
