@@ -48,7 +48,7 @@ TouchPanel::TouchPanel()
 {
 	sysl->TRACE(Syslog::ENTRY, String("TouchPanel::TouchPanel()"));
 	openPage = 0;
-	registrated = false;
+//	registrated = false;
 	busy = false;
 	webConnected = false;
 	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1));
@@ -220,21 +220,33 @@ bool TouchPanel::startClient()
 		amxnet = &c;
 		c.setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
 		c.setCallbackConn(bind(&TouchPanel::getWebConnect, this));
-
+		
+		while(1)
+			sleep(1);
+/*
 		while (1)
 		{
 			uint64_t now = getMS();
 			uint64_t elapsed = now - lastDisconnect;
+			int panelID = getFreeSlot();
+			
+			if (panelID < 10000)
+			{
+				sysl->errlog(String("TouchPanel::startClient: No more slots available!"));
+				return false;
+			}
 
-			if (webConnected && registrated && elapsed >= 6000)
+			if (webConnected && isRegistered(panelID) && elapsed >= 6000)
 			{
 				sysl->TRACE(String("TouchPanel::startClient: Starting connection to controller ..."));
-				c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()));
+				c.setPanelID(panelID);
+				c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()), panelID);
 				io_context.run();
 			}
 			else
 				sleep(1);
 		}
+ */
 	}
 	catch (std::exception& e)
 	{
@@ -242,7 +254,55 @@ bool TouchPanel::startClient()
 		return true;
 	}
 
-	return false;;
+	return false;
+}
+
+AMXNet *TouchPanel::getConnection(int id)
+{
+	std::map<AMXNet *, int>::iterator itr;
+	amxnet = 0;
+	
+	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	{
+		if (itr->second == id)
+		{
+			amxnet = itr->first;
+			break;
+		}
+	}
+	
+	if (amxnet == 0)
+	{
+		sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(id));
+		return (AMXNet *)0;
+	}
+	
+	return amxnet;
+}
+
+bool TouchPanel::newConnection(int id)
+{
+	sysl->TRACE(String("TouchPanel::newConnection(int id)"));
+	
+	try
+	{
+		asio::io_context io_context;
+		asio::ip::tcp::resolver r(io_context);
+		AMXNet c(io_context);
+		amxnet = &c;
+		panels.insert(pair<AMXNet *, int>(amxnet, id));
+		c.setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
+		c.setCallbackConn(bind(&TouchPanel::getWebConnect, this));
+		amxnet->start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()), id);
+		io_context.run();
+	}
+	catch (std::exception& e)
+	{
+		sysl->TRACE(String("TouchPanel::newConnection: Exception: ")+e.what());
+		return false;
+	}
+
+	return true;
 }
 
 /*
@@ -254,7 +314,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 {
 	sysl->TRACE(String("TouchPanel::setCommand(const ANET_COMMAND& cmd)"));
 
-	if (!registrated)
+	if (!isRegistered(cmd.device1))
 		return;
 
 	commands.push_back(cmd);
@@ -348,11 +408,22 @@ void TouchPanel::webMsg(std::string& msg)
 {
 	sysl->TRACE(String("TouchPanel::webMsg(std::string& msg) [")+msg+"]");
 
-	if (registrated && msg.find("PUSH:") != std::string::npos)
-	{
-		std::vector<String> parts = String(msg).split(":");
-		ANET_SEND as;
+	std::vector<String> parts = String(msg).split(":");
+	ANET_SEND as;
+	
+	if (msg.find("REGISTER:") == std::string::npos)
 		as.device = atoi(parts[1].data());
+	else
+		as.device = 0;
+
+	if (isRegistered(as.device) && msg.find("PUSH:") != std::string::npos)
+	{
+		if ((amxnet = getConnection(as.device)) == 0)
+		{
+			sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(as.device));
+			return;
+		}
+
 		as.port = atoi(parts[2].data());
 		as.channel = atoi(parts[3].data());
 		int value = atoi(parts[4].data());
@@ -369,11 +440,14 @@ void TouchPanel::webMsg(std::string& msg)
 		else
 			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
 	}
-	else if (registrated && msg.find("LEVEL:") != std::string::npos)
+	else if (isRegistered(as.device) && msg.find("LEVEL:") != std::string::npos)
 	{
-		std::vector<String> parts = String(msg).split(":");
-		ANET_SEND as;
-		as.device = atoi(parts[1].data());
+		if ((amxnet = getConnection(as.device)) == 0)
+		{
+			sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(as.device));
+			return;
+		}
+		
 		as.port = atoi(parts[2].data());
 		as.channel = atoi(parts[3].data());
 		as.level = as.channel;
@@ -386,20 +460,16 @@ void TouchPanel::webMsg(std::string& msg)
 		else
 			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
 	}
-	else if (registrated && msg.find("PING:") != std::string::npos)
+	else if (isRegistered(as.device) && msg.find("PING:") != std::string::npos)	// PING:<device>:<counter>:<time>
 	{
-		std::vector<String> parts = String(msg).split(":");
-
-		if (parts.size() >= 3)
+		if (parts.size() >= 4)
 		{
-			String answer = String("0:0|#PONG-%1,%2").arg(parts[1]).arg(parts[2]);
+			String answer = String("%1:0|#PONG-%1,%2,%3").arg(parts[1]).arg(parts[2]).arg(parts[3]);
 			send(answer);
 		}
 	}
 	else if (msg.find("REGISTER:") != std::string::npos)
 	{
-		std::vector<String> parts = String(msg).split(":");
-
 		if (parts.size() != 2)
 			return;
 
@@ -412,7 +482,7 @@ void TouchPanel::webMsg(std::string& msg)
 			if (!haveFreeSlot() && !isRegistered(regID))
 			{
 				sysl->errlog(String("TouchPanel::webMsg: No free slots available!"));
-				registrated = false;
+//				registrated = false;
 				String com = "0|#REG-NAK";
 				send(com);
 				com = "0:0|#ERR-No free slots available!";
@@ -422,18 +492,25 @@ void TouchPanel::webMsg(std::string& msg)
 			else if (isRegistered(regID))
 				return;
 
-			registrated = true;
+//			registrated = true;
 			int slot = getFreeSlot();
 			registerSlot(slot, regID);
 			sysl->warnlog(String("TouchPanel::webMsg: Registration with ID: %1 was successfull.").arg(regID));
 			String com = String("0:0|#REG-OK,%1,%2").arg(slot).arg(regID);
+
+			if (!newConnection(as.device))
+			{
+				sysl->errlog(String("TouchPanel::webMsg: Error establishing a new network connection for panel %1!").arg(as.device));
+				return;
+			}
+			
 			send(com);
 			return;
 		}
 		else
 		{
 			sysl->warnlog(String("TouchPanel::webMsg: Access for ID: %1 is denied!").arg(regID));
-			registrated = false;
+//			registrated = false;
 			String com = "0:0|#REG-NAK";
 			send(com);
 			com = "0:0|#ERR-Access denied!";

@@ -163,10 +163,11 @@ void AMXNet::init()
 	devInfo.push_back(di);
 }
 
-void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints)
+void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)
 {
-	sysl->TRACE(std::string("AMXNet::start(asio::ip::tcp::resolver::results_type endpoints)"));
+	sysl->TRACE(std::string("AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)"));
 	endpoints_ = endpoints;
+	panelID = id;
 	start_connect(endpoints_.begin());
 	deadline_.async_wait(std::bind(&AMXNet::check_deadline, this));
 }
@@ -540,7 +541,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.message_string.length = makeWord(buff_[7], buff_[8]);
 						len = (buff_[6] == 0x01) ? comm.data.message_string.length : comm.data.message_string.length * 2;
 						memcpy(&comm.data.message_string.content[0], &buff_[9], len);
-						pos = len + 10;
+						pos = (int)(len + 10);
 						comm.checksum = buff_[pos];
 						cmd.assign((char *)&comm.data.message_string.content[0]);
 						sysl->DebugMsg(strings::String("AMXNet::handle_read: cmd=")+cmd);
@@ -760,7 +761,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 	com.clear();
 	com.MC = s.MC;
 	com.device1 = 0;
-	com.device2 = Configuration->getAMXChannel();
+	com.device2 = panelID; // Configuration->getAMXChannel();
 	com.port1 = 1;
 	com.system = Configuration->getAMXSystem();
 	com.port2 = s.port;
@@ -829,7 +830,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.message_string.port = s.port;
 			com.data.message_string.system = com.system;
 			com.data.message_string.type = 0x01;	// char string
-			int len;
+			size_t len;
 
 			if (s.msg.length() >= sizeof(com.data.message_string.content))
 				len = sizeof(com.data.message_string.content) - 1;
@@ -923,7 +924,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 		break;
 
 		case 0x0581:		// Pong
-			com.data.srDeviceInfo.device = Configuration->getAMXChannel();
+			com.data.srDeviceInfo.device = panelID; // Configuration->getAMXChannel();
 			com.data.srDeviceInfo.system = Configuration->getAMXSystem();
 			com.data.srDeviceInfo.herstID = devInfo[0].manufacturerID;
 			com.data.srDeviceInfo.deviceID = devInfo[0].deviceID;
@@ -952,7 +953,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 
 int AMXNet::msg97fill(ANET_COMMAND *com)
 {
-	int pos;
+	int pos = 0;
 	unsigned char buf[128];
 
 	for (size_t i = 0; i < devInfo.size(); i++)
@@ -972,7 +973,7 @@ int AMXNet::msg97fill(ANET_COMMAND *com)
 		memcpy(com->data.srDeviceInfo.serial, devInfo[i].serialNum, 16);
 		com->data.srDeviceInfo.fwid = devInfo[i].firmwareID;
 		memcpy(buf, devInfo[i].versionInfo, strlen(devInfo[i].versionInfo));
-		pos = strlen(devInfo[i].versionInfo) + 1;
+		pos = (int)strlen(devInfo[i].versionInfo) + 1;
 		memcpy(buf+pos, devInfo[i].deviceInfo, strlen(devInfo[i].deviceInfo));
 		pos += strlen(devInfo[i].deviceInfo) + 1;
 		memcpy(buf+pos, devInfo[i].manufacturerInfo, strlen(devInfo[i].manufacturerInfo));

@@ -107,8 +107,11 @@ namespace amx
 			bool registerSlot(int channel, strings::String& regID);
 			bool releaseSlot(int channel);
 			bool releaseSlot(strings::String& regID);
+			bool newConnection(int id);
+			AMXNet *getConnection(int id);
 
 			AMXNet *amxnet;
+			std::map<AMXNet *, int> panels;
 			strings::String scrBuffer;
 			strings::String scrStart;
 			strings::String scBtArray;
@@ -121,7 +124,7 @@ namespace amx
 			std::vector<PAGE_T> pageList;
 			bool busy;
 			bool webConnected;
-			bool registrated;		// TRUE = Client (browser) is identified and has access
+//			bool registrated;		// TRUE = Client (browser) is identified and has access
 
 			std::vector<ANET_COMMAND> commands;		// Commands from controller
 			strings::String amxBuffer;				// This is the cache for incomplete commands
