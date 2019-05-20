@@ -53,9 +53,9 @@ TouchPanel::TouchPanel()
 	webConnected = false;
 	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1));
 	regCallbackStop(bind(&TouchPanel::stopClient, this));
-	regCallbackConnected(bind(&TouchPanel::setWebConnect, this, placeholders::_1));
+	regCallbackConnected(bind(&TouchPanel::setWebConnect, this, placeholders::_1, placeholders::_2));
+	regCallbackRegister(bind(&TouchPanel::regWebConnect, this, placeholders::_1, placeholders::_2));
 	readPages();
-	amxnet = 0;
 	// Start thread for websocket
 	try
 	{
@@ -75,6 +75,8 @@ TouchPanel::~TouchPanel()
 
 bool TouchPanel::haveFreeSlot()
 {
+	sysl->TRACE(String("TouchPanel::haveFreeSlot()"));
+
 	if (registration.size() == 0)
 		return true;
 
@@ -105,6 +107,8 @@ bool TouchPanel::haveFreeSlot()
 
 int TouchPanel::getFreeSlot()
 {
+	sysl->TRACE(String("TouchPanel::getFreeSlot()"));
+
 	for (size_t i = 0; i < registration.size(); i++)
 	{
 		if (!registration[i].status)
@@ -136,6 +140,8 @@ int TouchPanel::getFreeSlot()
 
 bool TouchPanel::registerSlot (int channel, String& regID)
 {
+	sysl->TRACE(String("TouchPanel::registerSlot (int channel, String& regID)"));
+
 	for (size_t i = 0; i < registration.size(); i++)
 	{
 		if (registration[i].channel == channel && !registration[i].status)
@@ -159,6 +165,8 @@ bool TouchPanel::registerSlot (int channel, String& regID)
 
 bool TouchPanel::releaseSlot (int channel)
 {
+	sysl->TRACE(String("TouchPanel::releaseSlot (int channel)"));
+
 	for (size_t i = 0; i < registration.size(); i++)
 	{
 		if (registration[i].channel == channel)
@@ -173,6 +181,8 @@ bool TouchPanel::releaseSlot (int channel)
 
 bool TouchPanel::releaseSlot (String& regID)
 {
+	sysl->TRACE(String("TouchPanel::releaseSlot (String& regID)"));
+
 	for (size_t i = 0; i < registration.size(); i++)
 	{
 		if (registration[i].regID.compare(regID) == 0)
@@ -187,6 +197,8 @@ bool TouchPanel::releaseSlot (String& regID)
 
 bool TouchPanel::isRegistered(String& regID)
 {
+	sysl->TRACE(String("TouchPanel::isRegistered(String& regID)"));
+
 	for (size_t i = 0; i < registration.size(); i++)
 	{
 		if (registration[i].regID.compare(regID) == 0 && registration[i].status)
@@ -198,6 +210,8 @@ bool TouchPanel::isRegistered(String& regID)
 
 bool TouchPanel::isRegistered(int channel)
 {
+	sysl->TRACE(String("TouchPanel::isRegistered(int channel)"));
+
 	for (size_t i = 0; i < registration.size(); i++)
 	{
 		if (registration[i].channel == channel && registration[i].status)
@@ -207,94 +221,120 @@ bool TouchPanel::isRegistered(int channel)
 	return false;
 }
 
-bool TouchPanel::startClient()
-{
-	sysl->TRACE(String("TouchPanel::startClient()"));
-	webConnected = false;
-
-	try
-	{
-		asio::io_context io_context;
-		asio::ip::tcp::resolver r(io_context);
-		AMXNet c(io_context);
-		amxnet = &c;
-		c.setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
-		c.setCallbackConn(bind(&TouchPanel::getWebConnect, this));
-		
-		while(1)
-			sleep(1);
-/*
-		while (1)
-		{
-			uint64_t now = getMS();
-			uint64_t elapsed = now - lastDisconnect;
-			int panelID = getFreeSlot();
-			
-			if (panelID < 10000)
-			{
-				sysl->errlog(String("TouchPanel::startClient: No more slots available!"));
-				return false;
-			}
-
-			if (webConnected && isRegistered(panelID) && elapsed >= 6000)
-			{
-				sysl->TRACE(String("TouchPanel::startClient: Starting connection to controller ..."));
-				c.setPanelID(panelID);
-				c.start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()), panelID);
-				io_context.run();
-			}
-			else
-				sleep(1);
-		}
- */
-	}
-	catch (std::exception& e)
-	{
-		sysl->TRACE(String("TouchPanel::startClient: Exception: ")+e.what());
-		return true;
-	}
-
-	return false;
-}
-
 AMXNet *TouchPanel::getConnection(int id)
 {
-	std::map<AMXNet *, int>::iterator itr;
-	amxnet = 0;
-	
+	sysl->TRACE(String("TouchPanel::getConnection(int id)"));
+
+	std::map<int, PANELMAP_T>::iterator itr;
+	AMXNet *amxnet = 0;
+
 	for (itr = panels.begin(); itr != panels.end(); ++itr)
 	{
-		if (itr->second == id)
+		if (itr->first == id)
 		{
-			amxnet = itr->first;
+			amxnet = itr->second.amxnet;
 			break;
 		}
 	}
 	
 	if (amxnet == 0)
-	{
 		sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(id));
-		return (AMXNet *)0;
-	}
 	
 	return amxnet;
 }
 
+AMXNet *TouchPanel::findConnection(int id)
+{
+	sysl->TRACE(String("TouchPanel::findConnection(int id)"));
+
+	if (id < 10000 || id > 11000)
+		return 0;
+
+	std::map<int, PANELMAP_T>::iterator itr;
+
+	AMXNet *pANet = 0;
+
+	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	{
+		if (itr->first == id)
+		{
+			pANet = itr->second.amxnet;
+			break;
+		}
+	}
+
+	return pANet;
+}
+
+bool TouchPanel::delConnection(int id)
+{
+	sysl->TRACE(String("TouchPanel::delConnection(int id)"));
+
+	if (id < 10000 || id > 11000)
+		return false;
+
+	std::map<int, PANELMAP_T>::iterator itr;
+
+	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	{
+		if (itr->first == id)
+		{
+			delete itr->second.amxnet;
+			delete itr->second.thr;
+			panels.erase(itr);
+			break;
+		}
+	}
+
+	return true;
+}
+
+void TouchPanel::regWebConnect(websocketpp::connection_hdl& hdl, int id)
+{
+	sysl->TRACE(String("TouchPanel::regWebConnect(websocketpp::connection_hdl hdl, int id)"));
+
+	std::map<int, PANELMAP_T>::iterator itr;
+
+	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	{
+		if (id >= 10000 && id <= 11000 && itr->first == id)
+		{
+			itr->second.ws_hdl = hdl;
+			break;
+		}
+		else if (id == -1 && itr->second.ws_hdl.use_count() == hdl.use_count())
+		{
+			itr->second.amxnet->stop();
+			releaseSlot(id);
+			delConnection(itr->first);
+			break;
+		}
+	}
+}
+
 bool TouchPanel::newConnection(int id)
 {
-	sysl->TRACE(String("TouchPanel::newConnection(int id)"));
-	
+	sysl->TRACE(String("TouchPanel::newConnection(int id) [id=%1").arg(id));
+
+	if (id < 10000 || id > 11000)
+	{
+		sysl->warnlog(String("TouchPanel::newConnection: Refused to register a panel with id %1").arg(id));
+		return false;
+	}
+
 	try
 	{
-		asio::io_context io_context;
-		asio::ip::tcp::resolver r(io_context);
-		AMXNet c(io_context);
-		amxnet = &c;
-		panels.insert(pair<AMXNet *, int>(amxnet, id));
-		c.setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
-		c.setCallbackConn(bind(&TouchPanel::getWebConnect, this));
-		amxnet->start(r.resolve(Configuration->getAMXController().toString(), String(Configuration->getAMXPort()).toString()), id);
-		io_context.run();
+		AMXNet *pANet = new AMXNet();
+		pANet->setPanelID(id);
+		pANet->setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
+		pANet->setCallbackConn(bind(&TouchPanel::getWebConnect, this, placeholders::_1));
+		PANELMAP_T pmap;
+		pmap.amxnet = pANet;
+
+		thread *thr = new thread([=] { pANet->Run(); });
+		thr->detach();
+		pmap.thr = thr;
+		panels.insert(pair<int, PANELMAP_T>(id, pmap));
 	}
 	catch (std::exception& e)
 	{
@@ -303,6 +343,21 @@ bool TouchPanel::newConnection(int id)
 	}
 
 	return true;
+}
+
+bool TouchPanel::getWebConnect(AMXNet* pANet)
+{
+	sysl->TRACE(String("TouchPanel::getWebConnect(AMXNet* pANet)"));
+
+	std::map<int, PANELMAP_T>::iterator itr;
+
+	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	{
+		if (itr->second.amxnet == pANet)
+			return isRegistered(itr->first);
+	}
+
+	return false;
 }
 
 /*
@@ -418,6 +473,8 @@ void TouchPanel::webMsg(std::string& msg)
 
 	if (isRegistered(as.device) && msg.find("PUSH:") != std::string::npos)
 	{
+		AMXNet *amxnet;
+
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(as.device));
@@ -442,6 +499,8 @@ void TouchPanel::webMsg(std::string& msg)
 	}
 	else if (isRegistered(as.device) && msg.find("LEVEL:") != std::string::npos)
 	{
+		AMXNet *amxnet;
+
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(as.device));
@@ -482,7 +541,6 @@ void TouchPanel::webMsg(std::string& msg)
 			if (!haveFreeSlot() && !isRegistered(regID))
 			{
 				sysl->errlog(String("TouchPanel::webMsg: No free slots available!"));
-//				registrated = false;
 				String com = "0|#REG-NAK";
 				send(com);
 				com = "0:0|#ERR-No free slots available!";
@@ -492,25 +550,39 @@ void TouchPanel::webMsg(std::string& msg)
 			else if (isRegistered(regID))
 				return;
 
-//			registrated = true;
 			int slot = getFreeSlot();
-			registerSlot(slot, regID);
-			sysl->warnlog(String("TouchPanel::webMsg: Registration with ID: %1 was successfull.").arg(regID));
-			String com = String("0:0|#REG-OK,%1,%2").arg(slot).arg(regID);
 
-			if (!newConnection(as.device))
+			if (slot == 0)
 			{
-				sysl->errlog(String("TouchPanel::webMsg: Error establishing a new network connection for panel %1!").arg(as.device));
+				sysl->errlog(String("TouchPanel::webMsg: No more free slots available!"));
+				String s = "0:0|#REG-NAK";
+				send(s);
+				s = "0:0|#ERR-No more free slots!";
+				send(s);
 				return;
 			}
-			
+
+			registerSlot(slot, regID);
+			sysl->DebugMsg(String("TouchPanel::webMsg: Registering slot %1 with regID %2.").arg(slot).arg(regID));
+
+			if (!newConnection(slot))
+			{
+				sysl->errlog(std::string("TouchPanel::webMsg: Error connecting to controller!"));
+				String s = "0:0|#REG-NAK";
+				send(s);
+				s = "0:0|#ERR-Connection error!";
+				send(s);
+				return;
+			}
+
+			sysl->warnlog(String("TouchPanel::webMsg: Registration with ID: %1 was successfull.").arg(regID));
+			String com = String("0:0|#REG-OK,%1,%2").arg(slot).arg(regID);
 			send(com);
 			return;
 		}
 		else
 		{
 			sysl->warnlog(String("TouchPanel::webMsg: Access for ID: %1 is denied!").arg(regID));
-//			registrated = false;
 			String com = "0:0|#REG-NAK";
 			send(com);
 			com = "0:0|#ERR-Access denied!";
@@ -523,8 +595,15 @@ void TouchPanel::stopClient()
 {
 	sysl->TRACE(String("TouchPanel::stopClient()"));
 
-	if (amxnet != 0)
-		amxnet->stop();
+	std::map<int, PANELMAP_T>::iterator itr;
+
+	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	{
+		itr->second.amxnet->stop();
+		delete itr->second.amxnet;
+		delete itr->second.thr;
+		panels.erase(itr);
+	}
 }
 
 int TouchPanel::findPage(const String& name)
@@ -1353,7 +1432,7 @@ uint64_t TouchPanel::getMS()
 	return std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-void amx::TouchPanel::setWebConnect(bool s)
+void amx::TouchPanel::setWebConnect(bool s, websocketpp::connection_hdl& hdl)
 {
 	webConnected = s;
 

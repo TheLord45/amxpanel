@@ -37,9 +37,12 @@ namespace amx
 	static bool cbInit = false;
 	static bool cbInitStop = false;
 	static bool cbInitCon = false;
+	static bool cbInitRegister = false;
 	static std::function<void(std::string&)> fcall;
 	static std::function<void()> fcallStop;
-	static std::function<void(bool)> fcallConn;
+	static std::function<void(bool, websocketpp::connection_hdl&)> fcallConn;
+	static std::function<void(websocketpp::connection_hdl&, int)> fcallRegister;
+	static std::map<int, websocketpp::connection_hdl> __regs;
 
 	class WebSocket
 	{
@@ -49,7 +52,8 @@ namespace amx
 
 			static void regCallback(std::function<void(std::string&)> func);
 			static void regCallbackStop(std::function<void()> func);
-			static void regCallbackConnected(std::function<void(bool)> func);
+			static void regCallbackConnected(std::function<void(bool, websocketpp::connection_hdl&)> func);
+			static void regCallbackRegister(std::function<void(websocketpp::connection_hdl&, int)> func);
 			void run();
 			bool send(strings::String& msg);
 			static server& getServer() { return sock_server; }
@@ -66,13 +70,13 @@ namespace amx
 		private:
 			static void on_http(server* s, websocketpp::connection_hdl hdl);
 			static void on_fail(server* s, websocketpp::connection_hdl hdl);
-			static void on_close(websocketpp::connection_hdl);
+			static void on_close (websocketpp::connection_hdl hdl);
 			static void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg);
 			static void on_http_ws(server_ws* s, websocketpp::connection_hdl hdl);
 			static void on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl);
 			static void on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg);
 			static context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl);
-			static bool on_validate(websocketpp::connection_hdl hdl);
+			static void tcp_post_init(websocketpp::connection_hdl hdl);
 			static std::string getPassword();
 	};
 }

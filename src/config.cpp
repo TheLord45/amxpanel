@@ -248,7 +248,7 @@ std::vector<String>& Config::getHashTable(const String& path)
 
 Config::~Config()
 {
-	sysl->TRACE(Syslog::EXIT, std::string("Config::Config()"));
+//	sysl->TRACE(Syslog::EXIT, std::string("Config::Config()"));
 
 	if (this->fflag)
 	{

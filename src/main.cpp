@@ -64,8 +64,7 @@ int main(int /* argc */, const char **argv)
 	// Start thread for AMX communication
 	while (!killed)
 	{
-		pTouchPanel->startClient();	// Connect to controller and listen
-		sleep (2);
+		sleep (1);
 	}
 
 	// Upon the previous function exits, clean up end exit.

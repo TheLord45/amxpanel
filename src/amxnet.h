@@ -243,18 +243,20 @@ namespace amx
 	class AMXNet
 	{
 		public:
-			AMXNet(asio::io_context& io_context);
+			AMXNet();
 			~AMXNet();
 
+			void Run();
 			void start(asio::ip::tcp::resolver::results_type endpoints, int id);
 			void stop();
 
 			void setCallback(std::function<void(const ANET_COMMAND&)> func) { callback = func; }
-			void setCallbackConn(std::function<bool()> func) { cbWebConn = func; }
+			void setCallbackConn(std::function<bool(AMXNet *)> func) { cbWebConn = func; }
 			bool sendCommand(const ANET_SEND& s);
 			bool isConnected();
+			bool isStopped() { return stopped_; }
 			void setPanelID(int id) { panelID = id; }
-			asio::ip::tcp::socket& getSocket() { return socket_; }
+			asio::ip::tcp::socket *getSocket() { return socket_; }
 
 		private:
 			enum R_TOKEN
@@ -297,19 +299,19 @@ namespace amx
 			int msg97fill(ANET_COMMAND *com);
 			bool isCommand(const strings::String& cmd);
 
-			bool stopped_ = false;
+			bool stopped_;
 			asio::ip::tcp::resolver::results_type endpoints_;
-			asio::ip::tcp::socket socket_;
+			asio::ip::tcp::socket *socket_;
 			strings::String input_buffer_;
 			unsigned char buff_[2048];
-			asio::steady_timer deadline_;
-			asio::steady_timer heartbeat_timer_;
+			asio::steady_timer *deadline_;
+			asio::steady_timer *heartbeat_timer_;
 			std::function<void(const ANET_COMMAND&)> callback;
-            std::function<bool()> cbWebConn;
+			std::function<bool(AMXNet *)> cbWebConn;
 			bool protError;				// true = error on receive --> disconnect
 			uint16_t reqDevStatus;
-			ANET_COMMAND comm;				// received command
-			ANET_COMMAND send;				// answer / request
+			ANET_COMMAND comm;			// received command
+			ANET_COMMAND send;			// answer / request
 			uint16_t sendCounter;		// Counter increment on every send
 			std::vector<ANET_COMMAND> comStack;	// commands to answer
 			bool initSend;				// TRUE = all init messages are send.

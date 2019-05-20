@@ -63,8 +63,16 @@ namespace amx
 	{
 		int channel;				// The channel used for the panel (>10000 && <11000)
 		strings::String regID;		// The registration ID of the client
+		AMXNet *amxnet;				// The class communicating with the AMX controller
 		bool status;
 	}REGISTRATION_T;
+
+	typedef struct
+	{
+		AMXNet *amxnet;
+		std::thread *thr;
+		websocketpp::connection_hdl ws_hdl;
+	}PANELMAP_T;
 
 	class TouchPanel : public Panel, WebSocket
 	{
@@ -72,20 +80,15 @@ namespace amx
 			TouchPanel();
 			~TouchPanel();
 
-//			strings::String getPage(int id);
-//			strings::String getPageStyle(int id);
-//			strings::String getPage(const strings::String& name);
-//			strings::String getPageStyle(const strings::String& name);
 			int findPage(const strings::String& name);
-//			int getActivePage();
 			bool parsePages();
 
 			void setCommand(const struct ANET_COMMAND& cmd);
 			void webMsg(std::string& msg);
-			bool startClient();
 			void stopClient();
-			void setWebConnect(bool s);
-			bool getWebConnect() { return webConnected; }
+			void setWebConnect(bool s, websocketpp::connection_hdl& hdl);
+			bool getWebConnect(AMXNet *);
+			void regWebConnect(websocketpp::connection_hdl& hdl, int id);
 
 		private:
 			void writeStyles(std::fstream& pgFile);
@@ -109,9 +112,10 @@ namespace amx
 			bool releaseSlot(strings::String& regID);
 			bool newConnection(int id);
 			AMXNet *getConnection(int id);
+			AMXNet *findConnection(int id);
+			bool delConnection(int id);
 
-			AMXNet *amxnet;
-			std::map<AMXNet *, int> panels;
+			std::map<int, PANELMAP_T> panels;
 			strings::String scrBuffer;
 			strings::String scrStart;
 			strings::String scBtArray;
