@@ -47,11 +47,18 @@ void WebSocket::regCallbackStop(std::function<void()> func)
 	cbInitStop = true;
 }
 
-void WebSocket::regCallbackConnected(std::function<void (bool)> func)
+void WebSocket::regCallbackConnected(std::function<void (bool, websocketpp::connection_hdl&)> func)
 {
 	sysl->TRACE(std::string("WebSocket::regCallbackConnected(std::function<void (bool)> func)"));
 	fcallConn = func;
 	cbInitCon = true;
+}
+
+void WebSocket::regCallbackRegister(std::function<void (websocketpp::connection_hdl&, int)> func)
+{
+	sysl->TRACE(std::string("WebSocket::regCallbackRegister(std::function<void (websocketpp::connection_hdl)> func)"));
+	fcallRegister = func;
+	cbInitRegister = true;
 }
 
 void WebSocket::setConStatus(bool s)
@@ -60,7 +67,7 @@ void WebSocket::setConStatus(bool s)
 	connected = s;
 
 	if (cbInitCon)
-		fcallConn(s);
+		fcallConn(s, server_hdl);
 	else
 		sysl->warnlog(std::string("WebSocket::setConStatus: Callback function to indicate connection status was not set!"));
 }
@@ -88,6 +95,7 @@ void WebSocket::run()
 			sock_server.set_fail_handler(bind(&on_fail,&sock_server,::_1));
 			sock_server.set_close_handler(&on_close);
 			sock_server.set_tls_init_handler(bind(&on_tls_init,MOZILLA_MODERN,::_1));
+			sock_server.set_tcp_post_init_handler(&tcp_post_init);
 			// Listen on port 11012
 			sock_server.listen(Configuration->getSidePort());
 			// Start the server accept loop
@@ -109,6 +117,7 @@ void WebSocket::run()
 			sock_server_ws.set_http_handler(bind(&on_http_ws,&sock_server_ws,::_1));
 			sock_server_ws.set_fail_handler(bind(&on_fail_ws,&sock_server_ws,::_1));
 			sock_server_ws.set_close_handler(&on_close);
+			sock_server_ws.set_tcp_post_init_handler(&tcp_post_init);
 			// Listen on port 11012
 			sock_server_ws.listen(Configuration->getSidePort());
 			// Start the server accept loop
@@ -207,6 +216,19 @@ bool WebSocket::send(strings::String& msg)
 	return true;
 }
 
+void WebSocket::tcp_post_init(websocketpp::connection_hdl hdl)
+{
+	sysl->TRACE(std::string("WebSocket::tcp_post_init(websocketpp::connection_hdl hdl)"));
+
+	if (!cbInitRegister)
+	{
+		sysl->errlog(std::string("WebSocket::tcp_post_init: Callback function for registering web socket connection was not initialized!"));
+		return;
+	}
+
+	fcallRegister(hdl, 0);
+}
+
 void WebSocket::on_http(server* s, websocketpp::connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_http(server* s, websocketpp::connection_hdl hdl)"));
@@ -245,12 +267,27 @@ void WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_p
 	server_hdl = hdl;
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message: Called with hdl: message: ")+send);
+	std::vector<strings::String> parts = strings::String(send).split(":");
+	int id = 0;
+
+	if (send.find("REGISTER:") == std::string::npos)
+		id = atoi(parts[1].data());
 
 	if (!cbInit)
 	{
 		sysl->warnlog(std::string("WebSocket::on_message: No callback function registered!"));
 		return;
 	}
+
+	if (id >= 10000 && id <= 11000 && __regs.find(id) == __regs.end())
+	{
+		sysl->DebugMsg(strings::String("WebSocket::on_message_ws: Registering id %1").arg(id));
+		__regs.insert(std::pair<int, websocketpp::connection_hdl>(id, hdl));
+		fcallRegister(hdl, id);
+	}
+
+	if (send.find("PANEL:") != std::string::npos)
+		return;
 
 	fcall(send);
 }
@@ -263,12 +300,27 @@ void WebSocket::on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, mes
 	server_hdl = hdl;
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message_ws: Called with hdl: message: ")+send);
+	std::vector<strings::String> parts = strings::String(send).split(":");
+	int id = 0;
+
+	if (send.find_first_of("REGISTER:") == std::string::npos)
+		id = atoi(parts[1].data());
 
 	if (!cbInit)
 	{
 		sysl->warnlog(std::string("WebSocket::on_message_ws: No callback function registered!"));
 		return;
 	}
+
+	if (id >= 10000 && id <= 11000 && __regs.find(id) == __regs.end())
+	{
+		sysl->DebugMsg(strings::String("WebSocket::on_message_ws: Registering id %1").arg(id));
+		__regs.insert(std::pair<int, websocketpp::connection_hdl>(id, hdl));
+		fcallRegister(hdl, id);
+	}
+
+	if (send.find("PANEL:") != std::string::npos)
+		return;
 
 	fcall(send);
 }
@@ -279,6 +331,7 @@ void WebSocket::on_fail(server* s, websocketpp::connection_hdl hdl)
 	server::connection_ptr con = s->get_con_from_hdl(hdl);
 	sysl->errlog(std::string("WebSocket::on_fail: Fail handler: ")+con->get_ec().message());
 	setConStatus(false);
+	fcallRegister(hdl, -1);
 }
 
 void WebSocket::on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl)
@@ -287,12 +340,14 @@ void WebSocket::on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl)
 	server_ws::connection_ptr con = s->get_con_from_hdl(hdl);
 	sysl->errlog(std::string("WebSocket::on_fail_ws: Fail handler: ")+con->get_ec().message());
 	setConStatus(false);
+	fcallRegister(hdl, -1);
 }
 
-void WebSocket::on_close(websocketpp::connection_hdl)
+void WebSocket::on_close(websocketpp::connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_close(websocketpp::connection_hdl)"));
 	setConStatus(false);
+	fcallRegister(hdl, -1);
 	sleep(5);
 }
 

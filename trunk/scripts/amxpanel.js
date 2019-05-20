@@ -2827,7 +2827,10 @@ function doREG(msg)
     panelID = pID;
 
     if (stat == 'OK')
+    {
         regStatus = true;
+        writeTextOut("PANEL:"+panelID+":"+regID);
+    }
     else
         regStatus = false;
 }
