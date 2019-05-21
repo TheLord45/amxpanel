@@ -302,7 +302,7 @@ void TouchPanel::regWebConnect(websocketpp::connection_hdl& hdl, int id)
 			itr->second.ws_hdl = hdl;
 			break;
 		}
-		else if (id == -1 && itr->second.ws_hdl.use_count() == hdl.use_count())
+		else if (id == -1 && compareHdl(itr->second.ws_hdl, hdl))
 		{
 			itr->second.amxnet->stop();
 			releaseSlot(id);
@@ -362,7 +362,7 @@ bool TouchPanel::getWebConnect(AMXNet* pANet)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
