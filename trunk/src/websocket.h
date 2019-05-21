@@ -28,39 +28,27 @@ typedef websocketpp::server<websocketpp::config::asio> server_ws;
 typedef websocketpp::config::asio::message_type::ptr message_ptr;
 typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> context_ptr;
 
+typedef std::map<websocketpp::connection_hdl, int, std::owner_less<websocketpp::connection_hdl> > REG_DATA_T;
+
 namespace amx
 {
-	static server sock_server;
-	static server_ws sock_server_ws;
-	static websocketpp::connection_hdl server_hdl;
-	static bool connected = false;
-	static bool cbInit = false;
-	static bool cbInitStop = false;
-	static bool cbInitCon = false;
-	static bool cbInitRegister = false;
-	static std::function<void(std::string&)> fcall;
-	static std::function<void()> fcallStop;
-	static std::function<void(bool, websocketpp::connection_hdl&)> fcallConn;
-	static std::function<void(websocketpp::connection_hdl&, int)> fcallRegister;
-	static std::map<int, websocketpp::connection_hdl> __regs;
-
 	class WebSocket
 	{
 		public:
 			WebSocket();
 			~WebSocket();
 
-			static void regCallback(std::function<void(std::string&)> func);
-			static void regCallbackStop(std::function<void()> func);
-			static void regCallbackConnected(std::function<void(bool, websocketpp::connection_hdl&)> func);
-			static void regCallbackRegister(std::function<void(websocketpp::connection_hdl&, int)> func);
+			void regCallback(std::function<void(std::string&)> func);
+			void regCallbackStop(std::function<void()> func);
+			void regCallbackConnected(std::function<void(bool, websocketpp::connection_hdl&)> func);
+			void regCallbackRegister(std::function<void(websocketpp::connection_hdl&, int)> func);
 			void run();
 			bool send(strings::String& msg);
-			static server& getServer() { return sock_server; }
-			static server_ws& getServer_ws() { return sock_server_ws; }
-			static bool getConStatus() { return connected; }
-			static void setConStatus(bool s);
-			static bool compareHdl(websocketpp::connection_hdl& hdl1, websocketpp::connection_hdl& hdl2);
+			server& getServer() { return sock_server; }
+			server_ws& getServer_ws() { return sock_server_ws; }
+			bool getConStatus() { return connected; }
+			void setConStatus(bool s);
+			bool compareHdl(websocketpp::connection_hdl& hdl1, websocketpp::connection_hdl& hdl2);
 
 			enum tls_mode
 			{
@@ -69,16 +57,31 @@ namespace amx
 			};
 
 		private:
-			static void on_http(server* s, websocketpp::connection_hdl hdl);
-			static void on_fail(server* s, websocketpp::connection_hdl hdl);
-			static void on_close (websocketpp::connection_hdl hdl);
-			static void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg);
-			static void on_http_ws(server_ws* s, websocketpp::connection_hdl hdl);
-			static void on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl);
-			static void on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg);
-			static context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl);
-			static void tcp_post_init(websocketpp::connection_hdl hdl);
-			static std::string getPassword();
+			void on_http(server* s, websocketpp::connection_hdl hdl);
+			void on_fail(server* s, websocketpp::connection_hdl hdl);
+			void on_close (websocketpp::connection_hdl hdl);
+			void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg);
+			void on_http_ws(server_ws* s, websocketpp::connection_hdl hdl);
+			void on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl);
+			void on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg);
+			context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl);
+			void tcp_post_init(websocketpp::connection_hdl hdl);
+			std::string getPassword();
+
+			server sock_server;
+			server_ws sock_server_ws;
+			websocketpp::connection_hdl server_hdl;
+			bool connected = false;
+			bool cbInit = false;
+			bool cbInitStop = false;
+			bool cbInitCon = false;
+			bool cbInitRegister = false;
+			std::function<void(std::string&)> fcall;
+			std::function<void()> fcallStop;
+			std::function<void(bool, websocketpp::connection_hdl&)> fcallConn;
+			std::function<void(websocketpp::connection_hdl&, int)> fcallRegister;
+			REG_DATA_T __regs;
+
 	};
 }
 

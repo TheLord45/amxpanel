@@ -279,8 +279,12 @@ bool TouchPanel::delConnection(int id)
 	{
 		if (itr->first == id)
 		{
-			delete itr->second.amxnet;
-			delete itr->second.thr;
+			if (itr->second.amxnet != 0)
+				delete itr->second.amxnet;
+
+			if (itr->second.thr != 0)
+				delete itr->second.thr;
+
 			panels.erase(itr);
 			break;
 		}
@@ -300,14 +304,15 @@ void TouchPanel::regWebConnect(websocketpp::connection_hdl& hdl, int id)
 		if (id >= 10000 && id <= 11000 && itr->first == id)
 		{
 			itr->second.ws_hdl = hdl;
-			break;
+			return;
 		}
 		else if (id == -1 && compareHdl(itr->second.ws_hdl, hdl))
 		{
 			itr->second.amxnet->stop();
-			releaseSlot(id);
+			releaseSlot(itr->first);
 			delConnection(itr->first);
-			break;
+			sysl->DebugMsg(String("TouchPanel::regWebConnect: Connection to controller is closed."));
+			return;
 		}
 	}
 }
@@ -330,10 +335,10 @@ bool TouchPanel::newConnection(int id)
 		pANet->setCallbackConn(bind(&TouchPanel::getWebConnect, this, placeholders::_1));
 		PANELMAP_T pmap;
 		pmap.amxnet = pANet;
+		pmap.thr = 0;
 
-		thread *thr = new thread([=] { pANet->Run(); });
-		thr->detach();
-		pmap.thr = thr;
+		thread thr = thread([=] { pANet->Run(); });
+		thr.detach();
 		panels.insert(pair<int, PANELMAP_T>(id, pmap));
 	}
 	catch (std::exception& e)
@@ -362,7 +367,7 @@ bool TouchPanel::getWebConnect(AMXNet* pANet)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
