@@ -424,3 +424,27 @@ std::string WebSocket::getPassword()
 	sysl->TRACE(std::string("WebSocket::getPassword()"));
 	return Configuration->getSSHPassword().toString();
 }
+
+bool WebSocket::compareHdl(websocketpp::connection_hdl& hdl1, websocketpp::connection_hdl& hdl2)
+{
+	sysl->TRACE(std::string("WebSocket::compareHdl(websocketpp::connection_hdl& hdl1, websocketpp::connection_hdl& hdl2)"));
+
+	if (Configuration->getWSStatus())
+	{
+		server::connection_ptr con1 = sock_server.get_con_from_hdl(hdl1);
+		server::connection_ptr con2 = sock_server.get_con_from_hdl(hdl2);
+
+		if (con1->get_remote_endpoint().compare(con2->get_remote_endpoint()) == 0)
+			return true;
+	}
+	else
+	{
+		server_ws::connection_ptr con1 = sock_server_ws.get_con_from_hdl(hdl1);
+		server_ws::connection_ptr con2 = sock_server_ws.get_con_from_hdl(hdl2);
+
+		if (con1->get_remote_endpoint().compare(con2->get_remote_endpoint()) == 0)
+			return true;
+	}
+
+	return false;
+}

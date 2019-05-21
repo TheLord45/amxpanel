@@ -60,6 +60,7 @@ namespace amx
 			static server_ws& getServer_ws() { return sock_server_ws; }
 			static bool getConStatus() { return connected; }
 			static void setConStatus(bool s);
+			static bool compareHdl(websocketpp::connection_hdl& hdl1, websocketpp::connection_hdl& hdl2);
 
 			enum tls_mode
 			{
