@@ -141,6 +141,7 @@ int TouchPanel::getFreeSlot()
 bool TouchPanel::registerSlot (int channel, String& regID)
 {
 	sysl->TRACE(String("TouchPanel::registerSlot (int channel, String& regID)"));
+	sysl->DebugMsg(String("TouchPanel::registerSlot: Registering channel %1 with registration ID %2.").arg(channel).arg(regID));
 
 	for (size_t i = 0; i < registration.size(); i++)
 	{
@@ -172,6 +173,7 @@ bool TouchPanel::releaseSlot (int channel)
 		if (registration[i].channel == channel)
 		{
 			registration[i].status = false;
+			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(channel).arg(registration[i].regID));
 			return true;
 		}
 	}
@@ -188,6 +190,7 @@ bool TouchPanel::releaseSlot (String& regID)
 		if (registration[i].regID.compare(regID) == 0)
 		{
 			registration[i].status = false;
+			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(registration[i].channel).arg(regID));
 			return true;
 		}
 	}
@@ -298,6 +301,7 @@ void TouchPanel::regWebConnect(websocketpp::connection_hdl& hdl, int id)
 	sysl->TRACE(String("TouchPanel::regWebConnect(websocketpp::connection_hdl hdl, int id)"));
 
 	std::map<int, PANELMAP_T>::iterator itr;
+	sysl->DebugMsg(String("TouchPanel::regWebConnect: Registering id %1").arg(id));
 
 	for (itr = panels.begin(); itr != panels.end(); ++itr)
 	{
@@ -311,7 +315,6 @@ void TouchPanel::regWebConnect(websocketpp::connection_hdl& hdl, int id)
 			itr->second.amxnet->stop();
 			releaseSlot(itr->first);
 			delConnection(itr->first);
-			sysl->DebugMsg(String("TouchPanel::regWebConnect: Connection to controller is closed."));
 			return;
 		}
 	}

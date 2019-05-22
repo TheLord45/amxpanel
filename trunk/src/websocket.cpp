@@ -32,7 +32,11 @@ using namespace amx;
 WebSocket::WebSocket()
 {
 	sysl->TRACE(Syslog::ENTRY, std::string("WebSocket::WebSocket()"));
-	setConStatus(false);
+	connected = false;
+	cbInit = false;
+	cbInitStop = false;
+	cbInitCon = false;
+	cbInitRegister = false;
 }
 
 void WebSocket::regCallback(std::function<void(std::string&)> func)
@@ -63,13 +67,13 @@ void WebSocket::regCallbackRegister(std::function<void (connection_hdl&, int)> f
 	cbInitRegister = true;
 }
 
-void WebSocket::setConStatus(bool s)
+void WebSocket::setConStatus(bool s, websocketpp::connection_hdl& hdl)
 {
-	sysl->TRACE(std::string("WebSocket::setConStatus(bool s) [")+((s)?"TRUE":"FALSE")+"]");
+	sysl->TRACE(std::string("WebSocket::setConStatus(bool s, websocketpp::connection_hdl& hdl) [")+((s)?"TRUE":"FALSE")+"]");
 	connected = s;
 
 	if (cbInitCon)
-		fcallConn(s, server_hdl);
+		fcallConn(s, hdl);
 	else
 		sysl->warnlog(std::string("WebSocket::setConStatus: Callback function to indicate connection status was not set!"));
 }
@@ -131,7 +135,7 @@ void WebSocket::run()
 	catch (websocketpp::exception const & e)
 	{
 		sysl->errlog(std::string("WebSocket::run: WEBSocketPP exception:")+e.what());
-		setConStatus(false);
+		setConStatus(false, server_hdl);
 		stopped = true;
 
 		if (cbInitStop)
@@ -140,7 +144,7 @@ void WebSocket::run()
 	catch (const std::exception & e)
 	{
 		sysl->errlog(std::string("WebSocket::run: ")+e.what());
-		setConStatus(false);
+		setConStatus(false, server_hdl);
 		stopped = true;
 
 		if (cbInitStop)
@@ -149,7 +153,7 @@ void WebSocket::run()
 	catch (...)
 	{
 		sysl->errlog(std::string("WebSocket::run: Other exception!"));
-		setConStatus(false);
+		setConStatus(false, server_hdl);
 		stopped = true;
 
 		if (cbInitStop)
@@ -158,7 +162,7 @@ void WebSocket::run()
 
 	if (!stopped)
 	{
-		setConStatus(false);
+		setConStatus(false, server_hdl);
 
 		if (cbInitStop)
 			fcallStop();
@@ -195,6 +199,26 @@ bool WebSocket::send(strings::String& msg)
 	if (!getConStatus())
 		return false;
 
+	// get the panel ID
+	int id = 0;
+	size_t pos = 0;
+
+	if ((pos = msg.findFirstOf(":")) != std::string::npos)
+	{
+		id = atoi(msg.substring((size_t)0, pos).data());
+
+		REG_DATA_T::iterator itr;
+
+		for (itr = __regs.begin(); itr != __regs.end(); ++itr)
+		{
+			if (itr->second == id)
+			{
+				server_hdl = itr->first;
+				break;
+			}
+		}
+	}
+
 	try
 	{
 		if (Configuration->getWSStatus())
@@ -211,7 +235,7 @@ bool WebSocket::send(strings::String& msg)
 		else
 			sock_server_ws.close(server_hdl, 0, std::string(e.what()));
 
-		setConStatus(false);
+		setConStatus(false, server_hdl);
 		return false;
 	}
 
@@ -332,7 +356,7 @@ void WebSocket::on_fail(server* s, connection_hdl hdl)
 	sysl->TRACE(std::string("WebSocket::on_fail(server* s, websocketpp::connection_hdl hdl)"));
 	server::connection_ptr con = s->get_con_from_hdl(hdl);
 	sysl->errlog(std::string("WebSocket::on_fail: Fail handler: ")+con->get_ec().message());
-	setConStatus(false);
+	setConStatus(false, hdl);
 	fcallRegister(hdl, -1);
 }
 
@@ -341,14 +365,14 @@ void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
 	sysl->TRACE(std::string("WebSocket::on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl)"));
 	server_ws::connection_ptr con = s->get_con_from_hdl(hdl);
 	sysl->errlog(std::string("WebSocket::on_fail_ws: Fail handler: ")+con->get_ec().message());
-	setConStatus(false);
+	setConStatus(false, hdl);
 	fcallRegister(hdl, -1);
 }
 
 void WebSocket::on_close(connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_close(websocketpp::connection_hdl)"));
-	setConStatus(false);
+	setConStatus(false, hdl);
 	fcallRegister(hdl, -1);
 	sysl->DebugMsg(std::string("WebSocket::on_close: AMX connection terminated."));
 }
