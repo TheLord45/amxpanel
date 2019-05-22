@@ -47,7 +47,7 @@ namespace amx
 			server& getServer() { return sock_server; }
 			server_ws& getServer_ws() { return sock_server_ws; }
 			bool getConStatus() { return connected; }
-			void setConStatus(bool s);
+			void setConStatus(bool s, websocketpp::connection_hdl& hdl);
 			bool compareHdl(websocketpp::connection_hdl& hdl1, websocketpp::connection_hdl& hdl2);
 
 			enum tls_mode
@@ -71,11 +71,12 @@ namespace amx
 			server sock_server;
 			server_ws sock_server_ws;
 			websocketpp::connection_hdl server_hdl;
-			bool connected = false;
-			bool cbInit = false;
-			bool cbInitStop = false;
-			bool cbInitCon = false;
-			bool cbInitRegister = false;
+
+			bool connected;
+			bool cbInit;
+			bool cbInitStop;
+			bool cbInitCon;
+			bool cbInitRegister;
 			std::function<void(std::string&)> fcall;
 			std::function<void()> fcallStop;
 			std::function<void(bool, websocketpp::connection_hdl&)> fcallConn;

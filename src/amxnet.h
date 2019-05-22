@@ -256,7 +256,7 @@ namespace amx
 			bool isConnected();
 			bool isStopped() { return stopped_; }
 			void setPanelID(int id) { panelID = id; }
-			asio::ip::tcp::socket *getSocket() { return socket_; }
+			asio::ip::tcp::socket& getSocket() { return socket_; }
 
 		private:
 			enum R_TOKEN
@@ -298,14 +298,17 @@ namespace amx
 			unsigned char *makeBuffer(const ANET_COMMAND& s);
 			int msg97fill(ANET_COMMAND *com);
 			bool isCommand(const strings::String& cmd);
+			bool isRunning() { return !(stopped_ || killed); }
+
+			asio::io_context io_context;
+			asio::steady_timer deadline_;
+			asio::steady_timer heartbeat_timer_;
 
 			bool stopped_;
 			asio::ip::tcp::resolver::results_type endpoints_;
-			asio::ip::tcp::socket *socket_;
+			asio::ip::tcp::socket socket_;
 			strings::String input_buffer_;
 			unsigned char buff_[2048];
-			asio::steady_timer *deadline_;
-			asio::steady_timer *heartbeat_timer_;
 			std::function<void(const ANET_COMMAND&)> callback;
 			std::function<bool(AMXNet *)> cbWebConn;
 			bool protError;				// true = error on receive --> disconnect

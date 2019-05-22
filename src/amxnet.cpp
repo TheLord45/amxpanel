@@ -82,21 +82,25 @@ std::string cmdList[] = {
 #define NUMBER_CMDS		143
 
 AMXNet::AMXNet()
+	: deadline_(io_context),
+	  heartbeat_timer_(io_context),
+	  socket_(io_context)
 {
 	sysl->TRACE(Syslog::ENTRY, std::string("AMXNet::AMXNet(asio::io_context& io_context)"));
 	callback = 0;
 	cbWebConn = 0;
-	socket_ = 0;
-	deadline_ = 0;
-	heartbeat_timer_ = 0;
 	stopped_ = false;
 	init();
 }
 
 AMXNet::~AMXNet()
 {
-	sysl->TRACE(Syslog::EXIT, std::string("AMXNet::AMXNet(...)"));
+	devInfo.clear();
+	comStack.clear();
 	callback = 0;
+	cbWebConn = 0;
+	stop();
+	sysl->TRACE(Syslog::EXIT, std::string("AMXNet::~AMXNet(...)"));
 }
 
 void AMXNet::init()
@@ -170,13 +174,13 @@ void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)
 	endpoints_ = endpoints;
 	panelID = id;
 	start_connect(endpoints_.begin());
-	deadline_->async_wait(std::bind(&AMXNet::check_deadline, this));
+	deadline_.async_wait(std::bind(&AMXNet::check_deadline, this));
 }
 
 bool AMXNet::isConnected()
 {
-	sysl->TRACE(std::string("AMXNet::isConnected() --> ")+((socket_->is_open())?"TRUE":"FALSE"));
-	return socket_->is_open();
+	sysl->TRACE(std::string("AMXNet::isConnected() --> ")+((socket_.is_open())?"TRUE":"FALSE"));
+	return socket_.is_open();
 }
 
 void AMXNet::stop()
@@ -192,31 +196,32 @@ void AMXNet::stop()
 #else
 	std::error_code ignored_error;
 #endif
-	socket_->close(ignored_error);
-	deadline_->cancel();
-	heartbeat_timer_->cancel();
+	deadline_.cancel();
+	heartbeat_timer_.cancel();
+	socket_.shutdown(asio::socket_base::shutdown_both, ignored_error);
+
+	if (socket_.is_open())
+		socket_.close(ignored_error);
+
+	sysl->TRACE(std::string("AMXNet::stop: Client was stopped."));
 }
 
 void AMXNet::Run()
 {
-	asio::io_context io_context;
-	asio::ip::tcp::socket socket(io_context);
-	asio::steady_timer deadline(io_context);
-	asio::steady_timer heartbeat_timer(io_context);
-	socket_ = &socket;
-	deadline_ = &deadline;
-	heartbeat_timer_ = &heartbeat_timer;
+	sysl->TRACE(std::string("AMXNet::Run()"));
+
 	asio::ip::tcp::resolver r(io_context);
 	start(r.resolve(Configuration->getAMXController().toString(), strings::String(Configuration->getAMXPort()).toString()), panelID);
 	io_context.run();
 
+	sysl->TRACE(std::string("AMXNet::Run: Thread ended."));
 }
 
 void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)
 {
 	sysl->TRACE(std::string("AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
 
-	if (socket_->is_open())
+	if (socket_.is_open())
 	{
 		stop();
 		return;
@@ -227,11 +232,11 @@ void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpo
 		sysl->TRACE(strings::String("AMXNet::start_connect: Trying ")+endpoint_iter->endpoint().address().to_string()+":"+endpoint_iter->endpoint().port()+" ...\n");
 
 		// Set a deadline for the connect operation.
-		deadline_->expires_after(std::chrono::seconds(60));
+		deadline_.expires_after(std::chrono::seconds(60));
 		stopped_ = false;
 
 		// Start the asynchronous connect operation.
-		socket_->async_connect(endpoint_iter->endpoint(),
+		socket_.async_connect(endpoint_iter->endpoint(),
 			std::bind(&AMXNet::handle_connect,
 			this, _1, endpoint_iter));
 	}
@@ -252,7 +257,7 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 	// The async_connect() function automatically opens the socket at the start
 	// of the asynchronous operation. If the socket is closed at this time then
 	// the timeout handler must have run first.
-	if (!socket_->is_open())
+	if (!socket_.is_open())
 	{
 		sysl->TRACE(std::string("Connect timed out"));
 
@@ -265,7 +270,7 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 
 		// We need to close the socket used in the previous connection attempt
 		// before starting a new one.
-		socket_->close();
+		socket_.close();
 
 		// Try the next available endpoint.
 		start_connect(++endpoint_iter);
@@ -274,23 +279,25 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 	{
 		sysl->log(Syslog::INFO, strings::String("AMXNet::handle_connect: Connected to ")+endpoint_iter->endpoint().address().to_string()+":"+endpoint_iter->endpoint().port());
 
-		while (!stopped_ && !killed)
+		try
 		{
-			if (cbWebConn && !cbWebConn(this))
+			while (isRunning())
 			{
-				stop();
-				break;
+				// Start the input actor.
+				start_read();
+
+				// Start the heartbeat actor.
+				if (isRunning())
+					start_write();
 			}
 
-			// Start the input actor.
-			start_read();
-
-			// Start the heartbeat actor.
-			start_write();
+			if (!stopped_ && killed)
+				stop();
 		}
-
-		if (!stopped_ && killed)
-			stop();
+		catch (std::exception& e)
+		{
+			sysl->errlog(std::string("AMXNet::handle_connect: Error: ")+e.what());
+		}
 	}
 }
 
@@ -298,11 +305,11 @@ void AMXNet::start_read()
 {
 	sysl->TRACE(std::string("start_read()"));
 
-	if (stopped_)
+	if (!isRunning())
 		return;
 
 	// Set a deadline for the read operation.
-	deadline_->expires_after(std::chrono::seconds(60));
+	deadline_.expires_after(std::chrono::seconds(60));
 //	input_buffer_.clear();
 	protError = false;
 	comm.clear();
@@ -313,67 +320,67 @@ void AMXNet::start_read()
 #endif
 	// Start an asynchronous operation to read a newline-delimited message.
 	// Read the first byte. It should be 0x02
-	if (asio::read(*socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
+	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
 		handle_read(error, 1, RT_ID);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_LEN);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
+	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
 		handle_read(error, 1, RT_SEP1);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
+	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
 		handle_read(error, 1, RT_TYPE);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD1);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_DEVICE);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD2);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD3);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD4);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD5);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
+	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
 		handle_read(error, 1, RT_SEP2);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_COUNT);
 	else
 		throw std::invalid_argument(error.message());
 
-	if (asio::read(*socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
+	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_MC);
 	else
 		throw std::invalid_argument(error.message());
@@ -387,7 +394,7 @@ void AMXNet::start_read()
 		return;
 	}
 
-	if (asio::read(*socket_, asio::buffer(buff_, len), asio::transfer_exactly(len), error) == len)
+	if (asio::read(socket_, asio::buffer(buff_, len), asio::transfer_exactly(len), error) == len)
 		handle_read(error, len, RT_DATA);
 	else
 		throw std::invalid_argument(error.message());
@@ -401,7 +408,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 {
 	sysl->TRACE(std::string("handle_read(const std::error_code& error, std::size_t n, R_TOKEN tk)"));
 
-	if (stopped_)
+	if (!isRunning())
 		return;
 
 	if ((cbWebConn && !cbWebConn(this)) || killed)
@@ -464,7 +471,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 			case RT_MC:		comm.MC = makeWord(buff_[0], buff_[1]); break;
 
 			case RT_DATA:
-				if (protError || stopped_ || killed)
+				if (protError || !isRunning())
 					break;
 
 				sysl->TRACE(strings::String("AMXNet::handle_read: Received message type: 0x")+NameFormat::toHex(comm.MC, 4));
@@ -948,7 +955,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.srDeviceInfo.info[1] = 4;	// length of following data
 
 			{
-				strings::String addr = socket_->local_endpoint().address().to_string();
+				strings::String addr = socket_.local_endpoint().address().to_string();
 				std::vector<strings::String> parts = addr.split('.');
 
 				for (size_t i = 0; i < parts.size(); i++)
@@ -998,7 +1005,7 @@ int AMXNet::msg97fill(ANET_COMMAND *com)
 		pos++;
 		*(buf+pos) = 0x04;	// field length: 4 bytes
 		// Now the IP Address
-		strings::String addr = socket_->local_endpoint().address().to_string();
+		strings::String addr = socket_.local_endpoint().address().to_string();
 		std::vector<strings::String> parts = addr.split('.');
 
 		for (size_t i = 0; i < parts.size(); i++)
@@ -1021,7 +1028,7 @@ void AMXNet::start_write()
 {
 	sysl->TRACE(std::string("AMXNet::start_write()"));
 
-	if (stopped_ || killed)
+	if (!isRunning())
 		return;
 
 	if (write_busy)
@@ -1041,7 +1048,7 @@ void AMXNet::start_write()
 			continue;
 		}
 
-		asio::async_write(*socket_, asio::buffer(buf, send.hlen + 4), std::bind(&AMXNet::handle_write, this, _1));
+		asio::async_write(socket_, asio::buffer(buf, send.hlen + 4), std::bind(&AMXNet::handle_write, this, _1));
 		delete[] buf;
 	}
 
@@ -1052,15 +1059,15 @@ void AMXNet::handle_write(const std::error_code& error)
 {
 	sysl->TRACE(std::string("handle_write(const std::error_code& error)"));
 
-	if (stopped_)
+	if (!isRunning())
 		return;
 
 	if (!error)
 	{
 		while (comStack.size() == 0)
-			heartbeat_timer_->expires_after(std::chrono::microseconds(150));
+			heartbeat_timer_.expires_after(std::chrono::microseconds(150));
 
-		heartbeat_timer_->async_wait(std::bind(&AMXNet::start_write, this));
+		heartbeat_timer_.async_wait(std::bind(&AMXNet::start_write, this));
 	}
 	else
 	{
@@ -1073,26 +1080,26 @@ void AMXNet::check_deadline()
 {
 	sysl->TRACE(std::string("check_deadline()"));
 
-	if (stopped_)
+	if (!isRunning())
 		return;
 
 	// Check whether the deadline has passed. We compare the deadline against
 	// the current time since a new asynchronous operation may have moved the
 	// deadline before this actor had a chance to run.
-	if (deadline_->expiry() <= steady_timer::clock_type::now())
+	if (deadline_.expiry() <= steady_timer::clock_type::now())
 	{
 		// The deadline has passed. The socket is closed so that any outstanding
 		// asynchronous operations are cancelled.
-		socket_->close();
+		socket_.close();
 
 		// There is no longer an active deadline. The expiry is set to the
 		// maximum time point so that the actor takes no action until a new
 		// deadline is set.
-		deadline_->expires_at(steady_timer::time_point::max());
+		deadline_.expires_at(steady_timer::time_point::max());
 	}
 
 	// Put the actor back to sleep.
-	deadline_->async_wait(std::bind(&AMXNet::check_deadline, this));
+	deadline_.async_wait(std::bind(&AMXNet::check_deadline, this));
 }
 
 uint16_t AMXNet::swapWord(uint16_t w)
