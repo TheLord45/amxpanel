@@ -43,7 +43,7 @@ namespace amx
 			void regCallbackConnected(std::function<void(bool, websocketpp::connection_hdl&)> func);
 			void regCallbackRegister(std::function<void(websocketpp::connection_hdl&, int)> func);
 			void run();
-			bool send(strings::String& msg);
+			bool send(strings::String& msg, websocketpp::connection_hdl& hdl);
 			server& getServer() { return sock_server; }
 			server_ws& getServer_ws() { return sock_server_ws; }
 			bool getConStatus() { return connected; }

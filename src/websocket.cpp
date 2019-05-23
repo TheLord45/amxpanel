@@ -192,50 +192,30 @@ WebSocket::~WebSocket()
 		getServer_ws().stop();
 }
 
-bool WebSocket::send(strings::String& msg)
+bool WebSocket::send(strings::String& msg, websocketpp::connection_hdl& hdl)
 {
 	sysl->TRACE(std::string("WebSocket::send(strings::String& msg)"));
 
 	if (!getConStatus())
 		return false;
 
-	// get the panel ID
-	int id = 0;
-	size_t pos = 0;
-
-	if ((pos = msg.findFirstOf(":")) != std::string::npos)
-	{
-		id = atoi(msg.substring((size_t)0, pos).data());
-
-		REG_DATA_T::iterator itr;
-
-		for (itr = __regs.begin(); itr != __regs.end(); ++itr)
-		{
-			if (itr->second == id)
-			{
-				server_hdl = itr->first;
-				break;
-			}
-		}
-	}
-
 	try
 	{
 		if (Configuration->getWSStatus())
-			sock_server.send(server_hdl, msg.toString(), websocketpp::frame::opcode::text);
+			sock_server.send(hdl, msg.toString(), websocketpp::frame::opcode::text);
 		else
-			sock_server_ws.send(server_hdl, msg.toString(), websocketpp::frame::opcode::text);
+			sock_server_ws.send(hdl, msg.toString(), websocketpp::frame::opcode::text);
 	}
 	catch (websocketpp::exception const & e)
 	{
 		sysl->errlog(std::string("WebSocket::send: Error sending a message: ")+e.what());
 
 		if (Configuration->getWSStatus())
-			sock_server.close(server_hdl, 0, std::string(e.what()));
+			sock_server.close(hdl, 0, std::string(e.what()));
 		else
-			sock_server_ws.close(server_hdl, 0, std::string(e.what()));
+			sock_server_ws.close(hdl, 0, std::string(e.what()));
 
-		setConStatus(false, server_hdl);
+		setConStatus(false, hdl);
 		return false;
 	}
 
@@ -289,7 +269,7 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 {
 	sysl->TRACE(std::string("WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg)"));
 
-	setConStatus(true);
+	setConStatus(true, hdl);
 	server_hdl = hdl;
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message: Called with hdl: message: ")+send);
@@ -322,7 +302,7 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 {
 	sysl->TRACE(std::string("WebSocket::on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg)"));
 
-	setConStatus(true);
+	setConStatus(true, hdl);
 	server_hdl = hdl;
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message_ws: Called with hdl: message: ")+send);
