@@ -310,6 +310,7 @@ void TouchPanel::regWebConnect(websocketpp::connection_hdl& hdl, int id)
 			itr->second.ws_hdl = hdl;
 			return;
 		}
+		else if (id == 0)
 		else if (id == -1 && compareHdl(itr->second.ws_hdl, hdl))
 		{
 			itr->second.amxnet->stop();
@@ -366,6 +367,27 @@ bool TouchPanel::getWebConnect(AMXNet* pANet)
 	}
 
 	return false;
+}
+
+bool TouchPanel::send(int id, String& msg)
+{
+	REGISTRATION_T *entry = 0;
+	bool found = false;
+
+	for (size_t i = 0; i < registration.size(); i++)
+	{
+		if (registration[i].channel == id && registration[i].status)
+		{
+			entry = &registration[i];
+			found = true;
+			break;
+		}
+	}
+
+	if (!found)
+		return false;
+
+	WebSocket::send(msg, entry->hdl);
 }
 
 /*

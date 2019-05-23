@@ -61,9 +61,10 @@ namespace amx
 
 	typedef struct
 	{
-		int channel;				// The channel used for the panel (>10000 && <11000)
-		strings::String regID;		// The registration ID of the client
-		AMXNet *amxnet;				// The class communicating with the AMX controller
+		int channel;						// The channel used for the panel (>10000 && <11000)
+		strings::String regID;				// The registration ID of the client
+		AMXNet *amxnet;						// The class communicating with the AMX controller
+		websocketpp::connection_hdl hdl;	// The handle to the connection to the internet browser
 		bool status;
 	}REGISTRATION_T;
 
@@ -114,6 +115,7 @@ namespace amx
 			AMXNet *getConnection(int id);
 			AMXNet *findConnection(int id);
 			bool delConnection(int id);
+			bool send(int id, strings::String& msg);
 
 			std::map<int, PANELMAP_T> panels;
 			strings::String scrBuffer;
