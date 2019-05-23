@@ -51,7 +51,7 @@ TouchPanel::TouchPanel()
 //	registrated = false;
 	busy = false;
 	webConnected = false;
-	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1));
+	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1, placeholders::_2));
 	regCallbackStop(bind(&TouchPanel::stopClient, this));
 	regCallbackConnected(bind(&TouchPanel::setWebConnect, this, placeholders::_1, placeholders::_2));
 	regCallbackRegister(bind(&TouchPanel::regWebConnect, this, placeholders::_1, placeholders::_2));
@@ -108,11 +108,14 @@ bool TouchPanel::haveFreeSlot()
 int TouchPanel::getFreeSlot()
 {
 	sysl->TRACE(String("TouchPanel::getFreeSlot()"));
+	sysl->DebugMsg(String("TouchPanel::getFreeSlot: registration size=%1").arg(registration.size()));
 
-	for (size_t i = 0; i < registration.size(); i++)
+	PANELS_T::iterator itr;
+
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
-		if (!registration[i].status)
-			return registration[i].channel;
+		if (!itr->second.status && itr->first >= 10000 && itr->first < 11000)
+			return itr->second.channel;
 	}
 
 	std::vector<int>& slots = Configuration->getAMXChannels();
@@ -122,9 +125,9 @@ int TouchPanel::getFreeSlot()
 	{
 		found = false;
 
-		for (size_t j = 0; j < registration.size(); j++)
+		for (itr = registration.begin(); itr != registration.end(); ++itr)
 		{
-			if (registration[j].status && registration[j].channel == slots[i])
+			if (itr->second.status && itr->first == slots[i])
 			{
 				found = true;
 				break;
@@ -138,20 +141,35 @@ int TouchPanel::getFreeSlot()
 	return 0;
 }
 
-bool TouchPanel::registerSlot (int channel, String& regID)
+bool TouchPanel::registerSlot (int channel, String& regID, long pan)
 {
 	sysl->TRACE(String("TouchPanel::registerSlot (int channel, String& regID)"));
 	sysl->DebugMsg(String("TouchPanel::registerSlot: Registering channel %1 with registration ID %2.").arg(channel).arg(regID));
 
-	for (size_t i = 0; i < registration.size(); i++)
+	PANELS_T::iterator itr;
+
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
-		if (registration[i].channel == channel && !registration[i].status)
+		if ((itr->first == channel || itr->second.pan == pan) && !itr->second.status)
 		{
-			registration[i].regID = regID;
-			registration[i].status = true;
+			if (itr->first != channel)
+			{
+				REGISTRATION_T reg = itr->second;
+				registration.erase(itr);
+				reg.regID = regID;
+				reg.status = true;
+				registration.insert(PAIR(channel, reg));
+			}
+			else
+			{
+				itr->second.channel = channel;
+				itr->second.regID = regID;
+				itr->second.status = true;
+			}
+
 			return true;
 		}
-		else if (registration[i].channel == channel && registration[i].status)
+		else if (itr->first == channel && itr->second.status)
 			return false;
 	}
 
@@ -160,7 +178,9 @@ bool TouchPanel::registerSlot (int channel, String& regID)
 	reg.channel = channel;
 	reg.regID = regID;
 	reg.status = true;
-	registration.push_back(reg);
+	reg.pan = pan;
+	reg.amxnet = 0;
+	registration.insert(PAIR(channel, reg));
 	return true;
 }
 
@@ -168,12 +188,14 @@ bool TouchPanel::releaseSlot (int channel)
 {
 	sysl->TRACE(String("TouchPanel::releaseSlot (int channel)"));
 
-	for (size_t i = 0; i < registration.size(); i++)
+	PANELS_T::iterator itr;
+
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
-		if (registration[i].channel == channel)
+		if (itr->first == channel)
 		{
-			registration[i].status = false;
-			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(channel).arg(registration[i].regID));
+			itr->second.status = false;
+			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(channel).arg(itr->second.regID));
 			return true;
 		}
 	}
@@ -185,12 +207,14 @@ bool TouchPanel::releaseSlot (String& regID)
 {
 	sysl->TRACE(String("TouchPanel::releaseSlot (String& regID)"));
 
-	for (size_t i = 0; i < registration.size(); i++)
+	PANELS_T::iterator itr;
+
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
-		if (registration[i].regID.compare(regID) == 0)
+		if (itr->second.regID.compare(regID) == 0)
 		{
-			registration[i].status = false;
-			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(registration[i].channel).arg(regID));
+			itr->second.status = false;
+			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(itr->first).arg(regID));
 			return true;
 		}
 	}
@@ -202,12 +226,18 @@ bool TouchPanel::isRegistered(String& regID)
 {
 	sysl->TRACE(String("TouchPanel::isRegistered(String& regID)"));
 
-	for (size_t i = 0; i < registration.size(); i++)
+	PANELS_T::iterator itr;
+
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
-		if (registration[i].regID.compare(regID) == 0 && registration[i].status)
+		if (itr->second.regID.compare(regID) == 0 && itr->second.status)
+		{
+			sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is registered.").arg(regID));
 			return true;
+		}
 	}
 
+	sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is NOT registered.").arg(regID));
 	return false;
 }
 
@@ -215,12 +245,18 @@ bool TouchPanel::isRegistered(int channel)
 {
 	sysl->TRACE(String("TouchPanel::isRegistered(int channel)"));
 
-	for (size_t i = 0; i < registration.size(); i++)
+	PANELS_T::iterator itr;
+
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
-		if (registration[i].channel == channel && registration[i].status)
+		if (itr->first == channel && itr->second.status)
+		{
+			sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is registered.").arg(channel));
 			return true;
+		}
 	}
 
+	sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is NOT registered.").arg(channel));
 	return false;
 }
 
@@ -228,45 +264,18 @@ AMXNet *TouchPanel::getConnection(int id)
 {
 	sysl->TRACE(String("TouchPanel::getConnection(int id)"));
 
-	std::map<int, PANELMAP_T>::iterator itr;
 	AMXNet *amxnet = 0;
+	PANELS_T::iterator key;
 
-	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	if ((key = registration.find(id)) != registration.end())
 	{
-		if (itr->first == id)
-		{
-			amxnet = itr->second.amxnet;
-			break;
-		}
+		amxnet = key->second.amxnet;
 	}
 	
 	if (amxnet == 0)
 		sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(id));
 	
 	return amxnet;
-}
-
-AMXNet *TouchPanel::findConnection(int id)
-{
-	sysl->TRACE(String("TouchPanel::findConnection(int id)"));
-
-	if (id < 10000 || id > 11000)
-		return 0;
-
-	std::map<int, PANELMAP_T>::iterator itr;
-
-	AMXNet *pANet = 0;
-
-	for (itr = panels.begin(); itr != panels.end(); ++itr)
-	{
-		if (itr->first == id)
-		{
-			pANet = itr->second.amxnet;
-			break;
-		}
-	}
-
-	return pANet;
 }
 
 bool TouchPanel::delConnection(int id)
@@ -276,19 +285,16 @@ bool TouchPanel::delConnection(int id)
 	if (id < 10000 || id > 11000)
 		return false;
 
-	std::map<int, PANELMAP_T>::iterator itr;
+	PANELS_T::iterator itr;
 
-	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->first == id)
 		{
 			if (itr->second.amxnet != 0)
 				delete itr->second.amxnet;
 
-			if (itr->second.thr != 0)
-				delete itr->second.thr;
-
-			panels.erase(itr);
+			registration.erase(itr);
 			break;
 		}
 	}
@@ -296,22 +302,21 @@ bool TouchPanel::delConnection(int id)
 	return true;
 }
 
-void TouchPanel::regWebConnect(websocketpp::connection_hdl& hdl, int id)
+void TouchPanel::regWebConnect(long pan, int id)
 {
 	sysl->TRACE(String("TouchPanel::regWebConnect(websocketpp::connection_hdl hdl, int id)"));
 
-	std::map<int, PANELMAP_T>::iterator itr;
+	PANELS_T::iterator itr;
 	sysl->DebugMsg(String("TouchPanel::regWebConnect: Registering id %1").arg(id));
 
-	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (id >= 10000 && id <= 11000 && itr->first == id)
 		{
-			itr->second.ws_hdl = hdl;
+			itr->second.pan = pan;
 			return;
 		}
-		else if (id == 0)
-		else if (id == -1 && compareHdl(itr->second.ws_hdl, hdl))
+		else if (id == -1 && itr->second.pan == pan)
 		{
 			itr->second.amxnet->stop();
 			releaseSlot(itr->first);
@@ -319,11 +324,22 @@ void TouchPanel::regWebConnect(websocketpp::connection_hdl& hdl, int id)
 			return;
 		}
 	}
+
+	if (id == -1)
+		return;
+
+	// Add the data
+	REGISTRATION_T reg;
+	reg.channel = id;
+	reg.amxnet = 0;
+	reg.pan = pan;
+	reg.status = false;
+	registration.insert(PAIR(id, reg));
 }
 
 bool TouchPanel::newConnection(int id)
 {
-	sysl->TRACE(String("TouchPanel::newConnection(int id) [id=%1").arg(id));
+	sysl->TRACE(String("TouchPanel::newConnection(int id) [id=%1]").arg(id));
 
 	if (id < 10000 || id > 11000)
 	{
@@ -337,17 +353,37 @@ bool TouchPanel::newConnection(int id)
 		pANet->setPanelID(id);
 		pANet->setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
 		pANet->setCallbackConn(bind(&TouchPanel::getWebConnect, this, placeholders::_1));
-		PANELMAP_T pmap;
-		pmap.amxnet = pANet;
-		pmap.thr = 0;
+
+		PANELS_T::iterator key;
+
+		if ((key = registration.find(id)) != registration.end())
+			key->second.amxnet = pANet;
+		else
+		{
+			REGISTRATION_T reg;
+			reg.channel = id;
+			reg.amxnet = pANet;
+			reg.status = false;
+			registration.insert(PAIR(id, reg));
+			sysl->warnlog(String("TouchPanel::newConnection: Registered panel ID %1 without a registration key and with no websocket handle!").arg(id));
+		}
 
 		thread thr = thread([=] { pANet->Run(); });
 		thr.detach();
-		panels.insert(pair<int, PANELMAP_T>(id, pmap));
 	}
 	catch (std::exception& e)
 	{
 		sysl->TRACE(String("TouchPanel::newConnection: Exception: ")+e.what());
+		PANELS_T::iterator key;
+
+		if ((key = registration.find(id)) != registration.end())
+		{
+			if (key->second.amxnet != 0)
+				delete key->second.amxnet;
+
+			registration.erase(key);
+		}
+
 		return false;
 	}
 
@@ -358,12 +394,12 @@ bool TouchPanel::getWebConnect(AMXNet* pANet)
 {
 	sysl->TRACE(String("TouchPanel::getWebConnect(AMXNet* pANet)"));
 
-	std::map<int, PANELMAP_T>::iterator itr;
+	PANELS_T::iterator itr;
 
-	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->second.amxnet == pANet)
-			return isRegistered(itr->first);
+			return itr->second.status;
 	}
 
 	return false;
@@ -371,23 +407,14 @@ bool TouchPanel::getWebConnect(AMXNet* pANet)
 
 bool TouchPanel::send(int id, String& msg)
 {
-	REGISTRATION_T *entry = 0;
-	bool found = false;
+	sysl->TRACE(String("TouchPanel::send(int id, String& msg) [id=%1, msg=%2]").arg(id).arg(msg));
 
-	for (size_t i = 0; i < registration.size(); i++)
-	{
-		if (registration[i].channel == id && registration[i].status)
-		{
-			entry = &registration[i];
-			found = true;
-			break;
-		}
-	}
+	PANELS_T::iterator itr;
 
-	if (!found)
-		return false;
+	if ((itr = registration.find(id)) != registration.end())
+		return WebSocket::send(msg, itr->second.pan);
 
-	WebSocket::send(msg, entry->hdl);
+	return false;
 }
 
 /*
@@ -425,7 +452,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
 				com.append("|ON-");
 				com.append(bef.data.chan_state.channel);
-				send(com);
+				send(bef.device1, com);
 			break;
 
 			case 0x0007:
@@ -433,7 +460,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
 				com.append("|OFF-");
 				com.append(bef.data.chan_state.channel);
-				send(com);
+				send(bef.device1, com);
 			break;
 
 			case 0x000a:	// level value change
@@ -454,7 +481,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 					case 0x8f: com += bef.data.message_value.content.dvalue; break;
 				}
 
-				send(com);
+				send(bef.device1, com);
 			break;
 
 			case 0x000c:	// Command string
@@ -476,7 +503,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				com = String("%1:%2").arg(bef.device1).arg(msg.port);
 				com.append("|");
 				com.append(NameFormat::cp1250ToUTF8((char *)&msg.content));
-				send(com);
+				send(bef.device1, com);
 			break;
 		}
 	}
@@ -489,9 +516,9 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
  * client web browser is received. The messages are processed and then the
  * result is send to the controller, if there is something to send.
  */
-void TouchPanel::webMsg(std::string& msg)
+void TouchPanel::webMsg(std::string& msg, long pan)
 {
-	sysl->TRACE(String("TouchPanel::webMsg(std::string& msg) [")+msg+"]");
+	sysl->TRACE(String("TouchPanel::webMsg(std::string& msg, websocketpp::connection_hdl hdl) [")+msg+"]");
 
 	std::vector<String> parts = String(msg).split(":");
 	ANET_SEND as;
@@ -554,7 +581,7 @@ void TouchPanel::webMsg(std::string& msg)
 		if (parts.size() >= 4)
 		{
 			String answer = String("%1:0|#PONG-%1,%2,%3").arg(parts[1]).arg(parts[2]).arg(parts[3]);
-			send(answer);
+			send(as.device, answer);
 		}
 	}
 	else if (msg.find("REGISTER:") != std::string::npos)
@@ -572,9 +599,9 @@ void TouchPanel::webMsg(std::string& msg)
 			{
 				sysl->errlog(String("TouchPanel::webMsg: No free slots available!"));
 				String com = "0|#REG-NAK";
-				send(com);
+				send(as.device, com);
 				com = "0:0|#ERR-No free slots available!";
-				send(com);
+				send(as.device, com);
 				return;
 			}
 			else if (isRegistered(regID))
@@ -586,37 +613,37 @@ void TouchPanel::webMsg(std::string& msg)
 			{
 				sysl->errlog(String("TouchPanel::webMsg: No more free slots available!"));
 				String s = "0:0|#REG-NAK";
-				send(s);
+				send(as.device, s);
 				s = "0:0|#ERR-No more free slots!";
-				send(s);
+				send(as.device, s);
 				return;
 			}
 
-			registerSlot(slot, regID);
+			registerSlot(slot, regID, pan);
 			sysl->DebugMsg(String("TouchPanel::webMsg: Registering slot %1 with regID %2.").arg(slot).arg(regID));
 
 			if (!newConnection(slot))
 			{
 				sysl->errlog(std::string("TouchPanel::webMsg: Error connecting to controller!"));
 				String s = "0:0|#REG-NAK";
-				send(s);
+				send(as.device, s);
 				s = "0:0|#ERR-Connection error!";
-				send(s);
+				send(as.device, s);
 				return;
 			}
 
 			sysl->warnlog(String("TouchPanel::webMsg: Registration with ID: %1 was successfull.").arg(regID));
 			String com = String("0:0|#REG-OK,%1,%2").arg(slot).arg(regID);
-			send(com);
+			send(slot, com);
 			return;
 		}
 		else
 		{
 			sysl->warnlog(String("TouchPanel::webMsg: Access for ID: %1 is denied!").arg(regID));
 			String com = "0:0|#REG-NAK";
-			send(com);
+			send(as.device, com);
 			com = "0:0|#ERR-Access denied!";
-			send(com);
+			send(as.device, com);
 		}
 	}
 }
@@ -625,14 +652,13 @@ void TouchPanel::stopClient()
 {
 	sysl->TRACE(String("TouchPanel::stopClient()"));
 
-	std::map<int, PANELMAP_T>::iterator itr;
+	PANELS_T::iterator itr;
 
-	for (itr = panels.begin(); itr != panels.end(); ++itr)
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		itr->second.amxnet->stop();
 		delete itr->second.amxnet;
-		delete itr->second.thr;
-		panels.erase(itr);
+		registration.erase(itr);
 	}
 }
 
@@ -1270,6 +1296,8 @@ bool TouchPanel::parsePages()
 
 bool TouchPanel::isPresent(const std::vector<String>& vs, const String& str)
 {
+	sysl->TRACE(String("TouchPanel::isPresent(const std::vector<String>& vs, const String& str)"));
+
 	for (size_t i = 0; i < vs.size(); i++)
 	{
 		if (str.compare(vs[i]) == 0)
@@ -1462,10 +1490,19 @@ uint64_t TouchPanel::getMS()
 	return std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-void amx::TouchPanel::setWebConnect(bool s, websocketpp::connection_hdl& hdl)
+void TouchPanel::setWebConnect(bool s, long pan)
 {
-	webConnected = s;
+	sysl->TRACE(String("TouchPanel::setWebConnect(bool s, websocketpp::connection_hdl hdl)"));
 
-	if (!s)
-		lastDisconnect = getMS();
+	PANELS_T::iterator itr;
+
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	{
+		if (itr->second.pan == pan)
+		{
+			itr->second.status = s;
+			sysl->DebugMsg(String("TouchPanel::setWebConnect: Status set to %1").arg((s)?"TRUE":"FALSE"));
+			break;
+		}
+	}
 }

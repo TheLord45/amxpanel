@@ -22,6 +22,8 @@
 #include <memory>
 #include <fstream>
 #include <functional>
+#include <iterator>
+#include <map>
 #ifdef __APPLE__
 #include <boost/asio.hpp>
 #else
@@ -34,6 +36,7 @@
 #include "fontlist.h"
 
 #define VERSION		"1.0.1"
+#define PAIR(ID, REG)	std::pair<int, REGISTRATION_T>(ID, REG)
 
 namespace amx
 {
@@ -63,17 +66,12 @@ namespace amx
 	{
 		int channel;						// The channel used for the panel (>10000 && <11000)
 		strings::String regID;				// The registration ID of the client
-		AMXNet *amxnet;						// The class communicating with the AMX controller
-		websocketpp::connection_hdl hdl;	// The handle to the connection to the internet browser
+		amx::AMXNet *amxnet;				// The class communicating with the AMX controller
+		long pan;							// The handle to the connection to the internet browser
 		bool status;
 	}REGISTRATION_T;
 
-	typedef struct
-	{
-		AMXNet *amxnet;
-		std::thread *thr;
-		websocketpp::connection_hdl ws_hdl;
-	}PANELMAP_T;
+	typedef std::map<int, REGISTRATION_T> PANELS_T;
 
 	class TouchPanel : public Panel, WebSocket
 	{
@@ -85,11 +83,11 @@ namespace amx
 			bool parsePages();
 
 			void setCommand(const struct ANET_COMMAND& cmd);
-			void webMsg(std::string& msg);
+			void webMsg(std::string& msg, long pan);
 			void stopClient();
-			void setWebConnect(bool s, websocketpp::connection_hdl& hdl);
+			void setWebConnect(bool s, long pan);
 			bool getWebConnect(AMXNet *);
-			void regWebConnect(websocketpp::connection_hdl& hdl, int id);
+			void regWebConnect(long pan, int id);
 
 		private:
 			void writeStyles(std::fstream& pgFile);
@@ -108,16 +106,15 @@ namespace amx
 			int getFreeSlot();
 			bool isRegistered(strings::String& regID);
 			bool isRegistered(int channel);
-			bool registerSlot(int channel, strings::String& regID);
+			bool registerSlot(int channel, strings::String& regID, long pan);
 			bool releaseSlot(int channel);
 			bool releaseSlot(strings::String& regID);
 			bool newConnection(int id);
 			AMXNet *getConnection(int id);
-			AMXNet *findConnection(int id);
 			bool delConnection(int id);
 			bool send(int id, strings::String& msg);
 
-			std::map<int, PANELMAP_T> panels;
+			PANELS_T registration;
 			strings::String scrBuffer;
 			strings::String scrStart;
 			strings::String scBtArray;
@@ -135,7 +132,6 @@ namespace amx
 			std::vector<ANET_COMMAND> commands;		// Commands from controller
 			strings::String amxBuffer;				// This is the cache for incomplete commands
 			uint64_t lastDisconnect;
-			std::vector<REGISTRATION_T> registration;
 	};
 }
 

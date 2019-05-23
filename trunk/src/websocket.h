@@ -28,27 +28,32 @@ typedef websocketpp::server<websocketpp::config::asio> server_ws;
 typedef websocketpp::config::asio::message_type::ptr message_ptr;
 typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> context_ptr;
 
-typedef std::map<websocketpp::connection_hdl, int, std::owner_less<websocketpp::connection_hdl> > REG_DATA_T;
-
 namespace amx
 {
+	typedef struct
+	{
+		int channel;
+		long ID;
+	}PAN_ID_T;
+
+	typedef std::map<websocketpp::connection_hdl, PAN_ID_T, std::owner_less<websocketpp::connection_hdl> > REG_DATA_T;
+
 	class WebSocket
 	{
 		public:
 			WebSocket();
 			~WebSocket();
 
-			void regCallback(std::function<void(std::string&)> func);
+			void regCallback(std::function<void(std::string&, long)> func);
 			void regCallbackStop(std::function<void()> func);
-			void regCallbackConnected(std::function<void(bool, websocketpp::connection_hdl&)> func);
-			void regCallbackRegister(std::function<void(websocketpp::connection_hdl&, int)> func);
+			void regCallbackConnected(std::function<void(bool, long)> func);
+			void regCallbackRegister(std::function<void(long, int)> func);
 			void run();
-			bool send(strings::String& msg, websocketpp::connection_hdl& hdl);
+			bool send(strings::String& msg, long pan);
 			server& getServer() { return sock_server; }
 			server_ws& getServer_ws() { return sock_server_ws; }
 			bool getConStatus() { return connected; }
-			void setConStatus(bool s, websocketpp::connection_hdl& hdl);
-			bool compareHdl(websocketpp::connection_hdl& hdl1, websocketpp::connection_hdl& hdl2);
+			void setConStatus(bool s, long pan);
 
 			enum tls_mode
 			{
@@ -67,6 +72,8 @@ namespace amx
 			context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl);
 			void tcp_post_init(websocketpp::connection_hdl hdl);
 			std::string getPassword();
+			bool compareHdl(websocketpp::connection_hdl hdl1, websocketpp::connection_hdl hdl2);
+			long getPanelID(websocketpp::connection_hdl hdl);
 
 			server sock_server;
 			server_ws sock_server_ws;
@@ -77,10 +84,10 @@ namespace amx
 			bool cbInitStop;
 			bool cbInitCon;
 			bool cbInitRegister;
-			std::function<void(std::string&)> fcall;
+			std::function<void(std::string&, long)> fcall;
 			std::function<void()> fcallStop;
-			std::function<void(bool, websocketpp::connection_hdl&)> fcallConn;
-			std::function<void(websocketpp::connection_hdl&, int)> fcallRegister;
+			std::function<void(bool, long)> fcallConn;
+			std::function<void(long, int)> fcallRegister;
 			REG_DATA_T __regs;
 
 	};
