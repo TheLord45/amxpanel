@@ -32,7 +32,6 @@ using namespace amx;
 WebSocket::WebSocket()
 {
 	sysl->TRACE(Syslog::ENTRY, std::string("WebSocket::WebSocket()"));
-	connected = false;
 	cbInit = false;
 	cbInitStop = false;
 	cbInitCon = false;
@@ -70,7 +69,6 @@ void WebSocket::regCallbackRegister(std::function<void (long, int)> func)
 void WebSocket::setConStatus(bool s, long pan)
 {
 	sysl->TRACE(std::string("WebSocket::setConStatus(bool s, websocketpp::connection_hdl& hdl) [")+((s)?"TRUE":"FALSE")+"]");
-	connected = s;
 
 	if (cbInitCon)
 		fcallConn(s, pan);
@@ -323,8 +321,10 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 	}
 	else if (id >= 10000 && id <= 11000 && key->second.channel == 0)
 	{
+		PAN_ID_T pid = key->second;
 		pan = key->second.ID;
-		key->second.channel = id;
+		pid.channel = id;
+		replaceHdl(key, pid);
 		sysl->DebugMsg(strings::String("WebSocket::on_message: Channel was set to %1 for pan %2").arg(id).arg(pan));
 	}
 	else
@@ -371,8 +371,10 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 	}
 	else if (id >= 10000 && id <= 11000 && key->second.channel == 0)
 	{
+		PAN_ID_T pid = key->second;
 		pan = key->second.ID;
-		key->second.channel = id;
+		pid.channel = id;
+		replaceHdl(key, pid);
 		sysl->DebugMsg(strings::String("WebSocket::on_message_ws: Channel was set to %1 for pan %2").arg(id).arg(pan));
 	}
 	else
@@ -392,6 +394,11 @@ void WebSocket::on_fail(server* s, connection_hdl hdl)
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
 	fcallRegister(pan, -1);
+
+	REG_DATA_T::iterator key;
+
+	if ((key = __regs.find(hdl)) != __regs.end())
+		__regs.erase(key);
 }
 
 void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
@@ -402,6 +409,11 @@ void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
 	fcallRegister(pan, -1);
+
+	REG_DATA_T::iterator key;
+
+	if ((key = __regs.find(hdl)) != __regs.end())
+		__regs.erase(key);
 }
 
 void WebSocket::on_close(connection_hdl hdl)
@@ -410,6 +422,12 @@ void WebSocket::on_close(connection_hdl hdl)
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
 	fcallRegister(pan, -1);
+
+	REG_DATA_T::iterator key;
+
+	if ((key = __regs.find(hdl)) != __regs.end())
+		__regs.erase(key);
+
 	sysl->DebugMsg(std::string("WebSocket::on_close: AMX connection terminated."));
 }
 
@@ -511,4 +529,17 @@ long WebSocket::getPanelID(websocketpp::connection_hdl hdl)
 		return key->second.ID;
 
 	return 0;
+}
+
+bool WebSocket::replaceHdl(REG_DATA_T::iterator key, PAN_ID_T& pan)
+{
+	sysl->DebugMsg(std::string("WebSocket::replaceHdl(REG_DATA_T::iterator key, PAN_ID_T& pan)"));
+
+	if (__regs.size() == 0)
+		return false;
+
+	websocketpp::connection_hdl hdl = key->first;
+	__regs.erase(key);
+	__regs.insert(std::pair<websocketpp::connection_hdl, PAN_ID_T>(hdl, pan));
+	return true;
 }
