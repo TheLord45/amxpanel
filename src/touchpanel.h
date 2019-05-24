@@ -62,13 +62,22 @@ namespace amx
 		strings::String webcode;	// The webcode
 	}ST_POPUP;
 
-	typedef struct
+	typedef struct REGISTRATION_T
 	{
 		int channel;						// The channel used for the panel (>10000 && <11000)
 		strings::String regID;				// The registration ID of the client
 		amx::AMXNet *amxnet;				// The class communicating with the AMX controller
 		long pan;							// The handle to the connection to the internet browser
 		bool status;
+
+		REGISTRATION_T& operator= (REGISTRATION_T& reg) {
+			channel = reg.channel;
+			regID = reg.regID;
+			amxnet = reg.amxnet;
+			pan = reg.pan;
+			status = reg.status;
+			return reg;
+		}
 	}REGISTRATION_T;
 
 	typedef std::map<int, REGISTRATION_T> PANELS_T;
@@ -113,6 +122,9 @@ namespace amx
 			AMXNet *getConnection(int id);
 			bool delConnection(int id);
 			bool send(int id, strings::String& msg);
+			bool replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg);
+
+			void showContent(long pan);
 
 			PANELS_T registration;
 			strings::String scrBuffer;

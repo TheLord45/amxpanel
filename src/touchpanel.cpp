@@ -141,36 +141,55 @@ int TouchPanel::getFreeSlot()
 	return 0;
 }
 
+bool TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)
+{
+	sysl->TRACE(String("TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)"));
+
+	if (registration.size() == 0 || key == registration.end())
+		return false;
+
+	int id = key->first;
+	std::pair <PANELS_T::iterator, bool> ptr;
+sysl->DebugMsg(String("TouchPanel::replaceSlot: id=%1, first=%2, channel=%3").arg(id).arg(key->first).arg(reg.channel));
+	if (id != reg.channel && id == 0 && reg.channel >= 10000 && reg.channel <= 11000)
+	{
+		id = reg.channel;
+		registration.erase(key);
+		ptr = registration.insert(PAIR(id, reg));
+
+		if (!ptr.second)
+			sysl->warnlog(String("TouchPanel::replaceSlot: Key %1 was not inserted again!").arg(id));
+	}
+	else
+		registration[key->first] = reg;
+
+	showContent(reg.pan);
+	return true;
+}
+
 bool TouchPanel::registerSlot (int channel, String& regID, long pan)
 {
-	sysl->TRACE(String("TouchPanel::registerSlot (int channel, String& regID)"));
+	sysl->TRACE(String("TouchPanel::registerSlot (int channel, String& regID, long pan)"));
 	sysl->DebugMsg(String("TouchPanel::registerSlot: Registering channel %1 with registration ID %2.").arg(channel).arg(regID));
 
 	PANELS_T::iterator itr;
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
-		if ((itr->first == channel || itr->second.pan == pan) && !itr->second.status)
+		if (itr->second.pan == pan)
 		{
-			if (itr->first != channel)
-			{
-				REGISTRATION_T reg = itr->second;
-				registration.erase(itr);
-				reg.regID = regID;
-				reg.status = true;
-				registration.insert(PAIR(channel, reg));
-			}
-			else
-			{
-				itr->second.channel = channel;
-				itr->second.regID = regID;
-				itr->second.status = true;
-			}
+			if (itr->first == channel && itr->second.channel == channel && itr->second.regID.compare(regID) == 0)
+				return false;
 
+			REGISTRATION_T reg = itr->second;
+
+			if (itr->first != channel)
+				reg.channel = channel;
+
+			reg.regID = regID;
+			replaceSlot(itr, reg);
 			return true;
 		}
-		else if (itr->first == channel && itr->second.status)
-			return false;
 	}
 
 	REGISTRATION_T reg;
@@ -180,7 +199,13 @@ bool TouchPanel::registerSlot (int channel, String& regID, long pan)
 	reg.status = true;
 	reg.pan = pan;
 	reg.amxnet = 0;
-	registration.insert(PAIR(channel, reg));
+	std::pair <PANELS_T::iterator, bool> ptr;
+	ptr = registration.insert(PAIR(channel, reg));
+
+	if (!ptr.second)
+		sysl->warnlog(String("TouchPanel::registerSlot: Key %1 was not inserted again!").arg(channel));
+
+	showContent(pan);
 	return true;
 }
 
@@ -194,8 +219,10 @@ bool TouchPanel::releaseSlot (int channel)
 	{
 		if (itr->first == channel)
 		{
-			itr->second.status = false;
-			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(channel).arg(itr->second.regID));
+			REGISTRATION_T reg = itr->second;
+			reg.status = false;
+			replaceSlot(itr, reg);
+			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(channel).arg(reg.regID));
 			return true;
 		}
 	}
@@ -213,8 +240,10 @@ bool TouchPanel::releaseSlot (String& regID)
 	{
 		if (itr->second.regID.compare(regID) == 0)
 		{
-			itr->second.status = false;
+			REGISTRATION_T reg = itr->second;
+			reg.status = false;
 			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(itr->first).arg(regID));
+			replaceSlot(itr, reg);
 			return true;
 		}
 	}
@@ -307,18 +336,25 @@ void TouchPanel::regWebConnect(long pan, int id)
 	sysl->TRACE(String("TouchPanel::regWebConnect(websocketpp::connection_hdl hdl, int id)"));
 
 	PANELS_T::iterator itr;
-	sysl->DebugMsg(String("TouchPanel::regWebConnect: Registering id %1").arg(id));
+	sysl->DebugMsg(String("TouchPanel::regWebConnect: Registering id %1 with pan %2").arg(id).arg(pan));
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
-		if (id >= 10000 && id <= 11000 && itr->first == id)
+		if (id >= 10000 && id <= 11000 && itr->second.pan == pan)
 		{
-			itr->second.pan = pan;
+			REGISTRATION_T reg = itr->second;
+			reg.channel = id;
+			reg.pan = pan;
+			replaceSlot(itr, reg);
 			return;
 		}
 		else if (id == -1 && itr->second.pan == pan)
 		{
-			itr->second.amxnet->stop();
+			if (itr->second.amxnet != 0)
+				itr->second.amxnet->stop();
+			else
+				sysl->warnlog(String("TouchPanel::regWebConnect: No pointer to class AMXNet for ID %1 with pan %2!").arg(itr->first).arg(itr->second.pan));
+
 			releaseSlot(itr->first);
 			delConnection(itr->first);
 			return;
@@ -334,7 +370,13 @@ void TouchPanel::regWebConnect(long pan, int id)
 	reg.amxnet = 0;
 	reg.pan = pan;
 	reg.status = false;
-	registration.insert(PAIR(id, reg));
+
+	std::pair <PANELS_T::iterator, bool> ptr;
+	ptr = registration.insert(PAIR(id, reg));
+	showContent(pan);
+
+	if (!ptr.second)
+		sysl->warnlog(String("TouchPanel::regWebConnect: Key %1 was not inserted again!").arg(id));
 }
 
 bool TouchPanel::newConnection(int id)
@@ -357,15 +399,23 @@ bool TouchPanel::newConnection(int id)
 		PANELS_T::iterator key;
 
 		if ((key = registration.find(id)) != registration.end())
-			key->second.amxnet = pANet;
+		{
+			REGISTRATION_T reg = key->second;
+			reg.amxnet = pANet;
+			replaceSlot(key, reg);
+		}
 		else
 		{
 			REGISTRATION_T reg;
 			reg.channel = id;
 			reg.amxnet = pANet;
 			reg.status = false;
-			registration.insert(PAIR(id, reg));
+			std::pair <PANELS_T::iterator, bool> ptr;
+			ptr = registration.insert(PAIR(id, reg));
 			sysl->warnlog(String("TouchPanel::newConnection: Registered panel ID %1 without a registration key and with no websocket handle!").arg(id));
+
+			if (!ptr.second)
+				sysl->warnlog(String("TouchPanel::newConnection: Key %1 was not inserted again!").arg(id));
 		}
 
 		thread thr = thread([=] { pANet->Run(); });
@@ -419,7 +469,7 @@ bool TouchPanel::send(int id, String& msg)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -1500,9 +1550,38 @@ void TouchPanel::setWebConnect(bool s, long pan)
 	{
 		if (itr->second.pan == pan)
 		{
-			itr->second.status = s;
+			REGISTRATION_T reg = itr->second;
+			reg.status = s;
+			replaceSlot(itr, reg);
 			sysl->DebugMsg(String("TouchPanel::setWebConnect: Status set to %1").arg((s)?"TRUE":"FALSE"));
 			break;
 		}
 	}
+}
+
+void TouchPanel::showContent(long pan)
+{
+	sysl->TRACE(String("TouchPanel::showContent(long pan)"));
+
+	bool found = false;
+	PANELS_T::iterator itr;
+	sysl->DebugMsg(String("  DBG     \"size\" : %1").arg(registration.size()));
+
+	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	{
+		if (itr->second.pan == pan)
+		{
+			sysl->DebugMsg(String("  DBG     \"first\": %1").arg(itr->first));
+			sysl->DebugMsg(String("  DBG     channel: %1").arg(itr->second.channel));
+			sysl->DebugMsg(String("  DBG     pan    : %1").arg(itr->second.pan));
+			sysl->DebugMsg(String("  DBG     regID  : %1").arg(itr->second.regID));
+			sysl->DebugMsg(String("  DBG     status : %1").arg(itr->second.status));
+			sysl->DebugMsg(String("  DBG     *amxnet: %1").arg((itr->second.amxnet == 0)?"NULL":"<pointer>"));
+			sysl->DebugMsg(String("  DBG"));
+			found = true;
+		}
+	}
+
+	if (!found)
+		sysl->DebugMsg(std::string("TouchPanel::showContent: Content not found!"));
 }

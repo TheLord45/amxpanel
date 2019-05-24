@@ -30,10 +30,16 @@ typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> conte
 
 namespace amx
 {
-	typedef struct
+	typedef struct PAN_ID_T
 	{
 		int channel;
 		long ID;
+
+		PAN_ID_T& operator= (PAN_ID_T& pid) {
+			channel = pid.channel;
+			ID = pid.ID;
+			return pid;
+		}
 	}PAN_ID_T;
 
 	typedef std::map<websocketpp::connection_hdl, PAN_ID_T, std::owner_less<websocketpp::connection_hdl> > REG_DATA_T;
@@ -52,7 +58,6 @@ namespace amx
 			bool send(strings::String& msg, long pan);
 			server& getServer() { return sock_server; }
 			server_ws& getServer_ws() { return sock_server_ws; }
-			bool getConStatus() { return connected; }
 			void setConStatus(bool s, long pan);
 
 			enum tls_mode
@@ -74,12 +79,12 @@ namespace amx
 			std::string getPassword();
 			bool compareHdl(websocketpp::connection_hdl hdl1, websocketpp::connection_hdl hdl2);
 			long getPanelID(websocketpp::connection_hdl hdl);
+			bool replaceHdl(REG_DATA_T::iterator key, PAN_ID_T& pan);
 
 			server sock_server;
 			server_ws sock_server_ws;
 			websocketpp::connection_hdl server_hdl;
 
-			bool connected;
 			bool cbInit;
 			bool cbInitStop;
 			bool cbInitCon;
