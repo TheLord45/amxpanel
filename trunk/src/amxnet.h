@@ -24,7 +24,7 @@
 using namespace boost;
 #endif
 
-extern bool killed;
+extern std::atomic<bool> killed;
 
 namespace amx
 {

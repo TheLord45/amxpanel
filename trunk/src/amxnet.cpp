@@ -86,7 +86,7 @@ AMXNet::AMXNet()
 	  heartbeat_timer_(io_context),
 	  socket_(io_context)
 {
-	sysl->TRACE(Syslog::ENTRY, std::string("AMXNet::AMXNet(asio::io_context& io_context)"));
+	sysl->TRACE(Syslog::ENTRY, std::string("AMXNet::AMXNet()"));
 	callback = 0;
 	cbWebConn = 0;
 	stopped_ = false;
@@ -100,7 +100,7 @@ AMXNet::~AMXNet()
 	callback = 0;
 	cbWebConn = 0;
 	stop();
-	sysl->TRACE(Syslog::EXIT, std::string("AMXNet::~AMXNet(...)"));
+	sysl->TRACE(Syslog::EXIT, std::string("AMXNet::~AMXNet()"));
 }
 
 void AMXNet::init()
@@ -173,8 +173,16 @@ void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)
 	sysl->TRACE(std::string("AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)"));
 	endpoints_ = endpoints;
 	panelID = id;
-	start_connect(endpoints_.begin());
-	deadline_.async_wait(std::bind(&AMXNet::check_deadline, this));
+	
+	try
+	{
+		start_connect(endpoints_.begin());
+		deadline_.async_wait(std::bind(&AMXNet::check_deadline, this));
+	}
+	catch (std::exception& e)
+	{
+		sysl->errlog(std::string("AMXNet::start: Error: ")+e.what());
+	}
 }
 
 bool AMXNet::isConnected()
@@ -196,25 +204,40 @@ void AMXNet::stop()
 #else
 	std::error_code ignored_error;
 #endif
-	deadline_.cancel();
-	heartbeat_timer_.cancel();
-	socket_.shutdown(asio::socket_base::shutdown_both, ignored_error);
+	try
+	{
+		deadline_.cancel();
+		heartbeat_timer_.cancel();
+		socket_.shutdown(asio::socket_base::shutdown_both, ignored_error);
 
-	if (socket_.is_open())
-		socket_.close(ignored_error);
+		if (socket_.is_open())
+			socket_.close(ignored_error);
 
-	sysl->TRACE(std::string("AMXNet::stop: Client was stopped."));
+		sysl->TRACE(std::string("AMXNet::stop: Client was stopped."));
+	}
+	catch (std::exception& e)
+	{
+		sysl->errlog(std::string("AMXNet::stop: Error: ")+e.what());
+	}
 }
 
 void AMXNet::Run()
 {
 	sysl->TRACE(std::string("AMXNet::Run()"));
 
-	asio::ip::tcp::resolver r(io_context);
-	start(r.resolve(Configuration->getAMXController().toString(), strings::String(Configuration->getAMXPort()).toString()), panelID);
-	io_context.run();
-
-	sysl->TRACE(std::string("AMXNet::Run: Thread ended."));
+	try
+	{
+		asio::ip::tcp::resolver r(io_context);
+		start(r.resolve(Configuration->getAMXController().toString(), strings::String(Configuration->getAMXPort()).toString()), panelID);
+		io_context.run();
+		sysl->TRACE(std::string("AMXNet::Run: Thread ended."));
+	}
+	catch (std::exception& e)
+	{
+		sysl->errlog(strings::String("AMXNet::Run: Error connecting to %1:%2!").arg(Configuration->getAMXController()).arg(Configuration->getAMXPort()));
+		sysl->errlog(std::string("AMXNet::Run: ")+e.what());
+		stopped_ = true;
+	}
 }
 
 void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)

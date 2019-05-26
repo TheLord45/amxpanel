@@ -34,10 +34,12 @@ namespace amx
 	{
 		int channel;
 		long ID;
+		std::string ip;
 
 		PAN_ID_T& operator= (PAN_ID_T& pid) {
 			channel = pid.channel;
 			ID = pid.ID;
+			ip = pid.ip;
 			return pid;
 		}
 	}PAN_ID_T;

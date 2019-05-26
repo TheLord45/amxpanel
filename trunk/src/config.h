@@ -51,6 +51,8 @@ class Config
 		strings::String getWebSocketServer() { return webSocketServer; }
 		strings::String getHashTablePath() { return hashTablePath; }
 		std::vector<strings::String>& getHashTable(const strings::String& path);
+		std::vector<strings::String>& getAllowdNets() { return allowedNet; }
+		bool isAllowedNet(strings::String& net);
 		bool getWSStatus() { return wsStatus; }
 
 		void setHOME(const strings::String& hm) { HOME = hm.data(); }
@@ -63,6 +65,10 @@ class Config
 		void readConfig(const strings::String &file);
 
 	private:
+		void parseNets(strings::String& nets);
+		bool isValidIP(strings::String& ip);
+		std::vector<strings::String> makeIpRange(strings::String& range);
+
 		strings::String sListen;
 		int nPort;
 		strings::String sHTTProot;
@@ -83,6 +89,7 @@ class Config
 		strings::String webSocketServer;
 		strings::String hashTablePath;
 		std::vector<strings::String> hashTable;
+		std::vector<strings::String> allowedNet;
 
 		std::ifstream fs;
 		strings::String sFileName;

@@ -3296,7 +3296,7 @@ function writeTextOut(msg)
         timestamp = current;
     }
 
-    window.setInterval(checkResume, 1000);
+    window.setInterval(checkResume, 10000);
 })();
 
 function handleStandby()
@@ -3320,8 +3320,8 @@ function handleStandby()
         TRACE("handleStandby: Lost focus");
         isBackground = true;
 
-//		if (hdOffTimer === null && (isAndroid() || isIOS()))
-//			hdOffTimer = setTimeout(setOffline, 5000);
+		if (hdOffTimer === null && (isAndroid() || isIOS()))
+			hdOffTimer = setTimeout(setOffline, 20000);
     }, false);
 
     window.addEventListener('online', function() {
@@ -3346,22 +3346,31 @@ function handleStandby()
     window.addEventListener('resume', function() {
         TRACE("handleStandby: We resume");
         if (wsocket.readyState == WebSocket.CLOSED && !isStandby)
+        {
+            if (hdOffTimer !== null)
+            {
+                clearTimeout(hdOffTimer);
+                hdOffTimer = null;
+            }
+
             connect();
+        }
     }, false);
 }
 
 function setOffline()
 {
-    isStandby = true;
-
     if (wsocket.readyState == WebSocket.OPEN)
     {
         setOnlineStatus(0);
-
-        if (pingStatus.handle !== 0)
-            clearTimeout(pingStatus.handle);
-
+        isStandby = true;
         wsocket.close();
+
+        if (hdOffTimer !== null)
+        {
+            clearTimeout(hdOffTimer);
+            hdOffTimer = null;
+        }
     }
 }
 
