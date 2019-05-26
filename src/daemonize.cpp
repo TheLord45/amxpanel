@@ -37,7 +37,7 @@ using namespace std;
 extern Config *Configuration;
 extern string pName;
 extern Syslog *sysl;
-extern bool killed;
+extern std::atomic<bool> killed;
 
 #ifndef SIGCLD
 #   define SIGCLD SIGCHLD

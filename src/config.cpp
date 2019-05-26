@@ -246,6 +246,93 @@ std::vector<String>& Config::getHashTable(const String& path)
 	return hashTable;
 }
 
+bool Config::isValidIP(String& ip)
+{
+	std::vector<String> parts;
+	
+	if (ip.findOf(".") >= 0)	// IPv4 ?
+	{
+		parts = ip.split(".");
+		
+		if (parts.size() != 4)
+			return false;
+		
+		for (size_t i = 0; i < parts.size(); i++)
+		{
+			int num = atoi(parts[i].data());
+			
+			if (num < 0 || num > 0x00ff)
+				return false;
+		}
+	}
+	else		// IPv6
+	{
+		parts = ip.split(":");
+		
+		if (parts.size() < 3)
+			return false;
+		
+		for (size_t i = 0; i < parts.size(); i++)
+		{
+			if (parts[i].length() == 0)
+				continue;
+
+			int num = (int)strtol(parts[i].data(), 0, 16);
+			
+			if (num < 0 || num > 0xffff)
+				return false;
+		}
+	}
+
+	return true;
+}
+
+std::vector<String> Config::makeIpRange(String& range)
+{
+	std::vector<String> ips;
+
+	if (range.findOf(".") == std::string::npos || range.findOf("/") == std::string::npos)
+		return ips;
+
+	size_t pos = range.findOf("/");
+	String base = range.substring((size_t)0, pos);
+	int mask = atoi(range.substring(pos+1).data());
+	uint32_t addr = 0;
+	uint32_t m = 0;
+	std::vector<String> parts = base.split(".");
+	
+	for (size_t i = 0; i < parts.size(); i++)
+	{
+		int num = atoi(parts[i].data());
+		addr = (addr << (i * 8)) | (num & 0x000000ff);
+	}
+	
+	for (int i = 0; i < mask; i++)
+		m = (m << 1) | 0x00000001;
+
+}
+
+void Config::parseNets(String& nets)
+{
+	std::vector<String> parts = nets.split(',');
+
+	for (size_t i = 0; i < parts.size(); i++)
+	{
+		if ((parts[i].findOf(".") != std::string::npos ||
+			 parts[i].findOf(":") != std::string::npos) &&
+			parts[i].findOf("/") == std::string::npos)
+		{
+			if (isValidIP(parts[i]))
+				allowedNet.push_back(parts[i].trim());
+		}
+		else if (parts[i].findOf(".") != std::string::npos ||
+				 parts[i].findOf(":") != std::string::npos)
+		{
+		}
+			
+	}
+}
+
 Config::~Config()
 {
 //	sysl->TRACE(Syslog::EXIT, std::string("Config::Config()"));

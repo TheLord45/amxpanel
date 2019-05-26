@@ -29,7 +29,7 @@ Config *Configuration;
 std::string pName;
 Syslog *sysl;
 amx::TouchPanel *pTouchPanel;
-bool killed;
+std::atomic<bool> killed;
 
 using namespace strings;
 using namespace std;

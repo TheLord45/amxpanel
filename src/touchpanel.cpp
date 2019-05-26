@@ -150,7 +150,7 @@ bool TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)
 
 	int id = key->first;
 	std::pair <PANELS_T::iterator, bool> ptr;
-sysl->DebugMsg(String("TouchPanel::replaceSlot: id=%1, first=%2, channel=%3").arg(id).arg(key->first).arg(reg.channel));
+
 	if (id != reg.channel && id == 0 && reg.channel >= 10000 && reg.channel <= 11000)
 	{
 		id = reg.channel;
@@ -316,19 +316,16 @@ bool TouchPanel::delConnection(int id)
 
 	PANELS_T::iterator itr;
 
-	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	if ((itr = registration.find(id)) != registration.end())
 	{
-		if (itr->first == id)
-		{
-			if (itr->second.amxnet != 0)
-				delete itr->second.amxnet;
+		if (itr->second.amxnet != 0)
+			delete itr->second.amxnet;
 
-			registration.erase(itr);
-			break;
-		}
+		registration.erase(itr);
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 void TouchPanel::regWebConnect(long pan, int id)
@@ -371,12 +368,26 @@ void TouchPanel::regWebConnect(long pan, int id)
 	reg.pan = pan;
 	reg.status = false;
 
-	std::pair <PANELS_T::iterator, bool> ptr;
-	ptr = registration.insert(PAIR(id, reg));
-	showContent(pan);
+	if ((itr = registration.find(id)) != registration.end())
+	{
+		if (itr->second.amxnet != 0)
+		{
+			itr->second.amxnet->stop();
+			delete itr->second.amxnet;
+		}
 
-	if (!ptr.second)
-		sysl->warnlog(String("TouchPanel::regWebConnect: Key %1 was not inserted again!").arg(id));
+		itr->second = reg;
+	}
+	else
+	{
+		std::pair <PANELS_T::iterator, bool> ptr;
+		ptr = registration.insert(PAIR(id, reg));
+
+		if (!ptr.second)
+			sysl->warnlog(String("TouchPanel::regWebConnect: Key %1 was not inserted again!").arg(id));
+	}
+
+	showContent(pan);
 }
 
 bool TouchPanel::newConnection(int id)
@@ -469,7 +480,7 @@ bool TouchPanel::send(int id, String& msg)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -670,7 +681,6 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 			}
 
 			registerSlot(slot, regID, pan);
-			sysl->DebugMsg(String("TouchPanel::webMsg: Registering slot %1 with regID %2.").arg(slot).arg(regID));
 
 			if (!newConnection(slot))
 			{

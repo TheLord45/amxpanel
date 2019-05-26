@@ -40,7 +40,7 @@ WebSocket::WebSocket()
 
 void WebSocket::regCallback(std::function<void(std::string&, long)> func)
 {
-	sysl->TRACE(std::string("WebSocket::regCallback(std::function<void(std::string&)> func)"));
+	sysl->TRACE(std::string("WebSocket::regCallback(std::function<void(std::string&, long)> func)"));
 	fcall = func;
 	cbInit = true;
 }
@@ -54,21 +54,21 @@ void WebSocket::regCallbackStop(std::function<void()> func)
 
 void WebSocket::regCallbackConnected(std::function<void (bool, long)> func)
 {
-	sysl->TRACE(std::string("WebSocket::regCallbackConnected(std::function<void (bool)> func)"));
+	sysl->TRACE(std::string("WebSocket::regCallbackConnected(std::function<void (bool, long)> func)"));
 	fcallConn = func;
 	cbInitCon = true;
 }
 
 void WebSocket::regCallbackRegister(std::function<void (long, int)> func)
 {
-	sysl->TRACE(std::string("WebSocket::regCallbackRegister(std::function<void (websocketpp::connection_hdl)> func)"));
+	sysl->TRACE(std::string("WebSocket::regCallbackRegister(std::function<void (long, int)> func)"));
 	fcallRegister = func;
 	cbInitRegister = true;
 }
 
 void WebSocket::setConStatus(bool s, long pan)
 {
-	sysl->TRACE(std::string("WebSocket::setConStatus(bool s, websocketpp::connection_hdl& hdl) [")+((s)?"TRUE":"FALSE")+"]");
+	sysl->TRACE(std::string("WebSocket::setConStatus(bool s, long pan) [")+((s)?"TRUE":"FALSE")+"]");
 
 	if (cbInitCon)
 		fcallConn(s, pan);
@@ -169,8 +169,6 @@ void WebSocket::run()
 
 WebSocket::~WebSocket()
 {
-	sysl->TRACE(Syslog::EXIT, std::string("WebSocket::WebSocket()"));
-
 	websocketpp::lib::error_code ec;
 
 	if (Configuration->getWSStatus())
@@ -181,6 +179,7 @@ WebSocket::~WebSocket()
 	if (ec)
 	{
 		sysl->errlog(std::string("WebSocket::~WebSocket: Error stopping listening: ")+ec.message());
+		sysl->TRACE(Syslog::EXIT, std::string("WebSocket::~WebSocket()"));
 		return;
 	}
 
@@ -188,11 +187,13 @@ WebSocket::~WebSocket()
 		getServer().stop();
 	else
 		getServer_ws().stop();
+
+	sysl->TRACE(Syslog::EXIT, std::string("WebSocket::~WebSocket()"));
 }
 
 bool WebSocket::send(strings::String& msg, long pan)
 {
-	sysl->TRACE(std::string("WebSocket::send(strings::String& msg)"));
+	sysl->TRACE(std::string("WebSocket::send(strings::String& msg, long pan)"));
 
 	REG_DATA_T::iterator itr;
 	bool found = false;
@@ -226,12 +227,12 @@ bool WebSocket::send(strings::String& msg, long pan)
 	{
 		sysl->errlog(std::string("WebSocket::send: Error sending a message: ")+e.what());
 
-/*		if (Configuration->getWSStatus())
-			sock_server.close(hdl, 0, std::string(e.what()));
+		if (Configuration->getWSStatus())
+			sock_server.close(server_hdl, 0, std::string(e.what()));
 		else
-			sock_server_ws.close(hdl, 0, std::string(e.what()));
-*/
-//		setConStatus(false, pan);
+			sock_server_ws.close(server_hdl, 0, std::string(e.what()));
+
+		setConStatus(false, pan);
 		return false;
 	}
 
@@ -241,6 +242,7 @@ bool WebSocket::send(strings::String& msg, long pan)
 void WebSocket::tcp_post_init(connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::tcp_post_init(websocketpp::connection_hdl hdl)"));
+	server_hdl = hdl;
 
 	if (!cbInitRegister)
 	{
@@ -251,14 +253,21 @@ void WebSocket::tcp_post_init(connection_hdl hdl)
 	PAN_ID_T pid;
 	pid.channel = 0;
 	pid.ID = random();
+	
+	if (Configuration->getWSStatus())
+		pid.ip = sock_server.get_con_from_hdl(hdl)->get_remote_endpoint();
+	else
+		pid.ip = sock_server_ws.get_con_from_hdl(hdl)->get_remote_endpoint();
+
 	__regs.insert(std::pair<websocketpp::connection_hdl, PAN_ID_T>(hdl, pid));
-	sysl->DebugMsg(strings::String("WebSocket::tcp_post_init: Registering pan %1").arg(pid.ID));
+	sysl->DebugMsg(strings::String("WebSocket::tcp_post_init: Registering pan %1 for remote %2").arg(pid.ID).arg(pid.ip));
 	fcallRegister(pid.ID, 0);
 }
 
 void WebSocket::on_http(server* s, connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_http(server* s, websocketpp::connection_hdl hdl)"));
+	server_hdl = hdl;
 	server::connection_ptr con = s->get_con_from_hdl(hdl);
 
 	std::string res = con->get_request_body();
@@ -273,6 +282,7 @@ void WebSocket::on_http(server* s, connection_hdl hdl)
 void WebSocket::on_http_ws(server_ws* s, connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_http_ws(server_ws* s, websocketpp::connection_hdl hdl)"));
+	server_hdl = hdl;
 	server_ws::connection_ptr con = s->get_con_from_hdl(hdl);
 
 	std::string res = con->get_request_body();
@@ -292,6 +302,15 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 
 	setConStatus(true, getPanelID(hdl));
 	server_hdl = hdl;
+	server::connection_ptr con = s->get_con_from_hdl(hdl);
+	REG_DATA_T::iterator key;
+	
+	if ((key = __regs.find(hdl)) != __regs.end())
+	{
+		key->second.ip = con->get_remote_endpoint();
+		sysl->DebugMsg(std::string("WebSocket::on_message: Endpoint: ")+key->second.ip);
+	}
+
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message: Called with hdl: message: ")+send);
 	std::vector<strings::String> parts = strings::String(send).split(":");
@@ -307,7 +326,7 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 		return;
 	}
 
-	REG_DATA_T::iterator key = __regs.find(hdl);
+	key = __regs.find(hdl);
 
 	if (id >= 10000 && id <= 11000 && key == __regs.end())
 	{
@@ -342,6 +361,15 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 
 	setConStatus(true, getPanelID(hdl));
 	server_hdl = hdl;
+	server_ws::connection_ptr con = s->get_con_from_hdl(hdl);
+	REG_DATA_T::iterator key;
+	
+	if ((key = __regs.find(hdl)) != __regs.end())
+	{
+		key->second.ip = con->get_remote_endpoint();
+		sysl->DebugMsg(std::string("WebSocket::on_message: Endpoint: ")+key->second.ip);
+	}
+	
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message_ws: Called with hdl: message: ")+send);
 	std::vector<strings::String> parts = strings::String(send).split(":");
@@ -357,7 +385,7 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 		return;
 	}
 
-	REG_DATA_T::iterator key = __regs.find(hdl);
+	key = __regs.find(hdl);
 
 	if (id >= 10000 && id <= 11000 && key == __regs.end())
 	{
@@ -389,6 +417,7 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 void WebSocket::on_fail(server* s, connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_fail(server* s, websocketpp::connection_hdl hdl)"));
+	server_hdl = hdl;
 	server::connection_ptr con = s->get_con_from_hdl(hdl);
 	sysl->errlog(std::string("WebSocket::on_fail: Fail handler: ")+con->get_ec().message());
 	long pan = getPanelID(hdl);
@@ -404,6 +433,7 @@ void WebSocket::on_fail(server* s, connection_hdl hdl)
 void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl)"));
+	server_hdl = hdl;
 	server_ws::connection_ptr con = s->get_con_from_hdl(hdl);
 	sysl->errlog(std::string("WebSocket::on_fail_ws: Fail handler: ")+con->get_ec().message());
 	long pan = getPanelID(hdl);
@@ -419,6 +449,7 @@ void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
 void WebSocket::on_close(connection_hdl hdl)
 {
 	sysl->TRACE(std::string("WebSocket::on_close(websocketpp::connection_hdl)"));
+	server_hdl = hdl;
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
 	fcallRegister(pan, -1);
@@ -538,8 +569,9 @@ bool WebSocket::replaceHdl(REG_DATA_T::iterator key, PAN_ID_T& pan)
 	if (__regs.size() == 0)
 		return false;
 
-	websocketpp::connection_hdl hdl = key->first;
-	__regs.erase(key);
-	__regs.insert(std::pair<websocketpp::connection_hdl, PAN_ID_T>(hdl, pan));
+//	websocketpp::connection_hdl hdl = key->first;
+//	__regs.erase(key);
+//	__regs.insert(std::pair<websocketpp::connection_hdl, PAN_ID_T>(hdl, pan));
+	key->second = pan;
 	return true;
 }
