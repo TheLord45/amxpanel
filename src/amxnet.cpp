@@ -100,6 +100,7 @@ AMXNet::~AMXNet()
 	callback = 0;
 	cbWebConn = 0;
 	stop();
+    io_context.stop();
 	sysl->TRACE(Syslog::EXIT, std::string("AMXNet::~AMXNet()"));
 }
 
@@ -210,7 +211,7 @@ void AMXNet::stop()
 		heartbeat_timer_.cancel();
 		socket_.shutdown(asio::socket_base::shutdown_both, ignored_error);
 
-		if (socket_.is_open())
+//		if (socket_.is_open())
 			socket_.close(ignored_error);
 
 		sysl->TRACE(std::string("AMXNet::stop: Client was stopped."));

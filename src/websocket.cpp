@@ -36,6 +36,7 @@ WebSocket::WebSocket()
 	cbInitStop = false;
 	cbInitCon = false;
 	cbInitRegister = false;
+	websocketsLock = PTHREAD_RWLOCK_INITIALIZER;
 }
 
 void WebSocket::regCallback(std::function<void(std::string&, long)> func)
@@ -165,6 +166,8 @@ void WebSocket::run()
 		if (cbInitStop)
 			fcallStop();
 	}
+
+	sysl->TRACE(std::string("WebSocket::run: Ended listening!"));
 }
 
 WebSocket::~WebSocket()
@@ -181,6 +184,20 @@ WebSocket::~WebSocket()
 		sysl->errlog(std::string("WebSocket::~WebSocket: Error stopping listening: ")+ec.message());
 		sysl->TRACE(Syslog::EXIT, std::string("WebSocket::~WebSocket()"));
 		return;
+	}
+
+	REG_DATA_T::iterator itr;
+	std::string data = "Terminating connection...";
+
+	for (itr = __regs.begin(); itr != __regs.end(); ++itr)
+	{
+		if (Configuration->getWSStatus())
+			getServer().close(itr->first, websocketpp::close::status::normal, data, ec);
+		else
+			getServer_ws().close(itr->first, websocketpp::close::status::normal, data, ec);
+
+		if (ec)
+			sysl->errlog(std::string("WebSocket::~WebSocket: ")+ec.message());
 	}
 
 	if (Configuration->getWSStatus())
@@ -253,11 +270,14 @@ void WebSocket::tcp_post_init(connection_hdl hdl)
 	PAN_ID_T pid;
 	pid.channel = 0;
 	pid.ID = random();
-	
+	strings::String ip;
+
 	if (Configuration->getWSStatus())
-		pid.ip = sock_server.get_con_from_hdl(hdl)->get_remote_endpoint();
+		ip = sock_server.get_con_from_hdl(hdl)->get_remote_endpoint();
 	else
-		pid.ip = sock_server_ws.get_con_from_hdl(hdl)->get_remote_endpoint();
+		ip = sock_server_ws.get_con_from_hdl(hdl)->get_remote_endpoint();
+
+	pid.ip = cutIpAddress(ip).toString();
 
 	__regs.insert(std::pair<websocketpp::connection_hdl, PAN_ID_T>(hdl, pid));
 	sysl->DebugMsg(strings::String("WebSocket::tcp_post_init: Registering pan %1 for remote %2").arg(pid.ID).arg(pid.ip));
@@ -307,7 +327,8 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 	
 	if ((key = __regs.find(hdl)) != __regs.end())
 	{
-		key->second.ip = con->get_remote_endpoint();
+		strings::String ip = con->get_remote_endpoint();
+		key->second.ip = cutIpAddress(ip).toString();
 		sysl->DebugMsg(std::string("WebSocket::on_message: Endpoint: ")+key->second.ip);
 	}
 
@@ -366,7 +387,8 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 	
 	if ((key = __regs.find(hdl)) != __regs.end())
 	{
-		key->second.ip = con->get_remote_endpoint();
+		strings::String ip = con->get_remote_endpoint();
+		key->second.ip = cutIpAddress(ip).toString();
 		sysl->DebugMsg(std::string("WebSocket::on_message: Endpoint: ")+key->second.ip);
 	}
 	
@@ -423,11 +445,19 @@ void WebSocket::on_fail(server* s, connection_hdl hdl)
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
 	fcallRegister(pan, -1);
+	REG_DATA_T::iterator key = __regs.find(hdl);
 
-	REG_DATA_T::iterator key;
+	if (key != __regs.end())
+	{
+		websocketpp::lib::error_code ec;
+		std::string data = "Terminating connection ...";
+		getServer().close(key->first, websocketpp::close::status::normal, data, ec);
 
-	if ((key = __regs.find(hdl)) != __regs.end())
+		if (ec)
+			sysl->errlog(std::string("WebSocket::on_fail: ")+ec.message());
+
 		__regs.erase(key);
+	}
 }
 
 void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
@@ -439,11 +469,19 @@ void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
 	fcallRegister(pan, -1);
+	REG_DATA_T::iterator key = __regs.find(hdl);
 
-	REG_DATA_T::iterator key;
+	if (key != __regs.end())
+	{
+		websocketpp::lib::error_code ec;
+		std::string data = "Terminating connection ...";
+		getServer_ws().close(key->first, websocketpp::close::status::normal, data, ec);
 
-	if ((key = __regs.find(hdl)) != __regs.end())
+		if (ec)
+			sysl->errlog(std::string("WebSocket::on_fail_ws: ")+ec.message());
+
 		__regs.erase(key);
+	}
 }
 
 void WebSocket::on_close(connection_hdl hdl)
@@ -453,11 +491,23 @@ void WebSocket::on_close(connection_hdl hdl)
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
 	fcallRegister(pan, -1);
+	REG_DATA_T::iterator key = __regs.find(hdl);
 
-	REG_DATA_T::iterator key;
+	if (key != __regs.end())
+	{
+		websocketpp::lib::error_code ec;
+		std::string data = "Terminating connection ...";
 
-	if ((key = __regs.find(hdl)) != __regs.end())
+		if (Configuration->getWSStatus())
+			getServer().close(key->first, websocketpp::close::status::normal, data, ec);
+		else
+			getServer_ws().close(key->first, websocketpp::close::status::normal, data, ec);
+
+		if (ec)
+			sysl->errlog(std::string("WebSocket::on_close: ")+ec.message());
+
 		__regs.erase(key);
+	}
 
 	sysl->DebugMsg(std::string("WebSocket::on_close: AMX connection terminated."));
 }
@@ -574,4 +624,34 @@ bool WebSocket::replaceHdl(REG_DATA_T::iterator key, PAN_ID_T& pan)
 //	__regs.insert(std::pair<websocketpp::connection_hdl, PAN_ID_T>(hdl, pan));
 	key->second = pan;
 	return true;
+}
+
+strings::String WebSocket::getIP(int pan)
+{
+	sysl->TRACE(std::string("WebSocket::getIP(int pan)"));
+
+	REG_DATA_T::iterator key;
+
+	for (key = __regs.begin(); key != __regs.end(); ++key)
+	{
+		if (key->second.ID == pan)
+		{
+			sysl->DebugMsg(std::string("WebSocket::getIP: Found IP ")+key->second.ip);
+			return key->second.ip;
+		}
+	}
+
+	return "";
+}
+
+strings::String WebSocket::cutIpAddress(strings::String& addr)
+{
+	size_t pos1 = addr.findOf("[");
+	size_t pos2 = addr.findOf("]");
+	strings::String ip;
+
+	if (pos1 != std::string::npos && pos2 != std::string::npos && pos1 < pos2)
+		ip = addr.substring(pos1 + 1, pos2 - pos1 - 1);
+
+	return ip;
 }
