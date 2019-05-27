@@ -112,6 +112,12 @@ void Config::init()
 	webSocketServer = "www.theosys.at";
 	hashTablePath = "/etc/amxpanel/hashtable.tbl";
 	wsStatus = true;	// We'll use WSS WEB sockets by default
+	CIDR *addr = cidr_from_str("127.0.0.1");
+	allowedNet.push_back(*addr);
+	cidr_free(addr);
+	addr = cidr_from_str("::1");
+	allowedNet.push_back(*addr);
+	cidr_free(addr);
 }
 
 void Config::readConfig(const String &sFile)
@@ -205,6 +211,10 @@ void Config::readConfig(const String &sFile)
 					b.caseCompare("NO") == 0 || b.caseCompare("OFF") == 0)
 					wsStatus = false;
 			}
+			else if (left.caseCompare("AllowedNets") == 0 && !right.empty())
+			{
+				parseNets(right);
+			}
 			else if (left.caseCompare("DEBUG") == 0 && !right.empty())
 			{
 				String b = right.trim();
@@ -223,6 +233,8 @@ void Config::readConfig(const String &sFile)
 
 std::vector<String>& Config::getHashTable(const String& path)
 {
+	sysl->TRACE(String("Config::getHashTable(const String& path)"));
+
 	hashTable.clear();
 	std::ifstream fl;
 
@@ -246,91 +258,48 @@ std::vector<String>& Config::getHashTable(const String& path)
 	return hashTable;
 }
 
-bool Config::isValidIP(String& ip)
-{
-	std::vector<String> parts;
-	
-	if (ip.findOf(".") >= 0)	// IPv4 ?
-	{
-		parts = ip.split(".");
-		
-		if (parts.size() != 4)
-			return false;
-		
-		for (size_t i = 0; i < parts.size(); i++)
-		{
-			int num = atoi(parts[i].data());
-			
-			if (num < 0 || num > 0x00ff)
-				return false;
-		}
-	}
-	else		// IPv6
-	{
-		parts = ip.split(":");
-		
-		if (parts.size() < 3)
-			return false;
-		
-		for (size_t i = 0; i < parts.size(); i++)
-		{
-			if (parts[i].length() == 0)
-				continue;
-
-			int num = (int)strtol(parts[i].data(), 0, 16);
-			
-			if (num < 0 || num > 0xffff)
-				return false;
-		}
-	}
-
-	return true;
-}
-
-std::vector<String> Config::makeIpRange(String& range)
-{
-	std::vector<String> ips;
-
-	if (range.findOf(".") == std::string::npos || range.findOf("/") == std::string::npos)
-		return ips;
-
-	size_t pos = range.findOf("/");
-	String base = range.substring((size_t)0, pos);
-	int mask = atoi(range.substring(pos+1).data());
-	uint32_t addr = 0;
-	uint32_t m = 0;
-	std::vector<String> parts = base.split(".");
-	
-	for (size_t i = 0; i < parts.size(); i++)
-	{
-		int num = atoi(parts[i].data());
-		addr = (addr << (i * 8)) | (num & 0x000000ff);
-	}
-	
-	for (int i = 0; i < mask; i++)
-		m = (m << 1) | 0x00000001;
-
-}
-
 void Config::parseNets(String& nets)
 {
+	sysl->TRACE(String("Config::parseNets(String& nets)"));
+
 	std::vector<String> parts = nets.split(',');
 
 	for (size_t i = 0; i < parts.size(); i++)
 	{
-		if ((parts[i].findOf(".") != std::string::npos ||
-			 parts[i].findOf(":") != std::string::npos) &&
-			parts[i].findOf("/") == std::string::npos)
-		{
-			if (isValidIP(parts[i]))
-				allowedNet.push_back(parts[i].trim());
-		}
-		else if (parts[i].findOf(".") != std::string::npos ||
-				 parts[i].findOf(":") != std::string::npos)
-		{
-		}
-			
+		CIDR *addrs = cidr_from_str(parts[i].trim().data());
+
+		if (addrs == 0)
+			continue;
+
+		allowedNet.push_back(*addrs);
+		cidr_free(addrs);
 	}
+}
+
+bool Config::isAllowedNet(String& net)
+{
+	sysl->TRACE(String("Config::isAllowedNet(String& net)"));
+
+	CIDR *addr = cidr_from_str(net.data());
+
+	if (addr == 0)
+	{
+		sysl->errlog(String("Config::isAllowedNet:"));
+	}
+
+	for (size_t i = 0; i < allowedNet.size(); i++)
+	{
+		CIDR ad = allowedNet.at(i);
+
+		if (cidr_equals(addr, &ad) == 0)
+		{
+			cidr_free(addr);
+			return true;
+		}
+	}
+
+	cidr_free(addr);
+	return false;
 }
 
 Config::~Config()

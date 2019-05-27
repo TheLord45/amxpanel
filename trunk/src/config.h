@@ -20,6 +20,9 @@
 #define __CONFIG_H__
 
 #include <fstream>
+extern "C" {
+#include <libcidr.h>
+}
 #include "strings.h"
 
 class Config
@@ -51,7 +54,6 @@ class Config
 		strings::String getWebSocketServer() { return webSocketServer; }
 		strings::String getHashTablePath() { return hashTablePath; }
 		std::vector<strings::String>& getHashTable(const strings::String& path);
-		std::vector<strings::String>& getAllowdNets() { return allowedNet; }
 		bool isAllowedNet(strings::String& net);
 		bool getWSStatus() { return wsStatus; }
 
@@ -66,8 +68,6 @@ class Config
 
 	private:
 		void parseNets(strings::String& nets);
-		bool isValidIP(strings::String& ip);
-		std::vector<strings::String> makeIpRange(strings::String& range);
 
 		strings::String sListen;
 		int nPort;
@@ -89,7 +89,7 @@ class Config
 		strings::String webSocketServer;
 		strings::String hashTablePath;
 		std::vector<strings::String> hashTable;
-		std::vector<strings::String> allowedNet;
+		std::vector<CIDR> allowedNet;
 
 		std::ifstream fs;
 		strings::String sFileName;

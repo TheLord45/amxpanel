@@ -81,17 +81,20 @@ bool TouchPanel::haveFreeSlot()
 		return true;
 
 	bool loop = false;
-	std::vector<int>& slots = Configuration->getAMXChannels();
+	std::vector<int>& Slots = Configuration->getAMXChannels();
 
-	for (size_t i = 0; i < slots.size(); i++)
+	for (size_t i = 0; i < Slots.size(); i++)
 	{
 		loop = false;
 
 		for (size_t j = 0; j < registration.size(); j++)
 		{
-			if (!registration[j].status && registration[j].channel == slots[i])
+			if (!registration[j].status && registration[j].channel == Slots[i])
+			{
+				sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Reuse free slot ")+Slots[i]);
 				return true;
-			else if (registration[j].status && registration[j].channel == slots[i])
+			}
+			else if (registration[j].status && registration[j].channel == Slots[i])
 			{
 				loop = true;
 				break;
@@ -99,9 +102,13 @@ bool TouchPanel::haveFreeSlot()
 		}
 
 		if (!loop)
+		{
+			sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Found free slot ")+Slots[0]);
 			return true;
+		}
 	}
 
+	sysl->DebugMsg(String("TouchPanel::haveFreeSlot: No free slot found!"));
 	return false;
 }
 
@@ -653,8 +660,9 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 		String regID = parts[1].substring((size_t)0, parts[1].length()-1);
 		sysl->warnlog(String("TouchPanel::webMsg: Try to registrate with ID: %1 ...").arg(regID));
 		std::vector<String> ht = Configuration->getHashTable(Configuration->getHashTablePath());
+		String ip = getIP(pan);
 
-		if (isPresent(ht, regID))
+		if (isPresent(ht, regID) || (ip.length() > 0 && Configuration->isAllowedNet(ip)))
 		{
 			if (!haveFreeSlot() && !isRegistered(regID))
 			{
@@ -1575,18 +1583,19 @@ void TouchPanel::showContent(long pan)
 
 	bool found = false;
 	PANELS_T::iterator itr;
-	sysl->DebugMsg(String("  DBG     \"size\" : %1").arg(registration.size()));
+	sysl->log_serial(Syslog::IDEBUG, String("  DBG"));
+	sysl->log_serial(Syslog::IDEBUG, String("  DBG     \"size\" : ")+registration.size());
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->second.pan == pan)
 		{
-			sysl->DebugMsg(String("  DBG     \"first\": %1").arg(itr->first));
-			sysl->DebugMsg(String("  DBG     channel: %1").arg(itr->second.channel));
-			sysl->DebugMsg(String("  DBG     pan    : %1").arg(itr->second.pan));
-			sysl->DebugMsg(String("  DBG     regID  : %1").arg(itr->second.regID));
-			sysl->DebugMsg(String("  DBG     status : %1").arg(itr->second.status));
-			sysl->DebugMsg(String("  DBG     *amxnet: %1").arg((itr->second.amxnet == 0)?"NULL":"<pointer>"));
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     \"first\": %1").arg(itr->first));
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     channel: %1").arg(itr->second.channel));
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     pan    : %1").arg(itr->second.pan));
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     regID  : %1").arg(itr->second.regID));
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     status : %1").arg(itr->second.status));
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     *amxnet: %1").arg((itr->second.amxnet == 0)?"NULL":"<pointer>"));
 			sysl->DebugMsg(String("  DBG"));
 			found = true;
 		}

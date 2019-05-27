@@ -61,6 +61,7 @@ namespace amx
 			server& getServer() { return sock_server; }
 			server_ws& getServer_ws() { return sock_server_ws; }
 			void setConStatus(bool s, long pan);
+			strings::String getIP(int pan);
 
 			enum tls_mode
 			{
@@ -82,10 +83,12 @@ namespace amx
 			bool compareHdl(websocketpp::connection_hdl hdl1, websocketpp::connection_hdl hdl2);
 			long getPanelID(websocketpp::connection_hdl hdl);
 			bool replaceHdl(REG_DATA_T::iterator key, PAN_ID_T& pan);
+			strings::String cutIpAddress(strings::String& addr);
 
 			server sock_server;
 			server_ws sock_server_ws;
 			websocketpp::connection_hdl server_hdl;
+			pthread_rwlock_t websocketsLock;
 
 			bool cbInit;
 			bool cbInitStop;

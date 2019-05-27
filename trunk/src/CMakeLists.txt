@@ -31,7 +31,7 @@ endif(APPLE)
 
 add_definitions(-pedantic -fexceptions -Wextra)
 
-target_link_libraries(amxpanel m pthread ssl crypto gd png z jpeg freetype ${LIBS} ${Boost_LIBRARIES})
+target_link_libraries(amxpanel m pthread ssl crypto gd png z jpeg freetype cidr ${LIBS} ${Boost_LIBRARIES})
 
 install(TARGETS amxpanel RUNTIME DESTINATION usr)
 

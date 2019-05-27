@@ -1615,6 +1615,26 @@ String& String::replace(const std::string& str, const std::string& what, strings
     return *this;
 }
 
+String& String::format(FORMAT f)
+{
+    if (_len == 0 || !isNumeric())
+        return *this;
+
+    ulong num = strtoul(_string, 0, 10);
+    char buf[512];
+    _format(num, f, buf);
+    _len = strlen(buf);
+    strncpy(_string, buf, _len);
+    _string[_len] = 0;
+    return *this;
+}
+
+String String::format(uint32_t ip, FORMAT f)
+{
+    char buf[512];
+    return _format(ip, f, buf);
+}
+
 String& String::ltrim()
 {
     char *p = _string;
@@ -2250,6 +2270,26 @@ char *String::_replace(char *pattern, size_t patlen, char *replacement, size_t r
     _len = retlen;
     _allocated = na;
     return _string;
+}
+
+char *String::_format(ulong ip, FORMAT f, char *buf)
+{
+    if (f == IP4)
+    {
+        uint32_t p1 = (ip & 0xff000000) >> 24;
+        uint32_t p2 = (ip & 0x00ff0000) >> 16;
+        uint32_t p3 = (ip & 0x0000ff00) >> 8;
+        uint32_t p4 = ip & 0x000000ff;
+        sprintf(buf, "%d.%d.%d.%d", p1, p2, p3, p4);
+    }
+    else if (f == HEX)
+    {
+        sprintf(buf, "%lx", ip);
+    }
+    else
+        sprintf(buf, "%lu", ip);
+
+    return buf;
 }
 
 size_t String::_min(size_t a1, size_t a2)

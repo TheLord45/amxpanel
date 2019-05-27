@@ -16,6 +16,7 @@
 #include <iostream>
 #include <cstring>
 #include <thread>
+#include <atomic>
 
 #include <stdio.h>
 #include <stdlib.h>

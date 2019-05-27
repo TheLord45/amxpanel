@@ -110,6 +110,19 @@ namespace strings
         LAST    //!< Replace only the last occurance in a string.
     };
 
+    /**
+     * \enum FORMAT
+     *
+     * \brief
+     * Defines how a string should be formatted.
+     */
+    enum FORMAT
+    {
+        IP4,    //!< Assumes the content is an IPv4 address and formats it accordingly
+//        IP6,    //!< Assumes the cintent is an IPv6 address and formats it accordingly
+        HEX     //!< Format a number into hexadecimal notation
+    };
+
     class String;
     class Regexp;
 
@@ -2376,6 +2389,9 @@ namespace strings
              */
             String& arg(const double f);
 
+            String& format(FORMAT f);
+            String format(uint32_t ip, FORMAT f);
+
             /**
              * Checks whether the string \a str is contained in self or not.
              *
@@ -2569,6 +2585,7 @@ namespace strings
             std::vector<String> _split(const String& str, const char *seps);
             std::vector<String> _split(const String& str, const char *seps) const;
             char *_replace(char *pattern, size_t patlen, char *replacement, size_t replen, REPLACE rep);
+            char *_format(ulong ip, FORMAT f, char *buf);
             size_t _max(size_t a1, size_t a2);
             size_t _min(size_t a1, size_t a2);
             size_t _max(size_t a1, size_t a2) const;
