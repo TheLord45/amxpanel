@@ -103,7 +103,7 @@ bool TouchPanel::haveFreeSlot()
 
 		if (!loop)
 		{
-			sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Found free slot ")+Slots[0]);
+			sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Found free slot ")+Slots[i]);
 			return true;
 		}
 	}
@@ -115,36 +115,36 @@ bool TouchPanel::haveFreeSlot()
 int TouchPanel::getFreeSlot()
 {
 	sysl->TRACE(String("TouchPanel::getFreeSlot()"));
-	sysl->DebugMsg(String("TouchPanel::getFreeSlot: registration size=%1").arg(registration.size()));
 
-	PANELS_T::iterator itr;
+	bool loop = false;
+	std::vector<int>& Slots = Configuration->getAMXChannels();
 
-	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	for (size_t i = 0; i < Slots.size(); i++)
 	{
-		if (!itr->second.status && itr->first >= 10000 && itr->first < 11000)
-			return itr->second.channel;
-	}
+		loop = false;
 
-	std::vector<int>& slots = Configuration->getAMXChannels();
-	bool found = false;
-
-	for (size_t i = 0; i < slots.size(); i++)
-	{
-		found = false;
-
-		for (itr = registration.begin(); itr != registration.end(); ++itr)
+		for (size_t j = 0; j < registration.size(); j++)
 		{
-			if (itr->second.status && itr->first == slots[i])
+			if (!registration[j].status && registration[j].channel == Slots[i])
 			{
-				found = true;
+				sysl->DebugMsg(String("TouchPanel::getFreeSlot: Reuse free slot ")+Slots[i]);
+				return Slots[i];
+			}
+			else if (registration[j].status && registration[j].channel == Slots[i])
+			{
+				loop = true;
 				break;
 			}
 		}
 
-		if (!found)
-			return slots[i];
+		if (!loop)
+		{
+			sysl->DebugMsg(String("TouchPanel::getFreeSlot: Found free slot ")+Slots[i]);
+			return Slots[i];
+		}
 	}
 
+	sysl->DebugMsg(std::string("TouchPanel::getFreeSlot: No free slot found!"));
 	return 0;
 }
 
@@ -262,11 +262,9 @@ bool TouchPanel::isRegistered(String& regID)
 {
 	sysl->TRACE(String("TouchPanel::isRegistered(String& regID)"));
 
-	PANELS_T::iterator itr;
-
-	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	for (size_t i = 0; i < registration.size(); i++)
 	{
-		if (itr->second.regID.compare(regID) == 0 && itr->second.status)
+		if (registration[i].regID.compare(regID) == 0 && registration[i].status)
 		{
 			sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is registered.").arg(regID));
 			return true;
@@ -462,12 +460,10 @@ bool TouchPanel::getWebConnect(AMXNet* pANet)
 {
 	sysl->TRACE(String("TouchPanel::getWebConnect(AMXNet* pANet)"));
 
-	PANELS_T::iterator itr;
-
-	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	for (size_t i = 0; i < registration.size(); i++)
 	{
-		if (itr->second.amxnet == pANet)
-			return itr->second.status;
+		if (registration[i].amxnet == pANet)
+			return registration[i].status;
 	}
 
 	return false;
@@ -1583,20 +1579,20 @@ void TouchPanel::showContent(long pan)
 
 	bool found = false;
 	PANELS_T::iterator itr;
-	sysl->log_serial(Syslog::IDEBUG, String("  DBG"));
+	sysl->log_serial(Syslog::IDEBUG, std::string("  DBG"));
 	sysl->log_serial(Syslog::IDEBUG, String("  DBG     \"size\" : ")+registration.size());
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->second.pan == pan)
 		{
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     \"first\": %1").arg(itr->first));
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     channel: %1").arg(itr->second.channel));
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     pan    : %1").arg(itr->second.pan));
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     regID  : %1").arg(itr->second.regID));
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     status : %1").arg(itr->second.status));
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     *amxnet: %1").arg((itr->second.amxnet == 0)?"NULL":"<pointer>"));
-			sysl->DebugMsg(String("  DBG"));
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     \"first\": ")+itr->first);
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     channel: ")+itr->second.channel);
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     pan    : ")+itr->second.pan);
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     regID  : ")+itr->second.regID);
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     status : ")+itr->second.status);
+			sysl->log_serial(Syslog::IDEBUG, String("  DBG     *amxnet: ")+((itr->second.amxnet == 0)?"NULL":"<pointer>"));
+			sysl->DebugMsg(std::string("  DBG"));
 			found = true;
 		}
 	}

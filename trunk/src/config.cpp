@@ -284,21 +284,29 @@ bool Config::isAllowedNet(String& net)
 
 	if (addr == 0)
 	{
-		sysl->errlog(String("Config::isAllowedNet:"));
+		sysl->errlog(std::string("Config::isAllowedNet: No or invalid IP address was given!"));
+		return false;
 	}
+
+	cidr_free(addr);
+
+	if (net.findOf("/") == std::string::npos)
+		net.append("/128");
 
 	for (size_t i = 0; i < allowedNet.size(); i++)
 	{
 		CIDR ad = allowedNet.at(i);
-
-		if (cidr_equals(addr, &ad) == 0)
+		char *addr2 = cidr_to_str(&ad, CIDR_USEV6);
+sysl->DebugMsg(String("Config::isAllowedNet: Comparing IPs \"%1\" \"%2\"").arg(net).arg(addr2));
+		if (net.compare(addr2) == 0)
 		{
-			cidr_free(addr);
+			free (addr2);
 			return true;
 		}
+
+		free(addr2);
 	}
 
-	cidr_free(addr);
 	return false;
 }
 
