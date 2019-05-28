@@ -726,13 +726,22 @@ String& String::insert(size_t pos, const char* s)
 
 String& String::arg(const String& str)
 {
-    size_t pos;
-    String find = "%";
-    _replacePos++;
-    find.append(_replacePos);
+    std::string that(_string);
+    std::string ins(str.data());
+    std::string nstr = _arg(that, ins);
 
-    while ((pos = findOf(find)) != std::string::npos)
-        replace(find, str);
+    try
+    {
+        getMemory(nstr.length()+1);
+    }
+    catch (SCATCH(e))
+    {
+        throw;
+    }
+
+    memcpy(_string, nstr.c_str(), nstr.length());
+    _len = nstr.length();
+    *(_string+_len) = 0;
 
     return *this;
 }
@@ -2397,6 +2406,19 @@ bool strings::String::_insert(size_t pos, const char* s, size_t len)
     _len = ptr;
     _allocated = al;
     return true;
+}
+
+std::string String::_arg(std::string& ori, std::string& s)
+{
+    size_t pos;
+    _replacePos++;
+    char sNum[16];
+    snprintf(sNum, sizeof(sNum), "%%%d", _replacePos);
+
+    while ((pos = ori.find(sNum)) != std::string::npos)
+        ori = ori.replace(pos, strlen(sNum), s);
+
+    return ori;
 }
 
 std::istream & strings::String::_rdToDelim(std::istream& stream, char delim)

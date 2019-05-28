@@ -2594,6 +2594,7 @@ namespace strings
             size_t _isPart(const char *str, const char *p, size_t position) const;
             bool _insert(size_t pos, const char *s, size_t len);
             std::istream& _rdToDelim(std::istream& stream, char delim);
+            std::string _arg(std::string& ori, std::string& s);
 
             char *_string;              // The pointer to the container
             size_t _len;                // The length inside the container
