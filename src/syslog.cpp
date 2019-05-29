@@ -28,6 +28,7 @@ Syslog::Syslog(const std::string &name, Priority p, Option o)
 	fflag = false;
 	LogFile = "";
 	deep = 0;
+	lastFileError = false;
 }
 
 Syslog::~Syslog()
@@ -90,6 +91,9 @@ void Syslog::warnlog(const std::string& str) const
 
 void Syslog::log_serial(Level l, const std::string& str)
 {
+	if (!debug && l == IDEBUG)
+		return;
+
 	if (!fflag)
 	{
 		openlog(pname.c_str(), option, priority);
@@ -114,7 +118,7 @@ void Syslog::setOption(Option o)
 
 void Syslog::writeToFile(const std::string& str)
 {
-	if (!debug)
+	if (!debug || lastFileError)
 		return;
 
 	if (str.empty())
@@ -131,6 +135,7 @@ void Syslog::writeToFile(const std::string& str)
 	}
 	catch (std::exception& e)
 	{
+		lastFileError = true;
 		std::string err = e.what();
 		errlog("Syslog::writeToFile: "+err);
 	}
@@ -138,7 +143,7 @@ void Syslog::writeToFile(const std::string& str)
 
 void Syslog::appendToFile(Level l, const std::string& str)
 {
-	if (!debug || LogFile.empty() || str.empty())
+	if (!debug || lastFileError || LogFile.empty() || str.empty())
 		return;
 
 	DateTime dt;
@@ -165,8 +170,9 @@ void Syslog::appendToFile(Level l, const std::string& str)
 	}
 	catch (std::exception& e)
 	{
+		lastFileError = true;
 		std::string err = e.what();
-		errlog("Syslog::writeToFile: "+err);
+		errlog("Syslog::appendToFile: "+err);
 	}
 }
 

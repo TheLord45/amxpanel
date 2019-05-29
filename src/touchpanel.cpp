@@ -305,10 +305,10 @@ AMXNet *TouchPanel::getConnection(int id)
 	{
 		amxnet = key->second.amxnet;
 	}
-	
+
 	if (amxnet == 0)
 		sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(id));
-	
+
 	return amxnet;
 }
 
@@ -586,7 +586,7 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 
 	std::vector<String> parts = String(msg).split(":");
 	ANET_SEND as;
-	
+
 	if (msg.find("REGISTER:") == std::string::npos)
 		as.device = atoi(parts[1].data());
 	else
@@ -627,7 +627,7 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 			sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(as.device));
 			return;
 		}
-		
+
 		as.port = atoi(parts[2].data());
 		as.channel = atoi(parts[3].data());
 		as.level = as.channel;
@@ -1576,6 +1576,9 @@ void TouchPanel::setWebConnect(bool s, long pan)
 void TouchPanel::showContent(long pan)
 {
 	sysl->TRACE(String("TouchPanel::showContent(long pan)"));
+
+	if (!Configuration->getDebug())
+		return;
 
 	bool found = false;
 	PANELS_T::iterator itr;

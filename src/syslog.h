@@ -124,6 +124,7 @@ class Syslog
 		Option option;
 		std::ostringstream _ibuf;
 		int deep;
+		bool lastFileError;
 };
 
 #endif
