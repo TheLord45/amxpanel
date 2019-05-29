@@ -483,7 +483,7 @@ bool TouchPanel::send(int id, String& msg)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -718,10 +718,17 @@ void TouchPanel::stopClient()
 
 	PANELS_T::iterator itr;
 
-	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	while (registration.size() > 0)
 	{
-		itr->second.amxnet->stop();
-		delete itr->second.amxnet;
+		itr = registration.begin();
+		REGISTRATION_T reg = itr->second;
+
+		if (reg.amxnet != 0)
+		{
+			reg.amxnet->stop();
+			delete reg.amxnet;
+		}
+
 		registration.erase(itr);
 	}
 }

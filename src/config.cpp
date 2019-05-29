@@ -260,7 +260,7 @@ std::vector<String>& Config::getHashTable(const String& path)
 
 void Config::parseNets(String& nets)
 {
-	sysl->TRACE(String("Config::parseNets(String& nets)"));
+	sysl->TRACE(std::string("Config::parseNets(String& nets)"));
 
 	std::vector<String> parts = nets.split(',');
 
@@ -278,7 +278,7 @@ void Config::parseNets(String& nets)
 
 bool Config::isAllowedNet(String& net)
 {
-	sysl->TRACE(String("Config::isAllowedNet(String& net)"));
+	sysl->TRACE(std::string("Config::isAllowedNet(String& net)"));
 
 	CIDR *addr = cidr_from_str(net.data());
 
@@ -288,25 +288,55 @@ bool Config::isAllowedNet(String& net)
 		return false;
 	}
 
-	cidr_free(addr);
-
-	if (net.findOf("/") == std::string::npos)
-		net.append("/128");
-
 	for (size_t i = 0; i < allowedNet.size(); i++)
 	{
 		CIDR ad = allowedNet.at(i);
-		char *addr2 = cidr_to_str(&ad, CIDR_USEV6);
-sysl->DebugMsg(String("Config::isAllowedNet: Comparing IPs \"%1\" \"%2\"").arg(net).arg(addr2));
-		if (net.compare(addr2) == 0)
+		int protoBig = cidr_get_proto(&ad);
+		int protoSmall = cidr_get_proto(addr);
+
+		if (protoBig != protoSmall)
 		{
-			free (addr2);
-			return true;
+			if (protoBig == CIDR_IPV4)
+			{
+				char *a = cidr_to_str(&ad, CIDR_USEV6);
+				CIDR *ac = cidr_from_str(a);
+				free (a);
+				ad = *ac;
+				cidr_free(ac);
+			}
+			else
+			{
+				char *a = cidr_to_str(addr, CIDR_USEV6);
+				CIDR *ac = cidr_from_str(a);
+				free (a);
+				cidr_free(addr);
+				addr = ac;
+			}
 		}
 
-		free(addr2);
+		int stat = cidr_contains(&ad, addr);
+
+		if (stat == 0)
+		{
+			cidr_free (addr);
+			return true;
+		}
+		else
+		{
+			switch (errno)
+			{
+				case 0: break;
+				case EFAULT:	sysl->errlog(std::string("Config::isAllowedNet: A NULL parameter was passed to method!")); break;
+				case EINVAL:	sysl->errlog(std::string("Config::isAllowedNet: Invalid argument passed!")); break;
+				case ENOENT:	sysl->errlog(std::string("Config::isAllowedNet: Internal error!")); break;
+				case EPROTO:	sysl->errlog(std::string("Config::isAllowedNet: Protocolls don't match!")); break;
+				default:
+					sysl->errlog(std::string("Config::isAllowedNet: Unknown error!"));
+			}
+		}
 	}
 
+	cidr_free(addr);
 	return false;
 }
 

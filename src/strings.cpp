@@ -1631,7 +1631,7 @@ String& String::format(FORMAT f)
 
     ulong num = strtoul(_string, 0, 10);
     char buf[512];
-    _format(num, f, buf);
+    _format(num, f, buf, sizeof(buf));
     _len = strlen(buf);
     strncpy(_string, buf, _len);
     _string[_len] = 0;
@@ -1641,7 +1641,7 @@ String& String::format(FORMAT f)
 String String::format(uint32_t ip, FORMAT f)
 {
     char buf[512];
-    return _format(ip, f, buf);
+    return _format(ip, f, buf, sizeof(buf));
 }
 
 String& String::ltrim()
@@ -2172,8 +2172,8 @@ std::vector<String> String::_split(const String& str, const char *seps)
 
     while((pos = _isPart(_string, seps, pos)) != std::string::npos)
     {
-            String substring(str.substring(prev_pos, pos - prev_pos));
-            output.push_back(substring);
+            String substr(str.substring(prev_pos, pos - prev_pos));
+            output.push_back(substr);
             prev_pos = ++pos;
     }
 
@@ -2204,9 +2204,16 @@ char *String::_replace(char *pattern, size_t patlen, char *replacement, size_t r
         patcnt++;
 
     // allocate memory for the new string
-    size_t retlen = _len + patcnt * (replen - patlen);
+    size_t retlen = 0;
+    // Find the amount of memory to allocate
+    if (replen >= patlen)
+        retlen = _len + patcnt * (replen - patlen);
+    else
+        retlen = _len;
+
     size_t na = 0;
     char *returned = 0;
+    retlen = _len + patcnt * (replen - patlen);     // The real length of the target string
 
     try
     {
@@ -2281,7 +2288,7 @@ char *String::_replace(char *pattern, size_t patlen, char *replacement, size_t r
     return _string;
 }
 
-char *String::_format(ulong ip, FORMAT f, char *buf)
+char *String::_format(ulong ip, FORMAT f, char *buf, size_t len)
 {
     if (f == IP4)
     {
@@ -2289,14 +2296,14 @@ char *String::_format(ulong ip, FORMAT f, char *buf)
         uint32_t p2 = (ip & 0x00ff0000) >> 16;
         uint32_t p3 = (ip & 0x0000ff00) >> 8;
         uint32_t p4 = ip & 0x000000ff;
-        sprintf(buf, "%d.%d.%d.%d", p1, p2, p3, p4);
+        snprintf(buf, len, "%d.%d.%d.%d", p1, p2, p3, p4);
     }
     else if (f == HEX)
     {
-        sprintf(buf, "%lx", ip);
+        snprintf(buf, len, "%lx", ip);
     }
     else
-        sprintf(buf, "%lu", ip);
+        snprintf(buf, len, "%lu", ip);
 
     return buf;
 }
