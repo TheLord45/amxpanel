@@ -31,12 +31,24 @@ function strToBytes(str)
 
 	return bytes;
 }
-function pwdToWeb(pwd)
+function pwdToWeb(user, pwd)
 {
 	if (pwd === null || typeof pwd != "string" || pwd.length == 0)
 		return null;
 
-	var sB64;
+	if (user === null || typeof user != "string" || user.length == 0)
+		return null;
+
+	var len = pwd.length;
+	var npwd = "";
+
+	for (var i = 0; i < len; i += 2)
+	{
+		var num = parseInt(pwd.substr(i, 2), 16);
+		npwd = npwd + String.fromCharCode(num);
+	}
+
+	return "Basic " + btoa(user+":"+npwd);
 }
 function findRessource(name)
 {
@@ -58,6 +70,7 @@ function findRessource(name)
 function getRessourceURL(name)
 {
 	var res = findRessource(name);
+	var prefix = "";
 
 	if (res === null)
 		return "";
@@ -149,6 +162,14 @@ function refreshResource(name)
 		return;
 	}
 
+	var res = findRessource(name);
+
+	if (res === null)
+	{
+		errlog("refreshResource: Ressource "+name+" not found!");
+		return;
+	}
+
 	// Find all buttons using this resource
 	for (var i in buttonArray.buttons)
 	{
@@ -186,8 +207,28 @@ function refreshResource(name)
                     uri = uri.replace("?", "%3f");
                     uri = uri.replace("&", "%26");
                     var proxy = makeURL("scripts/proxy.php?csurl="+uri);
+//                    var proxy = "https://www.theosys.at/amxpanel/scripts/proxy.php?csurl="+uri;
 					debug("refreshResource: Image URI: "+proxy);
-					div.style.backgroundImage = "url('"+proxy+"')";
+					var pwd = pwdToWeb(res.user, res.password);
+
+					if (pwd !== null)
+					{
+						debug("refreshResource: Password: "+pwd);
+						var hds = new Headers();
+						hds.append('Authorization', pwd);
+
+						fetch(proxy, {
+							method: 'GET',
+							mode: 'no-cors',
+							headers: hds
+						}).then(response => response.blob()).then(blob => {
+							let url = URL.createObjectURL(blob);
+							div.style.backgroundImage = `url(${url})`;
+						});
+					}
+					else
+						div.style.backgroundImage = "url('"+proxy+"')";
+
 					div.style.backgroundRepeat = "no-repeat";
 
 					switch (sr.jb)

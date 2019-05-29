@@ -19,6 +19,7 @@
 #ifndef __REGEXP_H__
 #define __REGEXP_H__
 
+#include <cstring>
 #include <iostream>
 #include <exception>
 #include <sys/types.h>
@@ -183,15 +184,15 @@ namespace strings
                  */
                 const char *what() const throw()
                 {
-                    char buf[255], *b;
-                    regerror(e, &regex, buf, sizeof(buf));
-                    b = buf;
-                    return b;
+                    RegException *my = const_cast<RegException *>(this);
+                    regerror(e, &regex, &my->Err[0], sizeof(Err));
+                    return &my->Err[0];
                 }
 
                 private:
                     RegError e;
                     regex_t regex;
+                    char Err[255];
             };
 
             /**

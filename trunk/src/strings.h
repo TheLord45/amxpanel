@@ -2585,7 +2585,7 @@ namespace strings
             std::vector<String> _split(const String& str, const char *seps);
             std::vector<String> _split(const String& str, const char *seps) const;
             char *_replace(char *pattern, size_t patlen, char *replacement, size_t replen, REPLACE rep);
-            char *_format(ulong ip, FORMAT f, char *buf);
+            char *_format(ulong ip, FORMAT f, char *buf, size_t len);
             size_t _max(size_t a1, size_t a2);
             size_t _min(size_t a1, size_t a2);
             size_t _max(size_t a1, size_t a2) const;
