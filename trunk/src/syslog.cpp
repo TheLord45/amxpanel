@@ -56,7 +56,7 @@ void Syslog::log(Level l, const std::string& str)
 		writeToFile(str);
 		return;
 	}
-	else
+	else if (!LogFile.empty())
 		appendToFile(l, str);
 
 	if (!fflag)

@@ -91,7 +91,7 @@ bool TouchPanel::haveFreeSlot()
 		{
 			if (!registration[j].status && registration[j].channel == Slots[i])
 			{
-				sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Reuse free slot ")+Slots[i]);
+//				sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Reuse free slot ")+Slots[i]);
 				return true;
 			}
 			else if (registration[j].status && registration[j].channel == Slots[i])
@@ -103,12 +103,12 @@ bool TouchPanel::haveFreeSlot()
 
 		if (!loop)
 		{
-			sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Found free slot ")+Slots[i]);
+//			sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Found free slot ")+Slots[i]);
 			return true;
 		}
 	}
 
-	sysl->DebugMsg(String("TouchPanel::haveFreeSlot: No free slot found!"));
+	sysl->warnlog(std::string("TouchPanel::haveFreeSlot: No free slot found!"));
 	return false;
 }
 
@@ -127,7 +127,7 @@ int TouchPanel::getFreeSlot()
 		{
 			if (!registration[j].status && registration[j].channel == Slots[i])
 			{
-				sysl->DebugMsg(String("TouchPanel::getFreeSlot: Reuse free slot ")+Slots[i]);
+//				sysl->DebugMsg(String("TouchPanel::getFreeSlot: Reuse free slot ")+Slots[i]);
 				return Slots[i];
 			}
 			else if (registration[j].status && registration[j].channel == Slots[i])
@@ -139,12 +139,12 @@ int TouchPanel::getFreeSlot()
 
 		if (!loop)
 		{
-			sysl->DebugMsg(String("TouchPanel::getFreeSlot: Found free slot ")+Slots[i]);
+//			sysl->DebugMsg(String("TouchPanel::getFreeSlot: Found free slot ")+Slots[i]);
 			return Slots[i];
 		}
 	}
 
-	sysl->DebugMsg(std::string("TouchPanel::getFreeSlot: No free slot found!"));
+	sysl->warnlog(std::string("TouchPanel::getFreeSlot: No free slot found!"));
 	return 0;
 }
 
@@ -177,9 +177,9 @@ bool TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)
 bool TouchPanel::registerSlot (int channel, String& regID, long pan)
 {
 	sysl->TRACE(String("TouchPanel::registerSlot (int channel, String& regID, long pan)"));
-	sysl->DebugMsg(String("TouchPanel::registerSlot: Registering channel %1 with registration ID %2.").arg(channel).arg(regID));
 
 	PANELS_T::iterator itr;
+	size_t i = 0;
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
@@ -195,8 +195,14 @@ bool TouchPanel::registerSlot (int channel, String& regID, long pan)
 
 			reg.regID = regID;
 			replaceSlot(itr, reg);
+			sysl->DebugMsg(String("TouchPanel::registerSlot: Registered channel %1 with registration ID %2.").arg(channel).arg(regID));
 			return true;
 		}
+
+		i++;
+
+		if (i >= registration.size())
+			break;
 	}
 
 	REGISTRATION_T reg;
@@ -211,6 +217,8 @@ bool TouchPanel::registerSlot (int channel, String& regID, long pan)
 
 	if (!ptr.second)
 		sysl->warnlog(String("TouchPanel::registerSlot: Key %1 was not inserted again!").arg(channel));
+	else
+		sysl->DebugMsg(String("TouchPanel::registerSlot: Registering channel %1 with registration ID %2.").arg(channel).arg(regID));
 
 	showContent(pan);
 	return true;
@@ -222,16 +230,11 @@ bool TouchPanel::releaseSlot (int channel)
 
 	PANELS_T::iterator itr;
 
-	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	if ((itr = registration.find(channel)) != registration.end())
 	{
-		if (itr->first == channel)
-		{
-			REGISTRATION_T reg = itr->second;
-			reg.status = false;
-			replaceSlot(itr, reg);
-			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(channel).arg(reg.regID));
-			return true;
-		}
+		itr->second.status = false;
+		sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(channel).arg(itr->second.regID));
+		return true;
 	}
 
 	return false;
@@ -242,17 +245,21 @@ bool TouchPanel::releaseSlot (String& regID)
 	sysl->TRACE(String("TouchPanel::releaseSlot (String& regID)"));
 
 	PANELS_T::iterator itr;
+	size_t i = 0;
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->second.regID.compare(regID) == 0)
 		{
-			REGISTRATION_T reg = itr->second;
-			reg.status = false;
+			itr->second.status = false;
 			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(itr->first).arg(regID));
-			replaceSlot(itr, reg);
 			return true;
 		}
+
+		i++;
+
+		if (i >= registration.size())
+			break;
 	}
 
 	return false;
@@ -266,12 +273,12 @@ bool TouchPanel::isRegistered(String& regID)
 	{
 		if (registration[i].regID.compare(regID) == 0 && registration[i].status)
 		{
-			sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is registered.").arg(regID));
+//			sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is registered.").arg(regID));
 			return true;
 		}
 	}
 
-	sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is NOT registered.").arg(regID));
+//	sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is NOT registered.").arg(regID));
 	return false;
 }
 
@@ -280,17 +287,23 @@ bool TouchPanel::isRegistered(int channel)
 	sysl->TRACE(String("TouchPanel::isRegistered(int channel)"));
 
 	PANELS_T::iterator itr;
+	size_t i = 0;
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->first == channel && itr->second.status)
 		{
-			sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is registered.").arg(channel));
+//			sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is registered.").arg(channel));
 			return true;
 		}
+
+		i++;
+
+		if (i >= registration.size())
+			break;
 	}
 
-	sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is NOT registered.").arg(channel));
+//	sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is NOT registered.").arg(channel));
 	return false;
 }
 
@@ -338,6 +351,7 @@ void TouchPanel::regWebConnect(long pan, int id)
 	sysl->TRACE(String("TouchPanel::regWebConnect(websocketpp::connection_hdl hdl, int id)"));
 
 	PANELS_T::iterator itr;
+	size_t i = 0;
 	sysl->DebugMsg(String("TouchPanel::regWebConnect: Registering id %1 with pan %2").arg(id).arg(pan));
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
@@ -361,6 +375,11 @@ void TouchPanel::regWebConnect(long pan, int id)
 			delConnection(itr->first);
 			return;
 		}
+
+		i++;
+
+		if (i >= registration.size())
+			break;
 	}
 
 	if (id == -1)
@@ -415,11 +434,7 @@ bool TouchPanel::newConnection(int id)
 		PANELS_T::iterator key;
 
 		if ((key = registration.find(id)) != registration.end())
-		{
-			REGISTRATION_T reg = key->second;
-			reg.amxnet = pANet;
-			replaceSlot(key, reg);
-		}
+			key->second.amxnet = pANet;
 		else
 		{
 			REGISTRATION_T reg;
@@ -513,7 +528,10 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 		{
 			case 0x0006:
 			case 0x0018:	// feedback channel on
-				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
+//				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
+				com.assign(bef.device1);
+				com.append(":");
+				com.append(bef.data.chan_state.port);
 				com.append("|ON-");
 				com.append(bef.data.chan_state.channel);
 				send(bef.device1, com);
@@ -521,14 +539,20 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 
 			case 0x0007:
 			case 0x0019:	// feedback channel off
-				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
+//				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
+				com.assign(bef.device1);
+				com.append(":");
+				com.append(bef.data.chan_state.port);
 				com.append("|OFF-");
 				com.append(bef.data.chan_state.channel);
 				send(bef.device1, com);
 			break;
 
 			case 0x000a:	// level value change
-				com = String("%1:%2").arg(bef.device1).arg(bef.data.message_value.port);
+//				com = String("%1:%2").arg(bef.device1).arg(bef.data.message_value.port);
+				com.assign(bef.device1);
+				com.append(":");
+				com.append(bef.data.message_value.port);
 				com += "|LEVEL-";
 				com += bef.data.message_value.value;
 				com += ",";
@@ -564,7 +588,10 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 					msg.content[len] = 0;
 				}
 
-				com = String("%1:%2").arg(bef.device1).arg(msg.port);
+//				com = String("%1:%2").arg(bef.device1).arg(msg.port);
+				com.assign(bef.device1);
+				com.append(":");
+				com.append(msg.port);
 				com.append("|");
 				com.append(NameFormat::cp1250ToUTF8((char *)&msg.content));
 				send(bef.device1, com);
@@ -1566,29 +1593,33 @@ void TouchPanel::setWebConnect(bool s, long pan)
 	sysl->TRACE(String("TouchPanel::setWebConnect(bool s, websocketpp::connection_hdl hdl)"));
 
 	PANELS_T::iterator itr;
+	size_t i = 0;
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->second.pan == pan)
 		{
-			REGISTRATION_T reg = itr->second;
-			reg.status = s;
-			replaceSlot(itr, reg);
-			sysl->DebugMsg(String("TouchPanel::setWebConnect: Status set to %1").arg((s)?"TRUE":"FALSE"));
+			itr->second.status = s;
 			break;
 		}
+
+		i++;
+
+		if (i >= registration.size())
+			break;
 	}
 }
 
 void TouchPanel::showContent(long pan)
 {
-	sysl->TRACE(String("TouchPanel::showContent(long pan)"));
-
 	if (!Configuration->getDebug())
 		return;
 
+	sysl->TRACE(String("TouchPanel::showContent(long pan)"));
+
 	bool found = false;
 	PANELS_T::iterator itr;
+	size_t i = 0;
 	sysl->log_serial(Syslog::IDEBUG, std::string("  DBG"));
 	sysl->log_serial(Syslog::IDEBUG, String("  DBG     \"size\" : ")+registration.size());
 
@@ -1602,9 +1633,14 @@ void TouchPanel::showContent(long pan)
 			sysl->log_serial(Syslog::IDEBUG, String("  DBG     regID  : ")+itr->second.regID);
 			sysl->log_serial(Syslog::IDEBUG, String("  DBG     status : ")+itr->second.status);
 			sysl->log_serial(Syslog::IDEBUG, String("  DBG     *amxnet: ")+((itr->second.amxnet == 0)?"NULL":"<pointer>"));
-			sysl->DebugMsg(std::string("  DBG"));
+			sysl->DebugMsg(std::string("Debug:  DBG"));
 			found = true;
 		}
+
+		i++;
+
+		if (i >= registration.size())
+			break;
 	}
 
 	if (!found)

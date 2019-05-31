@@ -188,6 +188,7 @@ WebSocket::~WebSocket()
 
 	REG_DATA_T::iterator itr;
 	std::string data = "Terminating connection...";
+	size_t i = 0;
 
 	for (itr = __regs.begin(); itr != __regs.end(); ++itr)
 	{
@@ -198,6 +199,11 @@ WebSocket::~WebSocket()
 
 		if (ec)
 			sysl->errlog(std::string("WebSocket::~WebSocket: ")+ec.message());
+
+		i++;
+
+		if (i >= __regs.size())
+			break;
 	}
 
 	if (Configuration->getWSStatus())
@@ -214,6 +220,7 @@ bool WebSocket::send(strings::String& msg, long pan)
 
 	REG_DATA_T::iterator itr;
 	bool found = false;
+	size_t i = 0;
 
 	for (itr = __regs.begin(); itr != __regs.end(); ++itr)
 	{
@@ -223,6 +230,11 @@ bool WebSocket::send(strings::String& msg, long pan)
 			found = true;
 			break;
 		}
+
+		i++;
+
+		if (i >= __regs.size())
+			break;
 	}
 
 	if (!found)
@@ -230,8 +242,6 @@ bool WebSocket::send(strings::String& msg, long pan)
 		sysl->errlog(std::string("WebSocket::send: Unknown websocket handle!"));
 		return false;
 	}
-	else
-		sysl->DebugMsg(strings::String("WebSocket::send: Found id=%1 from pan %2").arg(itr->second.channel).arg(itr->second.ID));
 
 	try
 	{
@@ -324,22 +334,27 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 	server_hdl = hdl;
 	server::connection_ptr con = s->get_con_from_hdl(hdl);
 	REG_DATA_T::iterator key;
-	
+
 	if ((key = __regs.find(hdl)) != __regs.end())
 	{
-		strings::String ip = con->get_remote_endpoint();
-		key->second.ip = cutIpAddress(ip).toString();
-		sysl->DebugMsg(std::string("WebSocket::on_message: Endpoint: ")+key->second.ip);
+		if (key->second.ip.length() == 0)
+		{
+			strings::String ip = con->get_remote_endpoint();
+			key->second.ip = cutIpAddress(ip).toString();
+			sysl->DebugMsg(std::string("WebSocket::on_message: Endpoint: ")+key->second.ip);
+		}
 	}
 
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message: Called with hdl: message: ")+send);
-	std::vector<strings::String> parts = strings::String(send).split(":");
 	int id = 0;
 	long pan = 0;
 
 	if (send.find("REGISTER:") == std::string::npos)
+	{
+		std::vector<strings::String> parts = strings::String(send).split(":");
 		id = atoi(parts[1].data());
+	}
 
 	if (!cbInit)
 	{
@@ -361,10 +376,8 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 	}
 	else if (id >= 10000 && id <= 11000 && key->second.channel == 0)
 	{
-		PAN_ID_T pid = key->second;
 		pan = key->second.ID;
-		pid.channel = id;
-		replaceHdl(key, pid);
+		key->second.channel = id;
 		sysl->DebugMsg(strings::String("WebSocket::on_message: Channel was set to %1 for pan %2").arg(id).arg(pan));
 	}
 	else
@@ -384,22 +397,27 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 	server_hdl = hdl;
 	server_ws::connection_ptr con = s->get_con_from_hdl(hdl);
 	REG_DATA_T::iterator key;
-	
+
 	if ((key = __regs.find(hdl)) != __regs.end())
 	{
-		strings::String ip = con->get_remote_endpoint();
-		key->second.ip = cutIpAddress(ip).toString();
-		sysl->DebugMsg(std::string("WebSocket::on_message: Endpoint: ")+key->second.ip);
+		if (key->second.ip.length() == 0)
+		{
+			strings::String ip = con->get_remote_endpoint();
+			key->second.ip = cutIpAddress(ip).toString();
+			sysl->DebugMsg(std::string("WebSocket::on_message: Endpoint: ")+key->second.ip);
+		}
 	}
-	
+
 	std::string send = msg->get_payload();
 	sysl->TRACE(std::string("WebSocket::on_message_ws: Called with hdl: message: ")+send);
-	std::vector<strings::String> parts = strings::String(send).split(":");
 	int id = 0;
 	long pan = 0;
 
 	if (send.find_first_of("REGISTER:") == std::string::npos)
+	{
+		std::vector<strings::String> parts = strings::String(send).split(":");
 		id = atoi(parts[1].data());
+	}
 
 	if (!cbInit)
 	{
@@ -421,10 +439,8 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 	}
 	else if (id >= 10000 && id <= 11000 && key->second.channel == 0)
 	{
-		PAN_ID_T pid = key->second;
 		pan = key->second.ID;
-		pid.channel = id;
-		replaceHdl(key, pid);
+		key->second.channel = id;
 		sysl->DebugMsg(strings::String("WebSocket::on_message_ws: Channel was set to %1 for pan %2").arg(id).arg(pan));
 	}
 	else
@@ -586,22 +602,6 @@ std::string WebSocket::getPassword()
 	return Configuration->getSSHPassword().toString();
 }
 
-bool WebSocket::compareHdl(connection_hdl hdl1, connection_hdl hdl2)
-{
-	sysl->TRACE(std::string("WebSocket::compareHdl(websocketpp::connection_hdl& hdl1, websocketpp::connection_hdl& hdl2)"));
-	REG_DATA_T::iterator key1 = __regs.find(hdl1);
-	REG_DATA_T::iterator key2 = __regs.find(hdl2);
-
-	if (key1 != __regs.end() && key2 != __regs.end() && key1 == key2)
-	{
-		sysl->DebugMsg(std::string("WebSocket::compareHdl: Found matching handles!"));
-		return true;
-	}
-
-	sysl->DebugMsg(std::string("WebSocket::compareHdl: Handles don't match!"));
-	return false;
-}
-
 long WebSocket::getPanelID(websocketpp::connection_hdl hdl)
 {
 	REG_DATA_T::iterator key;
@@ -612,33 +612,22 @@ long WebSocket::getPanelID(websocketpp::connection_hdl hdl)
 	return 0;
 }
 
-bool WebSocket::replaceHdl(REG_DATA_T::iterator key, PAN_ID_T& pan)
-{
-	sysl->DebugMsg(std::string("WebSocket::replaceHdl(REG_DATA_T::iterator key, PAN_ID_T& pan)"));
-
-	if (__regs.size() == 0)
-		return false;
-
-//	websocketpp::connection_hdl hdl = key->first;
-//	__regs.erase(key);
-//	__regs.insert(std::pair<websocketpp::connection_hdl, PAN_ID_T>(hdl, pan));
-	key->second = pan;
-	return true;
-}
-
 strings::String WebSocket::getIP(int pan)
 {
 	sysl->TRACE(std::string("WebSocket::getIP(int pan)"));
 
 	REG_DATA_T::iterator key;
+	size_t i = 0;
 
 	for (key = __regs.begin(); key != __regs.end(); ++key)
 	{
 		if (key->second.ID == pan)
-		{
-			sysl->DebugMsg(std::string("WebSocket::getIP: Found IP ")+key->second.ip);
 			return key->second.ip;
-		}
+
+		i++;
+
+		if (i >= __regs.size())
+			break;
 	}
 
 	return "";
