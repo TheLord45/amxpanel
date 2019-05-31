@@ -52,13 +52,13 @@ PushButton::~PushButton()
 {
 	sysl->TRACE(Syslog::EXIT, std::string("PushButton::PushButton(...)"));
 }
-
+/**
 void PushButton::setState(size_t s)
 {
 	if (s > 0 && s <= button.sr.size() && (button.type == MULTISTATE_GENERAL || button.type == MULTISTATE_BARGRAPH))
 		state = (int)(s - 1);
 }
-
+**/
 String PushButton::getStyle()
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("PushButton::getStyle()"));
@@ -405,7 +405,7 @@ String PushButton::getWebCode()
 
 	return code;
 }
-
+/**
 int amx::PushButton::findPage(const strings::String& name)
 {
 	sysl->TRACE(String("PushButton::findPage(const strings::String& name)"));
@@ -418,7 +418,7 @@ int amx::PushButton::findPage(const strings::String& name)
 
 	return 0;
 }
-
+**/
 String PushButton::getScriptCode()
 {
 	sysl->TRACE(String("PushButton::getScriptCode()"));
@@ -714,7 +714,7 @@ bool PushButton::getImageDimensions(const String fname, int* width, int* height)
 	gdImageDestroy(im);
 	return true;
 }
-
+/**
 String PushButton::createChameleonImage(const String bm1, const String bm2, unsigned long fill, unsigned long border)
 {
 	sysl->TRACE(String("PushButton::createChameleonImage(const String bm1, const String bm2)"));
@@ -792,7 +792,7 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
 	gdImageDestroy(imNew);
 	return fname;
 }
-
+**/
 /*
  * Die Maske unter pix1 definiert über den roten und/oder grünen Farbkanal,
  * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
@@ -802,6 +802,7 @@ String PushButton::createChameleonImage(const String bm1, const String bm2, unsi
  * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
  * grüne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
  */
+/**
 int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
 {
 	int alpha = gdTrueColorGetAlpha(pix1);
@@ -831,3 +832,4 @@ int PushButton::webColToGd(unsigned long col)
 	int a1 = 0x007f - ((col & 0x000000ff) / 2);
 	return gdTrueColorAlpha(r1, g1, b1, a1);
 }
+**/

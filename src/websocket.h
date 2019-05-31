@@ -80,9 +80,7 @@ namespace amx
 			context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl);
 			void tcp_post_init(websocketpp::connection_hdl hdl);
 			std::string getPassword();
-			bool compareHdl(websocketpp::connection_hdl hdl1, websocketpp::connection_hdl hdl2);
 			long getPanelID(websocketpp::connection_hdl hdl);
-			bool replaceHdl(REG_DATA_T::iterator key, PAN_ID_T& pan);
 			strings::String cutIpAddress(strings::String& addr);
 
 			server sock_server;

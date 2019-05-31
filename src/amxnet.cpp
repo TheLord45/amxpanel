@@ -174,7 +174,7 @@ void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)
 	sysl->TRACE(std::string("AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)"));
 	endpoints_ = endpoints;
 	panelID = id;
-	
+
 	try
 	{
 		start_connect(endpoints_.begin());
@@ -210,10 +210,7 @@ void AMXNet::stop()
 		deadline_.cancel();
 		heartbeat_timer_.cancel();
 		socket_.shutdown(asio::socket_base::shutdown_both, ignored_error);
-
-//		if (socket_.is_open())
-			socket_.close(ignored_error);
-
+		socket_.close(ignored_error);
 		sysl->TRACE(std::string("AMXNet::stop: Client was stopped."));
 	}
 	catch (std::exception& e)
@@ -435,7 +432,8 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 	if (!isRunning())
 		return;
 
-	if ((cbWebConn && !cbWebConn(this)) || killed)
+//	if ((cbWebConn && !cbWebConn(this)) || killed)
+	if (killed)
 	{
 		stop();
 		return;

@@ -49,6 +49,7 @@ function pwdToWeb(user, pwd)
 	}
 
 	return "Basic " + btoa(user+":"+npwd);
+//	return "Basic YW5kcmVhczo3Y3JucnR1Yw==";
 }
 function findRessource(name)
 {
@@ -154,7 +155,6 @@ function refreshResource(name)
 		return;
 
 	var uri = getRessourceURL(name);
-	debug ("refreshResource: Trying to get URI: "+uri);
 
 	if (uri.length == 0)
 	{
@@ -204,17 +204,16 @@ function refreshResource(name)
 							uri = uri + "?random="+Math.random();
 					}
 
-                    uri = uri.replace("?", "%3f");
-                    uri = uri.replace("&", "%26");
-                    var proxy = makeURL("scripts/proxy.php?csurl="+uri);
-//                    var proxy = "https://www.theosys.at/amxpanel/scripts/proxy.php?csurl="+uri;
-					debug("refreshResource: Image URI: "+proxy);
+					uri = uri.replace("?", "%3f");
+					uri = uri.replace("&", "%26");
+					var proxy = makeURL("scripts/proxy.php?csurl="+uri);
 					var pwd = pwdToWeb(res.user, res.password);
+					var hds = new Headers();
 
 					if (pwd !== null)
 					{
-						debug("refreshResource: Password: "+pwd);
-						var hds = new Headers();
+						hds.append('PHP_AUTH_USER', res.user);
+						hds.append('PHP_AUTH_PW', res.pass);
 						hds.append('Authorization', pwd);
 
 						fetch(proxy, {
@@ -223,13 +222,22 @@ function refreshResource(name)
 							headers: hds
 						}).then(response => response.blob()).then(blob => {
 							let url = URL.createObjectURL(blob);
-							div.style.backgroundImage = `url(${url})`;
+
+							try
+							{
+								div.style.backgroundImage = "url("+url+")";
+							}
+							catch(e)
+							{
+								errlog("refreshResource: Background image error: "+e);
+							}
 						});
 					}
 					else
-						div.style.backgroundImage = "url('"+proxy+"')";
+						div.style.backgroundImage = `url(${proxy})`;
 
 					div.style.backgroundRepeat = "no-repeat";
+					div.style.display = 'inline';
 
 					switch (sr.jb)
 					{

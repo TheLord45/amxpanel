@@ -48,8 +48,8 @@ namespace amx
 			PushButton(const BUTTON_T& bt, const std::vector<PDATA_T>& pal);
 			~PushButton();
 
-			void setSwitch(bool s) { onOff = s; }
-			void setState(size_t s);
+//			void setSwitch(bool s) { onOff = s; }
+//			void setState(size_t s);
 			void setFontClass(FontList *fl) { fontClass = fl; }
 			void setIconClass(Icon *ic) { iconClass = ic; }
 			void setPageID(int id) { pageID = id; }
@@ -64,7 +64,7 @@ namespace amx
 			bool haveBargraph() { return !sBargraph.empty(); }
 
 			void setPageList(const std::vector<PAGE_T>& pl) { pageList = pl; }
-			int findPage(const strings::String& name);
+//			int findPage(const strings::String& name);
 			static bool getImageDimensions(const strings::String fname, int *width, int *height);
 
 			/**
@@ -107,10 +107,10 @@ namespace amx
 			 * On success, the function returns the name of the newly created
 			 * PNG image. Otherwise an empty string is returned.
 			 */
-			static strings::String createChameleonImage(const strings::String bm1, const strings::String bm2, unsigned long fill, unsigned long border);
+//			static strings::String createChameleonImage(const strings::String bm1, const strings::String bm2, unsigned long fill, unsigned long border);
 
 		private:
-			int blend(int base, int mask);
+//			int blend(int base, int mask);
 			/**
 			 * Die Maske unter \a pix1 definiert Ã¼ber den roten und/oder grÃ¼nen Farbkanal,
 			 * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
@@ -119,33 +119,33 @@ namespace amx
 			 * verwendet.
 			 * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
 			 * grÃ¼ne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
-			 * 
+			 *
 			 * Der Parameter \a pix2 definiert (optional) eine Maske. Diese
 			 * besteht vorwiegend aus einem Alpha-Kanal und einem Wert pro
 			 * Farbkanal, welcher ein Pixel dunkler erscheinen lassen kann.
-			 * 
+			 *
 			 * Die beiden Paremeter \a pix1 und \a pix2 sind jeweils ein Pixel
 			 * im Format einer \b GD Farbe.
-			 * 
+			 *
 			 * @param pix1
 			 * Maske die definiert welche Farbe zurÃ¼ckgegeben werden soll.
-			 * 
+			 *
 			 * @param pix2
 			 * Maske welche die Helligkeit oder Transparenz eines Pixels bestimmt.
-			 * 
+			 *
 			 * @param fill
 			 * Diese Farbe wird zurÃ¼ckgegeben, wenn in der Maske \a pix1 der
 			 * rote Farbkanal > 0 gesetzt ist.
-			 * 
+			 *
 			 * @param border
 			 * Diese Farbe wird zurÃ¼ckgegeben, wenn in der Maske \a pix1 der
 			 * grÃ¼ne Farbkanal > 0 gesetzt ist.
-			 * 
+			 *
 			 * @return
 			 * Eine Farbe oder ein transparanetes Pixel.
 			 */
-			static int getBaseColor(int pix1, int pix2, int fill, int border);
-			static int webColToGd(unsigned long col);
+//			static int getBaseColor(int pix1, int pix2, int fill, int border);
+//			static int webColToGd(unsigned long col);
 
 			BUTTON_T button;
 			bool onOff;
