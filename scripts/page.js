@@ -519,6 +519,15 @@ function activeTouch(event, name, object)
 		}
 	}
 }
+function getPageSize()
+{
+	var ID = Pages.pages[0].ID;
+	var pgKey = eval("structPage"+ID);
+
+	var width = pgKey.width;
+	var height = pgKey.height;
+	return [width, height];
+}
 function drawPage(name)
 {
 	var i;
