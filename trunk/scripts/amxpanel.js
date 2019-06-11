@@ -138,19 +138,19 @@ var cmdArray = {
         { "cmd": "?TXT-", "call": unsupported },
         { "cmd": "ABEEP", "call": doABEEP },
         { "cmd": "ADBEEP", "call": doADBEEP },
-        { "cmd": "@AKB-", "call": doAKB }, // Pop up the keyboard icon and initialize the text string to that specified.
-        { "cmd": "AKEYB-", "call": doAKB }, // Pop up the keyboard icon and initialize the text string to that specified.
-        { "cmd": "AKEYP-", "call": unsupported },
+        { "cmd": "@AKB-", "call": doAKB },      // Pop up the keyboard icon and initialize the text string to that specified.
+        { "cmd": "AKEYB-", "call": doAKEYB },   // Pop up the keyboard icon and initialize the text string to that specified.
+        { "cmd": "AKEYP-", "call": doAKEYP },   // Pop up the keypad icon and initialize the text string to that specified.
         { "cmd": "AKEYR-", "call": unsupported },
-        { "cmd": "@AKP-", "call": unsupported },
+        { "cmd": "@AKP-", "call": doAKP },      // Pop up the keypad icon and initialize the text string to that specified.
         { "cmd": "@AKR", "call": unsupported },
         { "cmd": "BEEP", "call": doABEEP },
         { "cmd": "BRIT-", "call": unsupported },
         { "cmd": "@BRT-", "call": unsupported },
         { "cmd": "DBEEP", "call": doADBEEP },
-        { "cmd": "@EKP-", "call": unsupported },
-        { "cmd": "PKEYP-", "call": unsupported },
-        { "cmd": "@PKP-", "call": unsupported },
+        { "cmd": "@EKP-", "call": doEKB },
+        { "cmd": "PKEYP-", "call": doPKEYP },
+        { "cmd": "@PKP-", "call": doPKB },
         { "cmd": "SETUP", "call": unsupported },
         { "cmd": "SHUTDOWN", "call": unsupported },
         { "cmd": "SLEEP", "call": unsupported },
@@ -1507,25 +1507,78 @@ function doAFP(msg)
  */
 function doAKB(msg)
 {
-    var initText = getField(msg, 0, ';');
-    var promptText = getField(msg, 1, ';');
+    var promptText = getField(msg, 0, ';');
+    var initText = getField(msg, 1, ';');
 
-    let Keyboard = window.SimpleKeyboard.default;
+    if (promptText === null || promptText.length == 0)
+        promptText = getAkbText();
 
-    let myKeyboard = new Keyboard({
-        onChange: input => onChange(input),
-        onKeyPress: button => onKeyPress(button)
-    });
+    var text = doKeyboard(initText, promptText);
 
-    function onChange(input)
+    if (text === null)
+        writeTextOut('KEYB-ABORT');
+    else
     {
-        document.querySelector(".input").value = input;
-        debug("Input changed", input);
+        setAkbText(text);
+        sendKeyboardText(text);
     }
+}
+/*
+ * Pop up the keyboard icon and initialize the text string to that
+ * specified.
+ */
+function doAKEYB(msg)
+{
+    var initText = getField(msg, 0, ',');
+    var promptText = getAkbText();
+    var text = doKeyboard(initText, promptText);
 
-    function onKeyPress(button)
+    if (text === null)
+        writeTextOut('KEYB-ABORT');
+    else
     {
-        debug("Button pressed", button);
+        setAkbText(text);
+        sendKeyboardText(text);
+    }
+}
+/*
+ * Pop up the keypad icon and initialize the text string to that
+ * specified.
+ */
+function doAKP(msg)
+{
+    var promptText = getField(msg, 0, ';');
+    var initText = getField(msg, 1, ';');
+
+    if (promptText === null || promptText.length == 0)
+        promptText = getAkpText();
+
+    var text = doKeyboard(initText, promptText);
+
+    if (text === null)
+        writeTextOut('KEYP-ABORT');
+    else
+    {
+        setAkpText(text);
+        sendKeypadText(text);
+    }
+}
+/*
+ * Pop up the keypad icon and initialize the text string to that
+ * specified.
+ */
+function doAKEYP(msg)
+{
+    var initText = getField(msg, 0, ',');
+    var promptText = getAkpText();
+    var text = doKeyboard(initText, promptText);
+
+    if (text === null)
+        writeTextOut('KEYP-ABORT');
+    else
+    {
+        setAkpText(text);
+        sendKeypadText(text);
     }
 }
 /*
@@ -1564,6 +1617,63 @@ function doAPG(msg)
                     popupGroups[i] += name;
             }
         }
+    }
+}
+/*
+ * Pop up the keyboard icon and initialize the text string to that
+ * specified.
+ */
+function doEKP(msg)
+{
+    var promptText = getField(msg, 0, ';');
+    var initText = getField(msg, 1, ';');
+
+    if (promptText === null || promptText.length == 0)
+        promptText = getAkpText();
+
+    var text = doKeyboard(initText, promptText);
+
+    if (text === null)
+        writeTextOut('KEYP-ABORT');
+    else
+    {
+        setAkpText(text);
+        sendKeypadText(text);
+    }
+}
+/*
+ * Present a private keypad.
+ */
+function doPKEYP(msg)
+{
+    var initText = getField(msg, 0, ',');
+
+    try
+    {
+        var text = await passwordPrompt(initText, "");
+        sendKeyboardText(text);
+    }
+    catch(e)
+    {
+        writeTextOut('KEYB-ABORT');
+    }
+}
+/*
+ * Present a private keypad.
+ */
+async function doPKB(msg)
+{
+    var promptText = getField(msg, 0, ';');
+    var initText = getField(msg, 1, ';');
+
+    try
+    {
+        var text = await passwordPrompt(initText, promptText);
+        sendKeyboardText(text);
+    }
+    catch(e)
+    {
+        writeTextOut('KEYB-ABORT');
     }
 }
 /*
