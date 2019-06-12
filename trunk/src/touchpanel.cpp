@@ -737,6 +737,33 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 			send(as.device, com);
 		}
 	}
+	else if (isRegistered(as.device) && msg.find("KEY:") != std::string::npos)		// KEY:<panelID>:<port>:<channel>:<string>;
+	{
+		AMXNet *amxnet;
+
+		if ((amxnet = getConnection(as.device)) == 0)
+		{
+			sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(as.device));
+			return;
+		}
+
+		as.port = atoi(parts[2].data());
+		as.channel = atoi(parts[3].data());
+		size_t pos = parts[4].findLastOf(';');
+
+		if (pos != std::string::npos)
+			as.msg = parts[4].substring((size_t)0, pos-1).data();
+		else
+			as.msg = parts[4].data();
+
+		as.MC = 0x008b;
+		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", msg: "+as.msg+", MC: 0x"+NameFormat::toHex(as.MC, 4));
+
+		if (amxnet != 0)
+			amxnet->sendCommand(as);
+		else
+			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
+	}
 }
 
 void TouchPanel::stopClient()
@@ -1055,7 +1082,6 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/sw.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/imprint.min.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/store.modern.min.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/keyboard/index.js\"></script>" << std::endl;
 	pgFile << "<script>\n";
 	pgFile << "\"use strict\";\n";
 	pgFile << "var fingerprint = \"\";\n";
@@ -1295,7 +1321,8 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/resource.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/movie.js\"></script>" << std::endl << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/movie.js\"></script>" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/keyboard.js\"></script>" << std::endl << std::endl;
 
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
