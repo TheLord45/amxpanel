@@ -62,7 +62,7 @@ var cmdArray = {
         { "cmd": "^ANI-", "call": unsupported },
         { "cmd": "^APF-", "call": doAPF }, // Add page flip action to button
         { "cmd": "^BAT-", "call": doBAT }, // Append non-unicode text.
-        { "cmd": "^BAU-", "call": unsupported }, // Append unicode text
+        { "cmd": "^BAU-", "call": doBAU }, // Append unicode text
         { "cmd": "^BCB-", "call": doBCB }, // Set the border color to the specified color.
         { "cmd": "^BCF-", "call": doBCF }, // Set the fill color to the specified color.
         { "cmd": "^BCT-", "call": doBCT }, // Set the text color to the specified color.
@@ -1516,7 +1516,7 @@ function doAKB(msg)
     var text = doKeyboard(initText, promptText);
 
     if (text === null)
-        writeTextOut('KEYB-ABORT');
+        writeTextOut('KEY:'+panelID+':0:0:KEYB-ABORT');
     else
     {
         setAkbText(text);
@@ -1534,7 +1534,7 @@ function doAKEYB(msg)
     var text = doKeyboard(initText, promptText);
 
     if (text === null)
-        writeTextOut('KEYB-ABORT');
+        writeTextOut('KEY:'+panelID+':0:0:KEYB-ABORT');
     else
     {
         setAkbText(text);
@@ -1556,7 +1556,7 @@ function doAKP(msg)
     var text = doKeyboard(initText, promptText);
 
     if (text === null)
-        writeTextOut('KEYP-ABORT');
+        writeTextOut('KEY:'+panelID+':0:0:KEYP-ABORT');
     else
     {
         setAkpText(text);
@@ -1574,7 +1574,7 @@ function doAKEYP(msg)
     var text = doKeyboard(initText, promptText);
 
     if (text === null)
-        writeTextOut('KEYP-ABORT');
+        writeTextOut('KEY:'+panelID+':0:0:KEYP-ABORT');
     else
     {
         setAkpText(text);
@@ -1634,7 +1634,7 @@ function doEKP(msg)
     var text = doKeyboard(initText, promptText);
 
     if (text === null)
-        writeTextOut('KEYP-ABORT');
+        writeTextOut('KEY:'+panelID+':0:0:KEYP-ABORT');
     else
     {
         setAkpText(text);
@@ -1655,7 +1655,7 @@ function doPKEYP(msg)
     }
     catch(e)
     {
-        writeTextOut('KEYB-ABORT');
+        writeTextOut('KEY:'+panelID+':0:0:KEYB-ABORT');
     }
 }
 /*
@@ -1673,7 +1673,7 @@ async function doPKB(msg)
     }
     catch(e)
     {
-        writeTextOut('KEYB-ABORT');
+        writeTextOut('KEY:'+panelID+':0:0:KEYB-ABORT');
     }
 }
 /*
@@ -1948,6 +1948,64 @@ function doBAT(msg)
                         catch (e)
                         {
                             errlog("doBAT: No element of name " + name + " found!");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+/*
+ * Append unicode text.
+ */
+function doBAU(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var text = getField(msg, 2, ',');
+
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
+
+    // "text" is in hex notation. 4 bytes are a character, where
+    // 2 bytes are ued for one part of the 16 bit integer.
+    var chText = "";
+
+    for (var i = 0; i < text.length; i++)
+    {
+        var num = parseInt(text.substring(i, 4), 16);
+        chText = chText + String.fromCharCode(num);
+    }
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doBBR: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        var nm = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                        saveTextAppend(curPort, addrRange[i], chText, [z]);
+
+                        try
+                        {
+                            var elem = getText(curPort, addrRange[i], z);
+                            document.getElementById(name).innerHTML = elem;
+                        }
+                        catch (e)
+                        {
+                            errlog("doBAU: No element of name " + name + " found!");
                         }
                     }
                 }
