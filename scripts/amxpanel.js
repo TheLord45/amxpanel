@@ -67,12 +67,12 @@ var cmdArray = {
         { "cmd": "^BCF-", "call": doBCF }, // Set the fill color to the specified color.
         { "cmd": "^BCT-", "call": doBCT }, // Set the text color to the specified color.
         { "cmd": "^BDO-", "call": unsupported }, // Set the button draw order.
-        { "cmd": "^BFB-", "call": unsupported }, // Set the feedback type of the button.
+        { "cmd": "^BFB-", "call": doBFB }, // Set the feedback type of the button.
         { "cmd": "^BIM-", "call": unsupported }, // Set the input mask for the specified address.
         { "cmd": "^BLN-", "call": unsupported }, // Set the number of lines removed equally from the top and bottom of a composite video signal.
         { "cmd": "^BMC-", "call": unsupported }, // Button copy command.
         { "cmd": "^BMF-", "call": unsupported }, // Set any/all button parameters by sending embedded codes and data.
-        { "cmd": "^BMI-", "call": unsupported }, // Set thje button mask image.
+        { "cmd": "^BMI-", "call": unsupported }, // Set the button mask image.
         { "cmd": "^BML-", "call": unsupported }, // Set the maximum length of the text area button.
         { "cmd": "^BMP-", "call": doBMP }, // Assign a picture to those buttons with a defined addressrange.
         { "cmd": "^BNC-", "call": unsupported },
@@ -2256,6 +2256,108 @@ function doBCT(msg)
     }
 }
 /*
+ * Set the feedbacktype of the button.
+ */
+function doBFB(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var fb = getField(msg, 1, ',');
+
+    addrRange = getRange(addr);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doBFB: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            var pgKey = eval("structPage"+bt[b].pnum);
+
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var x = 0; x < pgKey.buttons.length; x++)
+                {
+                    var button = pgKey.buttons[x];
+
+                    if (button.bID == bt[b].bi)
+                    {
+                        if (fb.toLowerCase() == "none")
+                            button.fb = FEEDBACK.FB_NONE;
+                        else if (fb.toLowerCase() == "channel")
+                            button.fb = FEEDBACK.FB_CHANNEL;
+                        else if (fb.toLowerCase() == "invert")
+                            button.fb = FEEDBACK.FB_INV_CHANNEL;
+                        else if (fb.toLowerCase() == "on")
+                            button.fb = FEEDBACK.FB_ALWAYS_ON;
+                        else if (fb.toLowerCase() == "momentary")
+                            button.fb = FEEDBACK.FB_MOMENTARY;
+                        else if (fb.toLowerCase() == "blink")
+                            button.fb = FEEDBACK.FB_BLINK;
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+function doBMI(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var img = getField(msg, 2, ',');
+
+    var addrRange = getRange(addr);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doBMI: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            var pgKey = eval("structPage"+bt[b].pnum);
+            var button = null;
+
+            for (var x = 0; x < pgKey.buttons.length; x++)
+            {
+                if (pgKey.buttons[x].bID == bt[b].bi)
+                {
+                    button = pgKey.buttons[x];
+                    break;
+                }
+            }
+
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        for (var x in button.sr)
+                        {
+                            if (button.sr[x].number == z)
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+}
+/*
  * Assign a picture to those buttons with a defined addressrange.
  */
 function doBMP(msg)
@@ -2286,7 +2388,7 @@ function doBMP(msg)
 
         if (bt.length == 0)
         {
-            errlog('doBMI: Error button ' + addrRange[i] + ' not found!');
+            errlog('doBMP: Error button ' + addrRange[i] + ' not found!');
             continue;
         }
 
@@ -2306,7 +2408,7 @@ function doBMP(msg)
                         }
                         catch (e)
                         {
-                            errlog("doBMI: No element of name " + name + " found!");
+                            errlog("doBMP: No element of name " + name + " found!");
                         }
                     }
                 }
