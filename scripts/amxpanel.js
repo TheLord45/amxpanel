@@ -2307,6 +2307,9 @@ function doBFB(msg)
         }
     }
 }
+/*
+ * Set the button mask image.
+ */
 function doBMI(msg)
 {
     var addr = getField(msg, 0, ',');
@@ -2314,6 +2317,7 @@ function doBMI(msg)
     var img = getField(msg, 2, ',');
 
     var addrRange = getRange(addr);
+    var btRange = getRange(bts);
 
     for (var i = 0; i < addrRange.length; i++)
     {
@@ -2339,6 +2343,9 @@ function doBMI(msg)
                 }
             }
 
+            if (button === null)
+                continue;
+
             for (var z = 1; z <= bt[b].instances; z++)
             {
                 for (var j = 0; j < btRange.length; j++)
@@ -2348,7 +2355,7 @@ function doBMI(msg)
                         for (var x in button.sr)
                         {
                             if (button.sr[x].number == z)
-
+                                button.sr[x].mi = img;
                         }
                     }
                 }
@@ -2356,7 +2363,7 @@ function doBMI(msg)
         }
     }
 }
-}
+
 /*
  * Assign a picture to those buttons with a defined addressrange.
  */
@@ -2565,29 +2572,16 @@ function doENA(msg)
  */
 async function doICO(msg)
 {
-    var bt;
-    var addr;
-    var bts;
-    var addrRange;
-    var btRange;
-    var idx;
-    var i;
-    var j;
-    var z;
-    var b;
-    var name;
-    var stat;
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var idx = getField(msg, 2, ',');
 
-    addr = getField(msg, 0, ',');
-    bts = getField(msg, 1, ',');
-    idx = getField(msg, 2, ',');
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
 
-    addrRange = getRange(addr);
-    btRange = getRange(bts);
-
-    for (i = 0; i < addrRange.length; i++)
+    for (var i = 0; i < addrRange.length; i++)
     {
-        bt = findButtonPort(addrRange[i]);
+        var bt = findButtonPort(addrRange[i]);
 
         if (bt.length == 0)
         {
@@ -2595,15 +2589,15 @@ async function doICO(msg)
             continue;
         }
 
-        for (b = 0; b < bt.length; b++)
+        for (var b = 0; b < bt.length; b++)
         {
-            for (z = 1; z <= bt[b].instances; z++)
+            for (var z = 1; z <= bt[b].instances; z++)
             {
-                for (j = 0; j < btRange.length; j++)
+                for (var j = 0; j < btRange.length; j++)
                 {
                     if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
                     {
-                        name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
                         saveIcon(bt[b].ap, bt[b].ac, idx, btRange[j]);
                         var newIcon = false;
                         var iFile = getIconFile(idx);
@@ -2932,20 +2926,14 @@ function doRSR(msg)
  */
 function doSHO(msg)
 {
-    var bt;
-    var i;
-    var z;
-    var b;
-    var name;
-
     var addr = getField(msg, 0, ',');
     var stat = getField(msg, 1, ',');
 
     var addrRange = getRange(addr);
 
-    for (i = 0; i < addrRange.length; i++)
+    for (var i = 0; i < addrRange.length; i++)
     {
-        bt = findButton(addrRange[i]);
+        var bt = findButton(addrRange[i]);
 
         if (bt.length == 0)
         {
@@ -2953,11 +2941,11 @@ function doSHO(msg)
             continue;
         }
 
-        for (b = 0; b < bt.length; b++)
+        for (var b = 0; b < bt.length; b++)
         {
-            for (z = 1; z <= bt[b].instances; z++)
+            for (var z = 1; z <= bt[b].instances; z++)
             {
-                name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
 
                 try
                 {
@@ -2977,13 +2965,6 @@ function doSHO(msg)
  */
 async function doTXT(msg)
 {
-    var bt;
-    var i;
-    var j;
-    var z;
-    var b;
-    var name;
-
     var addr = getField(msg, 0, ',');
     var bts = getField(msg, 1, ',');
     var text = getField(msg, 2, ',');
@@ -2992,9 +2973,9 @@ async function doTXT(msg)
     var btRange = getRange(bts);
     text = textToWeb(text);
 
-    for (i = 0; i < addrRange.length; i++)
+    for (var i = 0; i < addrRange.length; i++)
     {
-        bt = findButtonPort(addrRange[i]);
+        var bt = findButtonPort(addrRange[i]);
 
         if (bt.length == 0)
         {
@@ -3002,15 +2983,15 @@ async function doTXT(msg)
             continue;
         }
 
-        for (b = 0; b < bt.length; b++)
+        for (var b = 0; b < bt.length; b++)
         {
-            for (z = 1; z <= bt[b].instances; z++)
+            for (var z = 1; z <= bt[b].instances; z++)
             {
-                for (j = 0; j < btRange.length; j++)
+                for (var j = 0; j < btRange.length; j++)
                 {
                     if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
                     {
-                        name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
                         saveTextReplace(curPort, addrRange[i], text, [z]);
 
                         try
@@ -3028,7 +3009,14 @@ async function doTXT(msg)
                             {
                                 try
                                 {
-                                    parent = document.getElementById(name);
+                                    parent = document.getElementById(name);    var bt;
+                                    var i;
+                                    var j;
+                                    var z;
+                                    var b;
+                                    var name;
+                                
+                                
 
                                     if (parent !== null)
                                     {
