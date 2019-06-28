@@ -16,7 +16,7 @@
 'use strict';
 
 const sleep = (milliseconds) => {
-    return new Promise(resolve => setTimeout(resolve, milliseconds))
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
 var curPort;                // The port number the currently processed command depends on
@@ -1586,25 +1586,19 @@ function doAKEYP(msg)
  */
 function doAPG(msg)
 {
-    var pg;
-    var name;
-    var i;
-    var have;
-    var group;
-
-    pg = getField(msg, 0, ";");
-    name = getField(msg, 1, ";");
+    var pg = getField(msg, 0, ";");
+    var name = getField(msg, 1, ";");
 
     if (pg.length > 0 && group.length > 0)
     {
-        for (i in popupGroups)
+        for (var i in popupGroups)
         {
             if (popupGroups[i] == name)
             {
-                have = false;
-                group = popupGroups[i];
+                var have = false;
+                var group = popupGroups[i];
 
-                for (j in group)
+                for (var j in group)
                 {
                     if (group[j] == pg)
                     {
@@ -1833,18 +1827,24 @@ function doAPF(msg)
 
         for (var b = 0; b < bt.length; b++)
         {
-            var nm = 'Page_' + bt[b].pnum + '_Button_' + bt[b].bi + '_' + j;
+            var nm = 'Page_' + bt[b].pnum + '_Button_' + bt[b].bi + '_';
             var num = bt[b].instances;
 
             if (cmd.search('Show') >= 0)
             {
                 for (var j = 0; j < num; j++)
-                    document.getElementById(nm).addEventListener(EVENT_UP, showPopup.bind(null, name), false);
+                {
+                    var idx = j + 1;
+                    document.getElementById(nm+idx).addEventListener(EVENT_UP, showPopup.bind(null, name), false);
+                }
             }
             else if (cmd.search('Hide') >= 0)
             {
                 for (var j = 0; j < num; j++)
-                    document.getElementById(nm).addEventListener(EVENT_UP, hidePopup.bind(null, name), false);
+                {
+                    var idx = j + 1;
+                    document.getElementById(nm+idx).addEventListener(EVENT_UP, hidePopup.bind(null, name), false);
+                }
             }
             // FIXME: There are more commands!
         }
