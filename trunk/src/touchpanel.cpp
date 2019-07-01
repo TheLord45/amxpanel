@@ -749,13 +749,21 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 
 		as.port = atoi(parts[2].data());
 		as.channel = atoi(parts[3].data());
-		size_t pos = parts[4].findLastOf(';');
+		size_t i = 4;
+
+		while (i < parts.size())
+		{
+			as.msg.append(":");
+			as.msg.append(parts[i]);
+			i++;
+		}
+
+		size_t pos = as.msg.findLastOf(';');
 
 		if (pos != std::string::npos)
-			as.msg = parts[4].substring((size_t)0, pos-1).data();
-		else
-			as.msg = parts[4].data();
+			as.msg = as.msg.substring((size_t)0, pos);
 
+		as.msg = NameFormat::UTF8ToCp1250(as.msg);
 		as.MC = 0x008b;
 		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", msg: "+as.msg+", MC: 0x"+NameFormat::toHex(as.MC, 4));
 

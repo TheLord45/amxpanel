@@ -1311,18 +1311,22 @@ function pushButton(cport, cnum, stat)
 
 function textToWeb(txt)
 {
+    var nt = txt.replace(/&/g, "&amp;");
+    nt = nt.replace(/>/g, "&gt;");
+    nt = nt.replace(/</g, "&lt;");
     // Spaces
-    var nt = txt.replace(/ /g, "&nbsp;");
+    nt = nt.replace(/ /g, "&nbsp;");
     // Line break
     nt = nt.replace(/\n/g, "<br>");
+    nt = nt.replace(/\r/g, "");
     // Special characters
-    nt = nt.replace(/ö/gi, "&ouml;");
-    nt = nt.replace(/ä/gi, "&auml;");
-    nt = nt.replace(/ü/gi, "&uuml;");
-    nt = nt.replace(/ß/gi, "&szlig;");
-    nt = nt.replace(/Ö/gi, "&Ouml;");
-    nt = nt.replace(/Ä/gi, "&Auml;");
-    nt = nt.replace(/Ü/gi, "&Uuml;");
+    nt = nt.replace(/\u00f6/g, "&ouml;");
+    nt = nt.replace(/\u00e4/g, "&auml;");
+    nt = nt.replace(/\u00fc/g, "&uuml;");
+    nt = nt.replace(/\u00df/g, "&szlig;");
+    nt = nt.replace(/\u00d6/g, "&Ouml;");
+    nt = nt.replace(/\u00c4/g, "&Auml;");
+    nt = nt.replace(/\u00dc/g, "&Uuml;");
     return nt;
 }
 
@@ -3009,14 +3013,7 @@ async function doTXT(msg)
                             {
                                 try
                                 {
-                                    parent = document.getElementById(name);    var bt;
-                                    var i;
-                                    var j;
-                                    var z;
-                                    var b;
-                                    var name;
-
-
+                                    parent = document.getElementById(name);    
 
                                     if (parent !== null)
                                     {

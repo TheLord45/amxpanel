@@ -173,6 +173,7 @@ class NameFormat
 		static strings::String strToHex(strings::String str, int width, bool format = false);
 		static strings::String latin1ToUTF8(const strings::String& str);
 		static strings::String cp1250ToUTF8(const strings::String& str);
+		static strings::String UTF8ToCp1250(const strings::String& str);
 };
 
 #endif

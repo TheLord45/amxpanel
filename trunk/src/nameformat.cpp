@@ -349,3 +349,50 @@ String NameFormat::cp1250ToUTF8(const String& str)
 
 	return out;
 }
+
+strings::String NameFormat::UTF8ToCp1250(const strings::String& str)
+{
+	char dst[1024];
+	size_t srclen = 0;
+	char* pIn, *pInSave;
+
+	srclen = str.length();
+	memset(&dst[0], 0, sizeof(dst));
+
+	try
+	{
+		pIn = new char[srclen + 1];
+		memcpy(pIn, str.data(), srclen);
+		*(pIn+srclen) = 0;
+		pInSave = pIn;
+	}
+	catch(std::exception& e)
+	{
+		sysl->errlog(String("NameFormat::UTF8ToCp1250: ")+e.what());
+		return "";
+	}
+
+	size_t dstlen = sizeof(dst) - 1;
+	char* pOut = (char *)dst;
+
+	iconv_t conv = iconv_open("CP1250", "UTF-8");
+
+	if (conv == (iconv_t)-1)
+	{
+		sysl->errlog(String("NameFormat::UTF8ToCp1250: Error opening iconv!"));
+		delete[] pInSave;
+		return str;
+	}
+
+	size_t ret = iconv(conv, &pIn, &srclen, &pOut, &dstlen);
+	iconv_close(conv);
+	delete[] pInSave;
+
+	if (ret == (size_t)-1)
+	{
+		sysl->errlog(String("NameFormat::UTF8ToCp1250: Error converting a string!"));
+		return str;
+	}
+
+	return String(dst);
+}

@@ -420,10 +420,15 @@ function activeTouch(event, name, object)
 	if (objs === null)
 		return;
 
+	debug("activeTouch: Number objects: "+objs.length);
+
 	for (i in objs)
 	{
-		if (objs[i].id.indexOf(name) == 0 && objs[i].id != name && (objs[i].localName == "canvas" || objs[i].localName == "img" || objs[i].localName == "div"))
+		if (objs[i].id.indexOf(name) == 0 && objs[i].id != name &&
+			(objs[i].localName == "canvas" || objs[i].localName == "img" || objs[i].localName == "div" || objs[i].localName == "span"))
 		{
+			debug("activeTouch: Selected["+i+"]: name="+name+", id="+objs[i].id+", localName="+objs[i].localName);
+
 			var ctx = document.createElement("canvas").getContext("2d");
 			var w = objs[i].width,
 				h = objs[i].height,
@@ -470,16 +475,24 @@ function activeTouch(event, name, object)
 			}
 			else
 			{
+				debug("activeTouch: No graphics: "+objs[i].id);
 				var col = getAMXColor(button.sr[0].cf);
 
 				if (col.length == 4)
 					alpha = col[3];
 				else
 					alpha = 255;
+
+				var idx = parseInt(i) + 1;
+				// If we've reached the last layer with no graphics, it is selected.
+				debug("activeTouch: idx="+idx+", objs.length="+objs.length);
+
+				if (idx == objs.length)
+					alpha = 255;
 			}
 
-  			// If pixel is not transparent, send a click event
-			if( alpha != 0 )
+ 			// If pixel is not transparent, send a click event
+			if( alpha != 0)
 			{
 				var name1 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_1";
 				var name2 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_2";
@@ -646,7 +659,7 @@ function doDraw(pgKey, pageID, what)
 				return false;
 			}
 		}
-		else if (sr.bm.length)
+		else if (sr.bm.length > 0)
 		{
 			page.style.backgroundImage = "url('images/"+sr.bm+"')";
 			page.style.backgroundRepeat = "no-repeat";

@@ -48,23 +48,7 @@ function sendKeyboardText(text)
 	if (text === null || typeof text != 'string')
 		return;
 
-	for (var i = 0; i < text.length; i++)
-	{
-		var cc = text.charCodeAt(i);
-
-		if (cc >= 0x41 && cc <= 0x5a)
-			writeTextOut('KEY:'+panelID+':0:0:KEYB-SHIFT');
-
-		if (cc == 0x20)     // Blank
-			writeTextOut('KEY:'+panelID+':0:0:KEYB-SPACE');
-		else
-			writeTextOut('KEY:'+panelID+':0:0:KEYB-'+text.charAt(i));
-
-		if (cc >= 0x41 && cc <= 0x5a)
-			writeTextOut('KEY:'+panelID+':0:0:KEYB-SHIFT');
-	}
-
-	writeTextOut('KEY:'+panelID+':0:0:KEYB-DONE')
+	writeTextOut('KEY:'+panelID+':1:1:KEYB-'+text);
 }
 
 function sendKeypadText(text)
@@ -72,17 +56,7 @@ function sendKeypadText(text)
 	if (text === null || typeof text != 'string')
 		return;
 
-	for (var i = 0; i < text.length; i++)
-	{
-		var cc = text.charCodeAt(i);
-
-		if ((cc >= 0x30 && cc <= 0x39) || 0x3a || 0x3b ||
-			(cc >= 0x28 && cc <= 0x2f))
-			writeTextOut('KEY:'+panelID+':0:0:KEYP-'+text.charAt(i));
-
-	}
-
-	writeTextOut('KEY:'+panelID+':0:0:KEYP-DONE')
+	writeTextOut('KEY:'+panelID+':1:1:KEYP-'+text);
 }
 
 function passwordPrompt(pw, text)
