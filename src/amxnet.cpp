@@ -871,6 +871,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 
 		case 0x008b:		// string command
 		case 0x008c:		// send command string
+		{
 			com.data.message_string.device = com.device2;
 			com.data.message_string.port = s.port;
 			com.data.message_string.system = com.system;
@@ -882,10 +883,12 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			else
 				len = s.msg.length();
 
+			com.data.message_string.length = len;
 			strncpy((char *)&com.data.message_string.content[0], s.msg.data(), len);
 			com.hlen = 0x0016 - 3 + 9 + len;
 			comStack.push_back(com);
 			status = true;
+		}
 		break;
 
 		case 0x0090:		// port count
