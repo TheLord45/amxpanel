@@ -100,7 +100,7 @@ function passwordPrompt(pw, text)
 	pwprompt.style.padding = "16px"; 				//give it some space
 	pwprompt.style.background = "white"; 			//give it some background so its not transparent
 	pwprompt.style.zIndex = 99999; 					//put it above everything else - just in case
-	
+
 	var pwtext = document.createElement("div"); 	//create the div for the password-text
 	pwtext.innerHTML = text; 						//put inside the text
 	pwprompt.appendChild(pwtext); 					//append the text-div to the password-prompt
@@ -122,10 +122,10 @@ function passwordPrompt(pw, text)
 	pwprompt.appendChild(pwcancelb); 				//append cancel-button first
 	pwprompt.appendChild(pwokbutton); 				//append the ok-button
 	document.body.appendChild(pwprompt); 			//append the password-prompt so it gets visible
-	pwinput.focus(); 								//focus on the password-input-field so user does not need to click 
-	
+	pwinput.focus(); 								//focus on the password-input-field so user does not need to click
+
 	/* now comes the magic: create and return a promise */
-	return new Promise(function(resolve, reject) 
+	return new Promise(function(resolve, reject)
 	{
 		pwprompt.addEventListener('click', function handleButtonClicks(e)	//lets handle the buttons
 		{
@@ -155,5 +155,5 @@ function passwordPrompt(pw, text)
 				reject(new Error("User cancelled"));//return an error
 			}
 		});
-	}); 
+	});
 }

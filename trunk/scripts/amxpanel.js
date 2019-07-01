@@ -148,9 +148,9 @@ var cmdArray = {
         { "cmd": "BRIT-", "call": unsupported },
         { "cmd": "@BRT-", "call": unsupported },
         { "cmd": "DBEEP", "call": doADBEEP },
-        { "cmd": "@EKP-", "call": doEKB },
+        { "cmd": "@EKP-", "call": doEKP },
         { "cmd": "PKEYP-", "call": doPKEYP },
-        { "cmd": "@PKP-", "call": doPKB },
+        { "cmd": "@PKP-", "call": doPKP },
         { "cmd": "SETUP", "call": unsupported },
         { "cmd": "SHUTDOWN", "call": unsupported },
         { "cmd": "SLEEP", "call": unsupported },
@@ -1638,7 +1638,7 @@ function doEKP(msg)
 /*
  * Present a private keypad.
  */
-function doPKEYP(msg)
+async function doPKEYP(msg)
 {
     var initText = getField(msg, 0, ',');
 
@@ -1655,7 +1655,7 @@ function doPKEYP(msg)
 /*
  * Present a private keypad.
  */
-async function doPKB(msg)
+async function doPKP(msg)
 {
     var promptText = getField(msg, 0, ';');
     var initText = getField(msg, 1, ';');
@@ -3015,8 +3015,8 @@ async function doTXT(msg)
                                     var z;
                                     var b;
                                     var name;
-                                
-                                
+
+
 
                                     if (parent !== null)
                                     {
