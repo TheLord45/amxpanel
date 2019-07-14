@@ -739,7 +739,9 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 			send(as.device, com);
 		}
 	}
-	else if (isRegistered(as.device) && msg.find("KEY:") != std::string::npos)		// KEY:<panelID>:<port>:<channel>:<string>;
+	else if (isRegistered(as.device) &&
+			 (msg.find("KEY:") != std::string::npos ||		// KEY:<panelID>:<port>:<channel>:<string>;
+			  msg.find("STRING:") != std::string::npos))	// STRING:<panelID>:<port>:<channel>:<string>;
 	{
 		AMXNet *amxnet;
 
@@ -755,7 +757,9 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 
 		while (i < parts.size())
 		{
-			as.msg.append(":");
+			if (i > 4)
+				as.msg.append(":");
+
 			as.msg.append(parts[i]);
 			i++;
 		}
@@ -765,7 +769,9 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 		if (pos != std::string::npos)
 			as.msg = as.msg.substring((size_t)0, pos);
 
-		as.msg = NameFormat::UTF8ToCp1250(as.msg);
+		if (msg.find("KEY:") != std::string::npos)
+			as.msg = NameFormat::UTF8ToCp1250(as.msg);
+
 		as.MC = 0x008b;
 		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", msg: "+as.msg+", MC: 0x"+NameFormat::toHex(as.MC, 4));
 

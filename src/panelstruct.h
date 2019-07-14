@@ -350,6 +350,7 @@ namespace amx
 		int rv;
 		int rl;					// Range low
 		int rh;					// Range high
+		strings::String op;		// String the button send
 		std::vector<PUSH_FUNC_T> pushFunc;	// Push functions: This are executed on button press
 		std::vector<SR_T> sr;
 

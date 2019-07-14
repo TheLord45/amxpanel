@@ -510,6 +510,9 @@ function activeTouch(event, name, object)
 						else
 							pushButton(button.cp, button.ch, 1);
 
+						if (button.op.length > 0)
+							sendString(button.cp, button.ch, button.op);
+
 						return;
 					}
 					else if (event.type == "mouseup" || event.type == "pointerup" || event.type == "touchup")
@@ -527,6 +530,10 @@ function activeTouch(event, name, object)
 					{
 						writeTextOut("PUSH:"+button.cp+":"+button.ch+":1;");
 						writeTextOut("PUSH:"+button.cp+":"+button.ch+":0;");
+
+						if (button.op.length > 0)
+							sendString(button.cp, button.ch, button.op);
+
 						return;
 					}
 				}
@@ -744,6 +751,10 @@ function doDraw(pgKey, pageID, what)
 						else
 						{
 							bt.addEventListener(EVENT_DOWN, switchDisplay.bind(null, name1,name2,1,button.cp,button.ch),false);
+
+							if (button.op.length > 0)
+								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op), false);
+
 							bt.addEventListener(EVENT_UP, switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
 						}
 					}
@@ -777,6 +788,10 @@ function doDraw(pgKey, pageID, what)
 						else
 						{
 							bt.addEventListener(EVENT_DOWN, pushButton.bind(null, button.cp,button.ch,1),false);
+
+							if (button.op.length > 0)
+								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op), false);
+
 							bt.addEventListener(EVENT_UP, pushButton.bind(null, button.cp,button.ch,0),false);
 						}
 					}
@@ -810,6 +825,10 @@ function doDraw(pgKey, pageID, what)
 						else
 						{
 							bt.addEventListener(EVENT_DOWN, pushButton.bind(null, button.cp,button.ch,0),false);
+
+							if (button.op.length > 0)
+								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op), false);
+
 							bt.addEventListener(EVENT_UP, pushButton.bind(null, button.cp,button.ch,1),false);
 						}
 					}
@@ -830,9 +849,16 @@ function doDraw(pgKey, pageID, what)
 							},false);
 						}
 						else
+						{
 							bt.addEventListener(EVENT_DOWN, pushButton.bind(null, button.cp,button.ch,1));
+
+							if (button.op.length > 0)
+								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op), false);
+						}
 					}
 				}
+				else if (button.sr.length == 2 && button.op.length > 0)
+					bt.addEventListener(EVENT_DOWN, sendString.bind(null, 1, 1, button.op), false);
 
 				for (var x in button.pf)
 				{

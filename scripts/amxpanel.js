@@ -1311,6 +1311,11 @@ function pushButton(cport, cnum, stat)
     writeTextOut("PUSH:" + panelID + ":" + cport + ":" + cnum + ":" + stat);
 }
 
+function sendString(cport, cnum, txt)
+{
+	writeTextOut("STRING:" + panelID + ":" + cport + ":" + cnum + ":" + txt);
+}
+
 function textToWeb(txt)
 {
     var nt = txt.replace(/&/g, "&amp;");
@@ -3015,7 +3020,7 @@ async function doTXT(msg)
                             {
                                 try
                                 {
-                                    parent = document.getElementById(name);    
+                                    parent = document.getElementById(name);
 
                                     if (parent !== null)
                                     {

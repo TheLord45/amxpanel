@@ -78,10 +78,10 @@ std::string cmdList[] = {
 	"@BRT-", "DBEEP", "@EKP-", "PKEYP-", "@PKP-", "SETUP", "SHUTDOWN", "SLEEP",
 	"@SOU-", "@TKP-", "TPAGEON", "TPAGEOFF", "@VKB", "WAKE", "^CAL", "^KPS-",
 	"^VKS-", "@PWD-", "^PWD-", "^BBR-", "^RAF-", "^RFR-", "^RMF-", "^RSR-",
-	"^MODEL?", "^ICS-", "^ICE-", "^ICM-", "^PHN-", "?PHN-", "LEVON"
+	"^MODEL?", "^ICS-", "^ICE-", "^ICM-", "^PHN-", "?PHN-", "LEVON", "RXON"
 };
 
-#define NUMBER_CMDS		143
+#define NUMBER_CMDS		144
 
 AMXNet::AMXNet()
 	: deadline_(io_context),
