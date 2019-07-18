@@ -904,9 +904,7 @@ function doDraw(pgKey, pageID, what)
 
 					if (brd !== -1)
 					{
-						var x;
-
-						for (x = 0; x < brd.length; x++)
+						for (var x = 0; x < brd.length; x++)
 						{
 							switch(x)
 							{

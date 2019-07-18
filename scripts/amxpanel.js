@@ -73,7 +73,7 @@ var cmdArray = {
         { "cmd": "^BIM-", "call": unsupported }, // Set the input mask for the specified address.
         { "cmd": "^BLN-", "call": unsupported }, // Set the number of lines removed equally from the top and bottom of a composite video signal.
         { "cmd": "^BMC-", "call": unsupported }, // Button copy command.
-        { "cmd": "^BMF-", "call": unsupported }, // Set any/all button parameters by sending embedded codes and data.
+        { "cmd": "^BMF-", "call": doBMF }, // Set any/all button parameters by sending embedded codes and data.
         { "cmd": "^BMI-", "call": unsupported }, // Set the button mask image.
         { "cmd": "^BML-", "call": unsupported }, // Set the maximum length of the text area button.
         { "cmd": "^BMP-", "call": doBMP }, // Assign a picture to those buttons with a defined addressrange.
@@ -84,7 +84,7 @@ var cmdArray = {
         { "cmd": "^BOR-", "call": unsupported },
         { "cmd": "^BOS-", "call": unsupported },
         { "cmd": "^BPP-", "call": unsupported },
-        { "cmd": "^BRD-", "call": unsupported },
+        { "cmd": "^BRD-", "call": doBRD },
         { "cmd": "^BSF-", "call": unsupported },
         { "cmd": "^BSP-", "call": doBSP }, // Set the button size and position.
         { "cmd": "^BSM-", "call": unsupported },
@@ -98,7 +98,7 @@ var cmdArray = {
         { "cmd": "^DLD-", "call": unsupported },
         { "cmd": "^DPF-", "call": unsupported },
         { "cmd": "^ENA-", "call": doENA }, // Enable or disable buttons with a set variable text range.
-        { "cmd": "^FON-", "call": unsupported },
+        { "cmd": "^FON-", "call": doFON },
         { "cmd": "^GDI-", "call": unsupported },
         { "cmd": "^GIV-", "call": unsupported },
         { "cmd": "^GLH-", "call": unsupported },
@@ -109,9 +109,9 @@ var cmdArray = {
         { "cmd": "^GSN-", "call": unsupported },
         { "cmd": "^ICO-", "call": doICO }, // Set the icon to a button.
         { "cmd": "^IRM-", "call": unsupported },
-        { "cmd": "^JSB-", "call": unsupported },
-        { "cmd": "^JSI-", "call": unsupported },
-        { "cmd": "^JST-", "call": unsupported },
+        { "cmd": "^JSB-", "call": doJSB },
+        { "cmd": "^JSI-", "call": doJSI },
+        { "cmd": "^JST-", "call": doJST },
         { "cmd": "^MBT-", "call": unsupported },
         { "cmd": "^MDC-", "call": unsupported },
         { "cmd": "^SHO-", "call": doSHO },
@@ -852,6 +852,18 @@ function findButtonDistinct(pnum, bi)
     return null;
 }
 
+function findPageButton(pnum, bi)
+{
+    var pgKey = eval("structPage"+pnum);
+
+    for (var x = 0; x < pgKey.buttons.length; x++)
+    {
+        if (pgKey.buttons[x].bID == bi)
+            return pgKey.buttons[x];
+    }
+
+    return null;
+}
 function findBargraphs(port, channel)
 {
     var i;
@@ -2342,17 +2354,7 @@ function doBMI(msg)
 
         for (var b = 0; b < bt.length; b++)
         {
-            var pgKey = eval("structPage"+bt[b].pnum);
-            var button = null;
-
-            for (var x = 0; x < pgKey.buttons.length; x++)
-            {
-                if (pgKey.buttons[x].bID == bt[b].bi)
-                {
-                    button = pgKey.buttons[x];
-                    break;
-                }
-            }
+            var button = findPageButton(bt[b].pnum, bt[b].bi);
 
             if (button === null)
                 continue;
@@ -2365,8 +2367,48 @@ function doBMI(msg)
                     {
                         for (var x in button.sr)
                         {
+                            var idx = parseInt(x);
+
                             if (button.sr[x].number == z)
+                            {
                                 button.sr[x].mi = img;
+
+                                var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+
+                                try
+                                {
+                                    var bsr = document.getElementById(name);
+
+                                    if ((button.btype != BUTTONTYPE.BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_GENERAL) &&
+                                        button.sr.length == 2)	// chameleon image?
+                                    {
+                                        if (sr.bm.length > 0)
+                                            drawButton(makeURL("images/"+img),makeURL("images/"+button.sr[x].bm),name,button.sr[x].mi_width, button.sr[x].mi_height, getAMXColor(button.sr[x].cf), getAMXColor(button.sr[x].cb));
+                                        else
+                                            drawArea(makeURL("images/"+img),name, button.sr[x].mi_width, button.sr[x].mi_height, getAMXColor(button.sr[x].cf), getAMXColor(button.sr[x].cb));
+                                    }
+                                    else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
+                                    {
+                                        if (button.sr[idx+1].bm.length > 0)
+                                        {
+                                            var lev = getBargraphLevel(pgKey.ID, button.bID);
+                                            var level = parseInt(100.0 / (button.rh - button.rl) * lev);
+                                            var dir = true;
+                    
+                                            if (button.dr == "horizontal")
+                                                dir = false;
+                    
+                                            drawBargraph(makeURL("images/"+img), makeURL("images/"+button.sr[idx+1].bm), name, level, button.sr[x].mi_width, button.sr[x].mi_height, getAMXColor(button.sr[idx+1].cf), getAMXColor(button.sr[idx+1].cb), dir, true, button);
+                                        }
+                                        else
+                                            drawArea(makeURL("images/"+img), name, button.sr[x].mi_width, button.sr[x].mi_height, getAMXColor(button.sr[x].cf), getAMXColor(button.sr[x].cb));
+                                    }
+                                }
+                                catch(e)
+                                {
+                                    errlog("doBMI: Button " + name + " not found!");
+                                }
+                            }
                         }
                     }
                 }
@@ -2376,33 +2418,289 @@ function doBMI(msg)
 }
 
 /*
+ * Set any/all button parameters by sending embedded codes and data.
+ */
+function doBMF(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var data = getField(msg, 2, ',');
+
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doBMF: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                        var len = data.length;
+                        var bPFlag = false;
+                        var content = "";
+
+                        for (var a = 0; a < len; a++)
+                        {
+                            if (data.charAt(a) == '%' && !bPFlag)       // start of command
+                            {
+                                bPFlag = true;
+                                continue;
+                            }
+                            else if (data.charAt(a) == '%' && bPFlag)   // % is the content
+                            {
+                                content += '%';
+                                bPFlag = false;
+                                continue;
+                            }
+                            else if (bPFlag && data.charAt(a) == 'R')   // Set rectangle.
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var str = "";
+
+                                if (next > a)
+                                    str = data.substring(a, next);
+                                else
+                                    str = data.substring(a);
+
+                                var parts = str.split(',');
+
+                                if (parts.length != 4)
+                                {
+                                    errlog('doBMF: Rectangle (%R) needs 4 coordinates!');
+                                    a = a + str.length;
+                                    continue;
+                                }
+
+                                a = a + str.length;
+                                str = "^BSP-"+bt[b].bi+','+parts[0]+','+parts[1]+','+parts[2]+','+parts[3];
+                                doBSP(str);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'B')   // Border style
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var str = "";
+
+                                if (next > a)
+                                {
+                                    str = data.substring(a, next);
+                                    a = next;
+                                }
+                                else
+                                {
+                                    str = data.substring(a);
+                                    a = data.length - 1;
+                                }
+
+                                doBRD("^BRD-"+bt[b].bi+','+btRange[j]+','+str);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'D' && data.charAt(a+1) == 'O')    // Draw order
+                            {
+                                errlog("doBMF: Command %DO is not implemented.");
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+
+                                if (next > a)
+                                    a = next;
+                                else
+                                    a = data.length - 1;
+                            }
+                            else if (bPFlag && data.charAt(a) == 'F')   // Set the font
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var fID = 0;
+
+                                if (next > a)
+                                    fID = parseInt(data.substring(a, next));
+                                else
+                                    fID = parseInt(data.substring(a));
+
+                                var str = "^FON-"+bt[b].bi+','+btRange[j]+','+fID;
+                                doFON(str);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'M' && data.charAt(a+1) == 'I')    // Set the mask image
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var str = "";
+
+                                if (next > a)
+                                {
+                                    str = data.substring(a, next);
+                                    a = next;
+                                }
+                                else
+                                {
+                                    str = data.substring(a);
+                                    a = data.length - 1;
+                                }
+
+                                doBMI("^BMI-"+bt[b].bi+','+btRange[j]+','+str);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'T')   // Set the text
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var str = "";
+
+                                if (next > a)
+                                {
+                                    str = data.substring(a, next);
+                                    a = next;
+                                }
+                                else
+                                {
+                                    str = data.substring(a);
+                                    a = data.length - 1;
+                                }
+
+                                doTXT("^TXT-"+bt[b].bi+','+btRange[j]+','+str);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'P')   // Set the picture filename
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var str = "";
+
+                                if (next > a)
+                                {
+                                    str = data.substring(a, next);
+                                    a = next;
+                                }
+                                else
+                                {
+                                    str = data.substring(a);
+                                    a = data.length - 1;
+                                }
+
+                                doBMP("^BMP-"+bt[b].bi+','+btRange[j]+','+str);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'I')   // Set the icon number
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var fID = 0;
+
+                                if (next > a)
+                                    fID = parseInt(data.substring(a, next));
+                                else
+                                    fID = parseInt(data.substring(a));
+
+                                doICO("^ICO-"+bt[b].bi+','+btRange[j]+','+fID);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'J' && data.charAt(a+1) == 'T')    // Alignment of text
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var str = "";
+
+                                if (next > a)
+                                {
+                                    str = data.substring(a, next);
+                                    a = next;
+                                }
+                                else
+                                {
+                                    str = data.substring(a);
+                                    a = data.length - 1;
+                                }
+
+                                doJST("^JST-"+bt[b].bi+","+btRange[j]+","+str);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'J' && data.charAt(a+1) == 'B')    // Alignment of bitmap/picture
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var str = "";
+
+                                if (next > a)
+                                {
+                                    str = data.substring(a, next);
+                                    a = next;
+                                }
+                                else
+                                {
+                                    str = data.substring(a);
+                                    a = data.length - 1;
+                                }
+
+                                doJSB("^JSB-"+bt[b].bi+","+btRange[j]+","+str);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'J' && data.charAt(a+1) == 'I')    // Alignment of icon
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var str = "";
+
+                                if (next > a)
+                                {
+                                    str = data.substring(a, next);
+                                    a = next;
+                                }
+                                else
+                                {
+                                    str = data.substring(a);
+                                    a = data.length - 1;
+                                }
+
+                                doJSI("^JSI-"+bt[b].bi+","+btRange[j]+","+str);
+                            }
+                            else if (bPFlag && data.charAt(a) == 'J')    // Alignment of text
+                            {
+                                bPFlag = false;
+                                var next = data.indexOf('%', a);
+                                var str = "";
+
+                                if (next > a)
+                                {
+                                    str = data.substring(a, next);
+                                    a = next;
+                                }
+                                else
+                                {
+                                    str = data.substring(a);
+                                    a = data.length - 1;
+                                }
+
+                                doJST("^JST-"+bt[b].bi+","+btRange[j]+","+str);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+/*
  * Assign a picture to those buttons with a defined addressrange.
  */
 function doBMP(msg)
 {
-    var bt;
-    var addr;
-    var bts;
-    var addrRange;
-    var btRange;
-    var img;
-    var bt;
-    var i;
-    var j;
-    var z;
-    var b;
-    var name;
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var img = getField(msg, 2, ',');
 
-    addr = getField(msg, 0, ',');
-    bts = getField(msg, 1, ',');
-    img = getField(msg, 2, ',');
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
 
-    addrRange = getRange(addr);
-    btRange = getRange(bts);
-
-    for (i = 0; i < addrRange.length; i++)
+    for (var i = 0; i < addrRange.length; i++)
     {
-        bt = findButtonPort(addrRange[i]);
+        var bt = findButtonPort(addrRange[i]);
 
         if (bt.length == 0)
         {
@@ -2410,15 +2708,15 @@ function doBMP(msg)
             continue;
         }
 
-        for (b = 0; b < bt.length; b++)
+        for (var b = 0; b < bt.length; b++)
         {
-            for (z = 1; z <= bt[b].instances; z++)
+            for (var z = 1; z <= bt[b].instances; z++)
             {
-                for (j = 0; j < btRange.length; j++)
+                for (var j = 0; j < btRange.length; j++)
                 {
                     if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
                     {
-                        name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
 
                         try
                         {
@@ -2435,32 +2733,86 @@ function doBMP(msg)
     }
 }
 /*
+ * Set the border of a button state/states.
+ */
+function doBRD(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var frame = getField(msg, 2, ',');
+
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doBRD: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        if (button.sr[j].bs != frame)
+                        {
+                            var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                            var button = getButton(bt[b].pnum, bt[b].bi);
+                            button.sr[j].bs = frame;
+                            var brd = getBorderStyle(sr.bs);
+
+                            try
+                            {
+                                var bsr = document.getElementById(name);
+
+                                if (brd !== -1)
+                                {
+                                    for (var x = 0; x < brd.length; x++)
+                                    {
+                                        switch(x)
+                                        {
+                                            case 0: bsr.style.borderStyle = brd[x]; break;
+                                            case 1: bsr.style.borderWidth = brd[x]; break;
+                                            case 2: bsr.style.borderRadius = brd[x]; break;
+                                        }
+                                    }
+                                }
+                            }
+                            catch(e)
+                            {
+                                errlog("doBRD: Button "+ name + " nicht gefunden!");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+/*
  * Set the button size and position.
  */
 function doBSP(msg)
 {
-    var bt;
-    var b;
-    var addr;
-    var addrRange;
-    var left;
-    var top;
-    var right;
-    var bottom;
-    var i;
-    var name;
+    var addr = getField(msg, 0, ',');
+    var left = getField(msg, 1, ',');
+    var top = getField(msg, 2, ',');
+    var right = getField(msg, 3, ',');
+    var bottom = getField(msg, 4, ',');
 
-    addr = getField(msg, 0, ',');
-    left = getField(msg, 1, ',');
-    top = getField(msg, 2, ',');
-    right = getField(msg, 3, ',');
-    bottom = getField(msg, 4, ',');
+    var addrRange = getRange(addr);
 
-    addrRange = getRange(addr);
-
-    for (i = 0; i < addrRange.length; i++)
+    for (var i = 0; i < addrRange.length; i++)
     {
-        bt = findButtonPort(addrRange[i]);
+        var bt = findButtonPort(addrRange[i]);
 
         if (bt.length == 0)
         {
@@ -2468,12 +2820,17 @@ function doBSP(msg)
             continue;
         }
 
-        for (b = 0; b < bt.length; b++)
+        for (var b = 0; b < bt.length; b++)
         {
-            name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+            var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
 
             try
             {
+                var button = getButton(bt[b].pnum, bt[b].bi);
+                button.lt = parts[0];
+                button.tp = parts[1];
+                button.wt = parts[2] - parts[0];
+                button.ht = parts[3] - parts[1];
                 document.getElementById(name).style.left = left;
                 document.getElementById(name).style.top = left;
                 document.getElementById(name).style.width = right - left;
@@ -2575,6 +2932,67 @@ function doENA(msg)
         {
             name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi;
             bt[b].enabled = val;
+        }
+    }
+}
+/*
+ * Set a font to a specific Font ID value for those buttons with a
+ * defined address range.
+ */
+function doFON(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var fID = getField(msg, 2, ',');
+
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doBMP: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        var button = getButton(bt[b].pnum, bt[b].bi);
+
+                        for (var a in button.sr)
+                        {
+                            var sr = button.sr[a];
+
+                            if (sr.number == btRange[j])
+                                sr.fi = fID;
+
+                            var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+
+                            try
+                            {
+                                var font = findFont(fID);
+                                document.getElementById(name).style.fontFamily = font.name;
+                                document.getElementById(name).style.fontSize = font.size+"pt";
+                                document.getElementById(name).style.fontStyle = getFontStyle(font.subfamilyName);
+                                document.getElementById(name).style.fontWeight = getFontWeight(font.subfamilyName);
+                            }
+                            catch(e)
+                            {
+                                errlog('doFON: Button '+name+' not found.');
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -2711,6 +3129,292 @@ async function doICO(msg)
                                 if (icoPos !== null)
                                     justifyImage(img, getButton(bt[b].pnum, bt[b].bi), CENTER_CODE.SC_ICON, z);
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+/*
+ * Set bitmap/picture alignment using a numeric keypad layout
+ * for those buttons with a defined address range.
+ */
+function doJSB(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var align = getField(msg, 2, ',');
+    var left, top;
+
+    if (align == 0)
+    {
+        left = getField(msg, 3, ',');
+        top = getField(msg, 4, ',');
+    }
+
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doJSB: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                        var button = findPageButton(bt[b].pnum, bt[b].bi);
+
+                        for (var x in button.sr)
+                        {
+                            if (button.sr[x].bID == btRange[j])
+                            {
+                                button.sr[x].jb = align;
+
+                                if (align == 0)
+                                {
+                                    button.sr[x].ix = left;
+                                    button.sr[x].iy = top;
+                                }
+
+                                break;
+                            }
+                        }
+
+                        try
+                        {
+                            var bsr = document.getElementById(name);
+
+                            switch (align)
+                            {
+                                case 0:
+                                    bsr.style.backgroundPositionX = left+'px';
+                                    bsr.style.backgroundPositionY = top+'px';
+                                break;
+        
+                                case 1: bsr.style.backgroundPosition = "left top"; break;
+                                case 2: bsr.style.backgroundPosition = "center top"; break;
+                                case 3: bsr.style.backgroundPosition = "right top"; break;
+                                case 4: bsr.style.backgroundPosition = "left center"; break;
+                                case 6: bsr.style.backgroundPosition = "right center"; break;
+                                case 7: bsr.style.backgroundPosition = "left bottom"; break;
+                                case 8: bsr.style.backgroundPosition = "center bottom"; break;
+                                case 9: bsr.style.backgroundPosition = "right bottom"; break;
+                                default:
+                                    bsr.style.backgroundPosition = "center center";
+                            }
+                        }
+                        catch (e)
+                        {
+                            errlog("doJSB: Button " + name + " not found!");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+/*
+ * Set icon alignment using a numeric keypad layout
+ * for those buttons with a defined address range.
+ */
+function doJSI(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var align = getField(msg, 2, ',');
+    var left, top;
+
+    if (align == 0)
+    {
+        left = getField(msg, 3, ',');
+        top = getField(msg, 4, ',');
+    }
+
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doJSI: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z + "_img";
+                        var button = findPageButton(bt[b].pnum, bt[b].bi);
+
+                        for (var x in button.sr)
+                        {
+                            if (button.sr[x].bID == btRange[j])
+                            {
+                                button.sr[x].ji = align;
+
+                                if (align == 0)
+                                {
+                                    button.sr[x].ix = left;
+                                    button.sr[x].iy = top;
+                                }
+
+                                break;
+                            }
+                        }
+
+                        try
+                        {
+                            var img = document.getElementById(name);
+                            justifyImage(img, button, CENTER_CODE.SC_ICON, btRange[j]);
+                        }
+                        catch (e)
+                        {
+                            errlog("doJSI: Button " + name + " not found!");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+/*
+ * Set text alignment using a numeric keypad layout
+ * for those buttons with a defined address range.
+ */
+function doJST(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var align = getField(msg, 2, ',');
+    var left, top;
+
+    if (align == 0)
+    {
+        left = getField(msg, 3, ',');
+        top = getField(msg, 4, ',');
+    }
+
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doJST: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z + "_font";
+                        var button = findPageButton(bt[b].pnum, bt[b].bi);
+                        var sr = button.sr[0];
+
+                        for (var x in button.sr)
+                        {
+                            if (button.sr[x].bID == btRange[j])
+                            {
+                                sr = button.sr[x];
+                                button.sr[x].jt = align;
+
+                                if (align == 0)
+                                {
+                                    button.sr[x].tx = left;
+                                    button.sr[x].ty = top;
+                                }
+
+                                break;
+                            }
+                        }
+
+                        try
+                        {
+                            var fnt = document.getElementById(name);
+
+                            switch(sr.jt)
+                            {
+                                case TEXT_ORIENTATION.ORI_ABSOLUT:
+                                    fnt.style.left = sr.tx+"px";
+                                    fnt.style.top = sr.ty+"px";
+                                    fnt.style.width = (bsr.style.width - (sr.tx + border))+'px';
+                                    fnt.style.height = (bsr.style.height - (sr.ty + border))+'px';
+                                break;
+                                case TEXT_ORIENTATION.ORI_TOP_LEFT:
+                                    fnt.style.left = "0px";
+                                    fnt.style.top = "0px";
+                                break;
+                                case TEXT_ORIENTATION.ORI_TOP_MIDDLE:
+                                    fnt.style.left = "50%";
+                                    fnt.style.transform = "translateX(-50%)";
+                                    fnt.style.top = "0px";
+                                break;
+                                case TEXT_ORIENTATION.ORI_TOP_RIGHT:
+                                    fnt.style.right = "0px";
+                                    fnt.style.top = "0px";
+                                break;
+                                case TEXT_ORIENTATION.ORI_CENTER_LEFT:
+                                    fnt.style.top = '50%';
+                                    fnt.style.left = "0px";
+                                    fnt.style.transform = "translate(0%, -50%)";
+                                break;
+                                case TEXT_ORIENTATION.ORI_CENTER_MIDDLE:
+                                    fnt.style.left = "50%";
+                                    fnt.style.top = '50%';
+                                    fnt.style.transform = "translate(-50%, -50%)"
+                                break;
+                                case TEXT_ORIENTATION.ORI_CENTER_RIGHT:
+                                    fnt.style.right = "0px";
+                                    fnt.style.top = '50%';
+                                    fnt.style.transform = "translateY(-50%)";
+                                break;
+                                case TEXT_ORIENTATION.ORI_BOTTOM_LEFT:
+                                    fnt.style.left = "0px";
+                                    fnt.style.bottom = "0px";
+                                break;
+                                case TEXT_ORIENTATION.ORI_BOTTOM_MIDDLE:
+                                fnt.style.left = "50%";
+                                fnt.style.transform = "translateX(-50%)";
+                                fnt.style.bottom = "0px";
+                                break;
+                                case TEXT_ORIENTATION.ORI_BOTTOM_RIGHT:
+                                    fnt.style.right = "0px";
+                                    fnt.style.bottom = "0px";
+                                break;
+                            }
+                        }
+                        catch (e)
+                        {
+                            errlog("doJST: Button " + name + " not found!");
                         }
                     }
                 }
