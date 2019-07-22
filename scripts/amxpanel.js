@@ -61,7 +61,7 @@ var cmdArray = {
         { "cmd": "PPOF-", "call": doPPF }, // Popup off
         { "cmd": "PPOG-", "call": unsupported },
         { "cmd": "PPON-", "call": doPPN }, // Popup on
-        { "cmd": "^ANI-", "call": unsupported },
+        { "cmd": "^ANI-", "call": doANI }, // Run a button animation        
         { "cmd": "^APF-", "call": doAPF }, // Add page flip action to button
         { "cmd": "^BAT-", "call": doBAT }, // Append non-unicode text.
         { "cmd": "^BAU-", "call": doBAU }, // Append unicode text
@@ -71,17 +71,17 @@ var cmdArray = {
         { "cmd": "^BDO-", "call": unsupported }, // Set the button draw order.
         { "cmd": "^BFB-", "call": doBFB }, // Set the feedback type of the button.
         { "cmd": "^BIM-", "call": unsupported }, // Set the input mask for the specified address.
-        { "cmd": "^BLN-", "call": unsupported }, // Set the number of lines removed equally from the top and bottom of a composite video signal.
+        { "cmd": "^BLN-", "call": unsupported }, // Set the number of lines removed equally from the top and bottom of a composite video signal. --> will never be implemented!
         { "cmd": "^BMC-", "call": unsupported }, // Button copy command.
         { "cmd": "^BMF-", "call": doBMF }, // Set any/all button parameters by sending embedded codes and data.
-        { "cmd": "^BMI-", "call": unsupported }, // Set the button mask image.
+        { "cmd": "^BMI-", "call": doBMI }, // Set the button mask image.
         { "cmd": "^BML-", "call": unsupported }, // Set the maximum length of the text area button.
         { "cmd": "^BMP-", "call": doBMP }, // Assign a picture to those buttons with a defined addressrange.
         { "cmd": "^BNC-", "call": unsupported },
         { "cmd": "^BNN-", "call": unsupported },
         { "cmd": "^BNT-", "call": unsupported },
-        { "cmd": "^BOP-", "call": unsupported },
-        { "cmd": "^BOR-", "call": unsupported },
+        { "cmd": "^BOP-", "call": doBOP }, // Set the button opacity.        
+        { "cmd": "^BOR-", "call": doBOR }, // Set a border to a specific border style.
         { "cmd": "^BOS-", "call": unsupported },
         { "cmd": "^BPP-", "call": unsupported },
         { "cmd": "^BRD-", "call": doBRD },
@@ -201,6 +201,17 @@ function rgb(red, green, blue)
 function rgba(red, green, blue, alpha)
 {
     return "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
+}
+
+function amxInt(num)
+{
+    if (typeof num == "string")
+    {
+        if (num.charAt(0) == '#')
+            return parseInt(num.substr(1), 16);
+    }
+
+    return parseInt(num);
 }
 
 function findFont(id)
@@ -1824,6 +1835,36 @@ function doCPG(msg)
         delete group[i];
 }
 /*
+ * Run a button animation (in 1/10 second).
+ */
+function doANI(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var stStart = getField(msg, 1, ',');
+    var stEnd = getField(msg, 2, ',');
+    var zeit = getField(msg, 3, ',');
+
+    var addrRange = getRange(addr);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButton(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog("doANI: Error button "+ addrRange[i] + " not found!");
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            var name = 'Page_' + bt[b].pnum + '_Button_' + bt[b].bi + '_';
+            var button = findPageButton(bt[b].pnum, bt[b].bi);
+            drawButtonMultistateAni(button, name, 1, stStart, stEnd, zeit);
+        }
+    }
+}
+/*
  * Add page flip action to a button if it does not already exist.
  */
 function doAPF(msg)
@@ -2727,6 +2768,121 @@ function doBMP(msg)
                             errlog("doBMP: No element of name " + name + " found!");
                         }
                     }
+                }
+            }
+        }
+    }
+}
+/*
+ * Set the button opacity.
+ */
+function doBOP(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var oo = getField(msg, 2, ',');
+    var opacity = amxInt(oo);
+
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doBOP: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        var idx = parseInt(z) - 1;
+                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                        var button = findPageButton(bt[b].pnum, bt[b].bi);
+
+                        try
+                        {
+                            button.sr[idx].oo = opacity;
+                            document.getElementById(name).style.opacity = 1.0 / 255.0 * opacity;
+                        }
+                        catch (e)
+                        {
+                            errlog("doBOP: No element of name " + name + " found!");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+/*
+ * Set a border to a specific border style associated with a border
+ * value for those buttons with a defined address range.
+ */
+function doBOR(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bname = getField(msg, 1, ',');
+    var border = -1;
+
+    if (bname.charAt(0) >= '0' && bname.charAt(0) <= '9')
+        border = getBorderStyleNum(bname);
+    
+    if (border === -1)
+        border = getBorderStyle(bname);
+
+    if (border === -1)
+    {
+        errlog("doBOR: Invalid or unsupported border " + bname + "!");
+        return;
+    }
+
+    var addrRange = getRange(addr);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doBOR: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            var button = findPageButton(bt[b].pnum, bt[b].bi);
+
+            for (var j = 0; j < button.sr.length; j++)
+            {
+                var sr = button.sr[j];
+                var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + sr.number;
+                
+                try
+                {
+                    var style = document.getElementById(name).style;
+
+                    for (var x = 0; x < border.length; x++)
+                    {
+                        switch(x)
+                        {
+                            case 0: style.borderStyle = border[x]; break;
+                            case 1: style.borderWidth = border[x]; break;
+                            case 2: style.borderRadius = border[x]; break;
+                        }
+                    }
+                }
+                catch(e)
+                {
+                    errlog("doBOR: Button " + name + " nicht gefunden!");
                 }
             }
         }

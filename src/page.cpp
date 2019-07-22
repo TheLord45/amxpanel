@@ -430,6 +430,8 @@ bool amx::Page::parsePage()
 					page.buttons.back().sr.back().et = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ww") == 0 && reader.has_value())
 					page.buttons.back().sr.back().ww = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("oo") == 0 && reader.has_value())
+					page.buttons.back().sr.back().oo = atoi(reader.get_value().c_str());
 			}
 
 			if (!inButton && name.caseCompare("sr") == 0 && reader.has_attributes())
@@ -635,7 +637,7 @@ void Page::serializeToFile()
 			pgFile << "\t\t\t \"ji\":" << page.buttons[i].sr[j].ji << ",\"jb\":" << page.buttons[i].sr[j].jb << ",\"ix\":" << page.buttons[i].sr[j].ix << "," << std::endl;
 			pgFile << "\t\t\t \"iy\":" << page.buttons[i].sr[j].iy << ",\"fi\":" << page.buttons[i].sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.buttons[i].sr[j].te) << "\"," << std::endl;
 			pgFile << "\t\t\t \"jt\":" << page.buttons[i].sr[j].jt << ",\"tx\":" << page.buttons[i].sr[j].tx << ",\"ty\":" << page.buttons[i].sr[j].ty << "," << std::endl;
-			pgFile << "\t\t\t \"ww\":" << page.buttons[i].sr[j].ww << ",\"et\":" << page.buttons[i].sr[j].et << "}";
+			pgFile << "\t\t\t \"ww\":" << page.buttons[i].sr[j].ww << ",\"et\":" << page.buttons[i].sr[j].et << ",\"oo\":" << page.buttons[i].sr[j].oo << "}";
 		}
 
 		pgFile << "]\n\t\t}";
@@ -657,7 +659,7 @@ void Page::serializeToFile()
 		pgFile << "\t\t \"ji\":" << page.sr[j].ji << ",\"jb\":" << page.sr[j].jb << ",\"ix\":" << page.sr[j].ix << "," << std::endl;
 		pgFile << "\t\t \"iy\":" << page.sr[j].iy << ",\"fi\":" << page.sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.sr[j].te) << "\"," << std::endl;
 		pgFile << "\t\t \"jt\":" << page.sr[j].jt << ",\"tx\":" << page.sr[j].tx << ",\"ty\":" << page.sr[j].ty << ",";
-		pgFile << "\"ww\":" << page.sr[j].ww << ",\"et\":" << page.sr[j].et << "}";
+		pgFile << "\"ww\":" << page.sr[j].ww << ",\"et\":" << page.sr[j].et << ",\"oo\":" << page.sr[j].oo << "}";
 	}
 
 	pgFile << "]\n\t};" << std::endl << std::endl;

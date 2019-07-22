@@ -103,39 +103,41 @@ const SYSTEMS = Object.freeze({
 });
 
 var sysBorders = { "borders":[
-	{ "name": "Single Line", "border_style": "solid", "border_width": "1px", "border_radius": "" },
-	{ "name": "Double Line", "border_style": "solid", "border_width": "2px", "border_radius": "" },
-	{ "name": "Quad Line", "border_style": "solid", "border_width": "4px", "border_radius": "" },
-	{ "name": "Picture Frame", "border_style": "double", "border_width": "", "border_radius": "" },
-	{ "name": "Circle 15", "border_style": "solid", "border_width": "2px", "border_radius": "15px" },
-	{ "name": "Circle 25", "border_style": "solid", "border_width": "2px", "border_radius": "25px" },
-	{ "name": "Circle 35", "border_style": "solid", "border_width": "2px", "border_radius": "35px" },
-	{ "name": "Circle 45", "border_style": "solid", "border_width": "2px", "border_radius": "45px" },
-	{ "name": "Circle 55", "border_style": "solid", "border_width": "2px", "border_radius": "55px" },
-	{ "name": "Circle 65", "border_style": "solid", "border_width": "2px", "border_radius": "65px" },
-	{ "name": "Circle 75", "border_style": "solid", "border_width": "2px", "border_radius": "75px" },
-	{ "name": "Circle 85", "border_style": "solid", "border_width": "2px", "border_radius": "85px" },
-	{ "name": "Circle 95", "border_style": "solid", "border_width": "2px", "border_radius": "95px" },
-	{ "name": "Circle 105", "border_style": "solid", "border_width": "2px", "border_radius": "105px" },
-	{ "name": "Circle 115", "border_style": "solid", "border_width": "2px", "border_radius": "115px" },
-	{ "name": "Circle 125", "border_style": "solid", "border_width": "2px", "border_radius": "125px" },
-	{ "name": "Circle 135", "border_style": "solid", "border_width": "2px", "border_radius": "135px" },
-	{ "name": "Circle 145", "border_style": "solid", "border_width": "2px", "border_radius": "145px" },
-	{ "name": "Circle 155", "border_style": "solid", "border_width": "2px", "border_radius": "155px" },
-	{ "name": "Circle 165", "border_style": "solid", "border_width": "2px", "border_radius": "165px" },
-	{ "name": "Circle 175", "border_style": "solid", "border_width": "2px", "border_radius": "175px" },
-	{ "name": "AMX Elite Inset _L", "border_style": "groove", "border_width": "10px", "border_radius": "" },
-	{ "name": "AMX Elite Raised _L", "border_style": "ridge", "border_width": "10px", "border_radius": "" },
-	{ "name": "AMX Elite Inset _M", "border_style": "groove", "border_width": "5px", "border_radius": "" },
-	{ "name": "AMX Elite Raised _M", "border_style": "ridge", "border_width": "5px", "border_radius": "" },
-	{ "name": "AMX Elite Inset _S", "border_style": "groove", "border_width": "2px", "border_radius": "" },
-	{ "name": "AMX Elite Raised _S", "border_style": "ridge", "border_width": "2px", "border_radius": "" },
-	{ "name": "Bevel Inset _L", "border_style": "inset", "border_width": "10px", "border_radius": "" },
-	{ "name": "Bevel Raised _L", "border_style": "outset", "border_width": "10px", "border_radius": "" },
-	{ "name": "Bevel Inset _M", "border_style": "inset", "border_width": "5px", "border_radius": "" },
-	{ "name": "Bevel Raised _M", "border_style": "outset", "border_width": "5px", "border_radius": "" },
-	{ "name": "Bevel Inset _S", "border_style": "inset", "border_width": "2px", "border_radius": "" },
-	{ "name": "Bevel Raised _S", "border_style": "outset", "border_width": "2px", "border_radius": "" }
+	{ "name": "Single Line", "number": 0, "border_style": "solid", "border_width": "1px", "border_radius": "" },
+	{ "name": "Double Line", "number": 0, "border_style": "solid", "border_width": "2px", "border_radius": "" },
+	{ "name": "Quad Line", "number": 0, "border_style": "solid", "border_width": "4px", "border_radius": "" },
+	{ "name": "Picture Frame", "number": 0, "border_style": "double", "border_width": "", "border_radius": "" },
+	{ "name": "Circle 15", "number": 8, "border_style": "solid", "border_width": "2px", "border_radius": "15px" },
+	{ "name": "Circle 25", "number": 9, "border_style": "solid", "border_width": "2px", "border_radius": "25px" },
+	{ "name": "Circle 35", "number": 10, "border_style": "solid", "border_width": "2px", "border_radius": "35px" },
+	{ "name": "Circle 45", "number": 11, "border_style": "solid", "border_width": "2px", "border_radius": "45px" },
+	{ "name": "Circle 55", "number": 12, "border_style": "solid", "border_width": "2px", "border_radius": "55px" },
+	{ "name": "Circle 65", "number": 13, "border_style": "solid", "border_width": "2px", "border_radius": "65px" },
+	{ "name": "Circle 75", "number": 14, "border_style": "solid", "border_width": "2px", "border_radius": "75px" },
+	{ "name": "Circle 85", "number": 15, "border_style": "solid", "border_width": "2px", "border_radius": "85px" },
+	{ "name": "Circle 95", "number": 16, "border_style": "solid", "border_width": "2px", "border_radius": "95px" },
+	{ "name": "Circle 105", "number": 17, "border_style": "solid", "border_width": "2px", "border_radius": "105px" },
+	{ "name": "Circle 115", "number": 18, "border_style": "solid", "border_width": "2px", "border_radius": "115px" },
+	{ "name": "Circle 125", "number": 19, "border_style": "solid", "border_width": "2px", "border_radius": "125px" },
+	{ "name": "Circle 135", "number": 20, "border_style": "solid", "border_width": "2px", "border_radius": "135px" },
+	{ "name": "Circle 145", "number": 21, "border_style": "solid", "border_width": "2px", "border_radius": "145px" },
+	{ "name": "Circle 155", "number": 22, "border_style": "solid", "border_width": "2px", "border_radius": "155px" },
+	{ "name": "Circle 165", "number": 23, "border_style": "solid", "border_width": "2px", "border_radius": "165px" },
+	{ "name": "Circle 175", "number": 24, "border_style": "solid", "border_width": "2px", "border_radius": "175px" },
+	{ "name": "Circle 185", "number": 25, "border_style": "solid", "border_width": "2px", "border_radius": "185px" },
+	{ "name": "Circle 195", "number": 26, "border_style": "solid", "border_width": "2px", "border_radius": "195px" },
+	{ "name": "AMX Elite Inset _L", "number": 0, "border_style": "groove", "border_width": "10px", "border_radius": "" },
+	{ "name": "AMX Elite Raised _L", "number": 0, "border_style": "ridge", "border_width": "10px", "border_radius": "" },
+	{ "name": "AMX Elite Inset _M", "number": 0, "border_style": "groove", "border_width": "5px", "border_radius": "" },
+	{ "name": "AMX Elite Raised _M", "number": 0, "border_style": "ridge", "border_width": "5px", "border_radius": "" },
+	{ "name": "AMX Elite Inset _S", "number": 0, "border_style": "groove", "border_width": "2px", "border_radius": "" },
+	{ "name": "AMX Elite Raised _S", "number": 0, "border_style": "ridge", "border_width": "2px", "border_radius": "" },
+	{ "name": "Bevel Inset _L", "number": 0, "border_style": "inset", "border_width": "10px", "border_radius": "" },
+	{ "name": "Bevel Raised _L", "number": 0, "border_style": "outset", "border_width": "10px", "border_radius": "" },
+	{ "name": "Bevel Inset _M", "number": 0, "border_style": "inset", "border_width": "5px", "border_radius": "" },
+	{ "name": "Bevel Raised _M", "number": 0, "border_style": "outset", "border_width": "5px", "border_radius": "" },
+	{ "name": "Bevel Inset _S", "number": 0, "border_style": "inset", "border_width": "2px", "border_radius": "" },
+	{ "name": "Bevel Raised _S", "number": 0, "border_style": "outset", "border_width": "2px", "border_radius": "" }
 ]};
 
 var sysReserved = { "dttm":[
@@ -205,6 +207,31 @@ function getBorderStyle(name)
 		var brd = sysBorders.borders[i];
 
 		if (brd.name == name)
+		{
+			var ret = [];
+			ret.push(brd.border_style);
+
+			if (brd.border_width.length > 0)
+				ret.push(brd.border_width);
+
+			if (brd.border_radius.length > 0)
+				ret.push(brd.border_radius);
+
+			return ret;
+		}
+	}
+
+	return -1;
+}
+function getBorderStyleNum(num)
+{
+	var i;
+
+	for (i in sysBorders.borders)
+	{
+		var brd = sysBorders.borders[i];
+
+		if (brd.number == num)
 		{
 			var ret = [];
 			ret.push(brd.border_style);
@@ -641,6 +668,7 @@ function doDraw(pgKey, pageID, what)
 	for (i in pgKey.sr)        // Page background and color
 	{
 		var sr = pgKey.sr[i];
+		page.style.opacity = 1.0 / 255.0 * sr.oo;
 
 		if (sr.cf.length > 0 && sr.mi.length == 0)
 			page.style.backgroundColor = getWebColor(sr.cf);
@@ -884,6 +912,7 @@ function doDraw(pgKey, pageID, what)
 				bsr.style.top = "0px";
 				bsr.style.width = bt.style.width;
 				bsr.style.height = bt.style.height;
+				bsr.style.opacity = 1.0 / 255.0 * sr.oo;
 				bt.appendChild(bsr);
 				var nm;
 

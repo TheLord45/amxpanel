@@ -260,6 +260,7 @@ namespace amx
 		int ty;                 // Text Y position
 		int ww;                 // line break when 1
 		int et;
+		int oo;					// Over all opacity
 
 		void clear()
 		{
@@ -286,6 +287,7 @@ namespace amx
 			ty = 0;
 			ww = 0;
 			et = 0;
+			oo = 0x00ff;		// by default the button is fully opaque.
 		}
 	}SR_T;
 

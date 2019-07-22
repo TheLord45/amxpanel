@@ -1029,7 +1029,7 @@ async function drawBargraphMultistate(button, name, level)
 **/
 	return true;
 }
-async function drawButtonMultistateAni(button, name)
+async function drawButtonMultistateAni(button, name, run = 0, start = 0, end = 0, zeit = 0)
 {
 	if (button === null || typeof button == "undefined" || name === null || typeof name == "undefined")
 	{
@@ -1037,7 +1037,7 @@ async function drawButtonMultistateAni(button, name)
 		return;
 	}
 
-	if (button.ar != 1)
+	if (button.ar != 1 && run == 0)
 	{
 		errlog("drawButtonMultistateAni: "+name+" is not an automatic animated button!");
 		return;
@@ -1045,8 +1045,22 @@ async function drawButtonMultistateAni(button, name)
 
 	var state = 1;
 	var idx = 0;
+	var runlen = button.nu * 10;
+	var ticks = 0;
 
-	var handle = setInterval(function() {
+	if (button.ar == 0 && run > 0 && start > 0)
+	{
+		state = start;
+		idx = state - 1;
+
+		if (button.nu > 0)
+			runlen = button.nu * 10;
+		else
+			runlen = 10;
+	}
+
+	var handle = setInterval(function() 
+	{
 		var sr = button.sr[idx];
 
 		if (sr.mi.length > 0 && sr.bm.length > 0)		// Chameleon?
@@ -1144,12 +1158,31 @@ async function drawButtonMultistateAni(button, name)
 		state++;
 		idx++;
 
-		if (state > button.stateCount)
+		if (button.ar == 0 && run > 0)
+		{
+			if (state > end || state > button.stateCount)
+			{
+				if (start > 0)
+					state = start;
+				else
+					state = 1;
+
+				idx = state - 1;
+			}
+		}
+		else if (state > button.stateCount)
 		{
 			state = 1;
 			idx = 0;
 		}
-	}, button.nu * 10);
+	}, runlen);
+
+	if (button.ar == 0 && run > 0)
+	{
+		setTimeout(function() {
+			clearInterval(handle);
+		}, zeit * 100);
+	}
 }
 /**
  * this function takes 2 URIs. One for a special mask where the green and/or
