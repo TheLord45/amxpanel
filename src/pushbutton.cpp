@@ -36,8 +36,6 @@ PushButton::PushButton(const BUTTON_T& bt, const std::vector<PDATA_T>& pal)
 {
 	sysl->TRACE(Syslog::ENTRY, std::string("PushButton::PushButton(const BUTTON_T& bt, const std::vector<PDATA_T>& pal)"));
 	sysl->TRACE(String("PushButton::PushButton: Button: ")+bt.na+", ID: "+bt.bi);
-	onOff = false;
-	state = 0;
 	fontClass = 0;
 	iconClass = 0;
 
@@ -54,13 +52,7 @@ PushButton::~PushButton()
 {
 	sysl->TRACE(Syslog::EXIT, std::string("PushButton::PushButton(...)"));
 }
-/**
-void PushButton::setState(size_t s)
-{
-	if (s > 0 && s <= button.sr.size() && (button.type == MULTISTATE_GENERAL || button.type == MULTISTATE_BARGRAPH))
-		state = (int)(s - 1);
-}
-**/
+
 String PushButton::getStyle()
 {
 	sysl->TRACE(Syslog::MESSAGE, std::string("PushButton::getStyle()"));
@@ -407,20 +399,7 @@ String PushButton::getWebCode()
 
 	return code;
 }
-/**
-int amx::PushButton::findPage(const strings::String& name)
-{
-	sysl->TRACE(String("PushButton::findPage(const strings::String& name)"));
 
-	for (size_t i = 0; i < pageList.size(); i++)
-	{
-		if (pageList[i].name.compare(name) == 0)
-			return pageList[i].pageID;
-	}
-
-	return 0;
-}
-**/
 String PushButton::getScriptCode()
 {
 	sysl->TRACE(String("PushButton::getScriptCode()"));
@@ -716,122 +695,3 @@ bool PushButton::getImageDimensions(const String fname, int* width, int* height)
 	gdImageDestroy(im);
 	return true;
 }
-/**
-String PushButton::createChameleonImage(const String bm1, const String bm2, unsigned long fill, unsigned long border)
-{
-	sysl->TRACE(String("PushButton::createChameleonImage(const String bm1, const String bm2)"));
-
-	if (bm1.empty() || bm2.empty())
-		return "";
-
-	gdImagePtr im1 = gdImageCreateFromFile(bm1.data());
-
-	if (im1 == 0)
-	{
-		sysl->TRACE(String("PushButton::createChameleonImage: Error opening image ")+bm1);
-		return "";
-	}
-
-	gdImagePtr im2 = gdImageCreateFromFile(bm2.data());
-
-	if (im2 == 0)
-	{
-		sysl->errlog(String("PushButton::createChameleonImage: Error opening image ")+bm2);
-		gdImageDestroy(im1);
-		return "";
-	}
-
-	int width = gdImageSX(im1);
-    int height = gdImageSY(im1);
-
-	gdImagePtr imNew = gdImageCreateTrueColor(width, height);
-
-	if (imNew == 0)
-	{
-		sysl->errlog(String("PushButton::createChameleonImage: Error creating a true color image!"));
-		gdImageDestroy(im1);
-		gdImageDestroy(im2);
-		return "";
-	}
-
-	int pixNew = 0, pix1 = 0, pix2 = 0;
-	gdImageAlphaBlending(imNew, gdEffectOverlay);
-
-	for (int y = 0; y < height; y++)
-	{
-		for (int x = 0; x < width; x++)
-		{
-			pix1 = gdImageGetTrueColorPixel(im1, x, y);
-			pix2 = gdImageGetTrueColorPixel(im2, x, y);
-			int base = getBaseColor(pix1, pix2, webColToGd(fill), webColToGd(border));
-			int ai = gdTrueColorGetAlpha(base);
-
-			if (ai == 127)
-				pixNew = pix2;
-			else
-				pixNew = gdAlphaBlend(base, pix2);
-
-			gdImageAlphaBlending(imNew, gdEffectReplace);	// switch to overwrite
-			gdImageSetPixel(imNew, x, y, pixNew);			// set pixel
-			gdImageAlphaBlending(imNew, gdEffectOverlay);	// switch back to overlay
-		}
-	}
-
-	gdImageDestroy(im1);
-	gdImageDestroy(im2);
-	gdImageSaveAlpha(imNew, 1);
-	int rnd = rand();
-	String fname = String("chameleon/ChamImage_")+rnd+".png";
-	String path = Configuration->getHTTProot()+"/"+fname;
-
-	if (gdImageFile(imNew, path.data()) == GD_FALSE)
-	{
-		sysl->errlog(String("PushButton::createChameleonImage: Error writing an image to file ")+path);
-		gdImageDestroy(imNew);
-		return "";
-	}
-
-	gdImageDestroy(imNew);
-	return fname;
-}
-**/
-/*
- * Die Maske unter pix1 definiert über den roten und/oder grünen Farbkanal,
- * welche Farbe verwendet wird. Ist der rote Farbkanal gesetzt, wird die
- * Farbe unter "fill" zurückgegeben. Ist der grüne Farbkanal gesetzt, wird die
- * Farbe unter "border" zurückgegeben. Der blaue Farbkanal wird nicht
- * verwendet.
- * Ist der Alpha-Kanal auf 0x7f (127) gesetzt und sowohl der rote als auch der
- * grüne Farbkanal gleich 0, dann ist das Pixel nicht sichtbar.
- */
-/**
-int PushButton::getBaseColor(int pix1, int pix2, int fill, int border)
-{
-	int alpha = gdTrueColorGetAlpha(pix1);
-	int red = gdTrueColorGetRed(pix1);
-	int green = gdTrueColorGetGreen(pix1);
-
-	if (alpha == 127)
-		return pix2;
-
-	if (red && green)
-		return gdAlphaBlend(fill, border);
-
-	if (red)
-		return fill;
-
-	if (green)
-		return border;
-
-	return 0x7f000000;
-}
-
-int PushButton::webColToGd(unsigned long col)
-{
-	int r1 = (col & 0xff000000) >> 24;
-	int g1 = (col & 0x00ff0000) >> 16;
-	int b1 = (col & 0x0000ff00) >> 8;
-	int a1 = 0x007f - ((col & 0x000000ff) / 2);
-	return gdTrueColorAlpha(r1, g1, b1, a1);
-}
-**/

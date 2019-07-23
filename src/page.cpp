@@ -317,7 +317,7 @@ bool amx::Page::parsePage()
 					// Known commands:
 					// sShow      show popup
 					// sHide      hide popup
-					// scGroup    hide Group?
+					// scGroup    hide Group
 				}
 			}
 
@@ -659,7 +659,20 @@ void Page::serializeToFile()
 		pgFile << "\t\t \"ji\":" << page.sr[j].ji << ",\"jb\":" << page.sr[j].jb << ",\"ix\":" << page.sr[j].ix << "," << std::endl;
 		pgFile << "\t\t \"iy\":" << page.sr[j].iy << ",\"fi\":" << page.sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.sr[j].te) << "\"," << std::endl;
 		pgFile << "\t\t \"jt\":" << page.sr[j].jt << ",\"tx\":" << page.sr[j].tx << ",\"ty\":" << page.sr[j].ty << ",";
-		pgFile << "\"ww\":" << page.sr[j].ww << ",\"et\":" << page.sr[j].et << ",\"oo\":" << page.sr[j].oo << "}";
+		pgFile << "\"ww\":" << page.sr[j].ww << ",\"et\":" << page.sr[j].et;
+		/*
+		 * We've to make sure that pages never have an opaque value other
+		 * than 255, because all popups depend on the page and will have the
+		 * same opaque value as the page (inherite). This is a limitation
+		 * of HTML. The opaque value of the parent is always the base for
+		 * the opaque value of the childs.
+		 */
+		if (page.type != 1)
+			pgFile << ",\"oo\":" << page.sr[j].oo;	// Only popups can have overall opacity != 255
+		else
+			pgFile << ",\"oo\":255";
+
+		pgFile << "}";
 	}
 
 	pgFile << "]\n\t};" << std::endl << std::endl;
@@ -732,19 +745,6 @@ void amx::Page::generateButtons()
 	}
 
 	buttonsDone = true;
-}
-
-int amx::Page::findPage (const String& name)
-{
-	sysl->TRACE(String("Page::findPage (const String& name)"));
-
-	for (size_t i = 0; i < pgList.size(); i++)
-	{
-		if (pgList[i].name.compare(name) == 0)
-			return pgList[i].pageID;
-	}
-
-	return 0;
 }
 
 String& amx::Page::getStyleCode()
@@ -918,26 +918,6 @@ void amx::Page::clear()
 	page.type = PNONE;
 	page.width = 0;
 	status = false;
-}
-
-String amx::Page::isoToUTF(const String& str)
-{
-	String strOut;
-
-	for (size_t i = 0; i < str.length(); i++)
-	{
-		uint8_t ch = str.at(i);
-
-		if (ch < 0x80)
-			strOut.push_back(ch);
-		else
-		{
-			strOut.push_back(0xc0 | ch >> 6);
-			strOut.push_back(0x80 | (ch & 0x3f));
-		}
-	}
-
-	return strOut;
 }
 
 TEXT_ORIENTATION amx::Page::iToTo(int t)

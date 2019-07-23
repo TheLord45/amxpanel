@@ -49,10 +49,7 @@ extern Syslog *sysl;
 TouchPanel::TouchPanel()
 {
 	sysl->TRACE(Syslog::ENTRY, String("TouchPanel::TouchPanel()"));
-	openPage = 0;
-//	registrated = false;
 	busy = false;
-	webConnected = false;
 	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1, placeholders::_2));
 	regCallbackStop(bind(&TouchPanel::stopClient, this));
 	regCallbackConnected(bind(&TouchPanel::setWebConnect, this, placeholders::_1, placeholders::_2));
@@ -274,13 +271,9 @@ bool TouchPanel::isRegistered(String& regID)
 	for (size_t i = 0; i < registration.size(); i++)
 	{
 		if (registration[i].regID.compare(regID) == 0 && registration[i].status)
-		{
-//			sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is registered.").arg(regID));
 			return true;
-		}
 	}
 
-//	sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is NOT registered.").arg(regID));
 	return false;
 }
 
@@ -294,10 +287,7 @@ bool TouchPanel::isRegistered(int channel)
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->first == channel && itr->second.status)
-		{
-//			sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is registered.").arg(channel));
 			return true;
-		}
 
 		i++;
 
@@ -305,7 +295,6 @@ bool TouchPanel::isRegistered(int channel)
 			break;
 	}
 
-//	sysl->DebugMsg(String("TouchPanel::isRegistered: %1 is NOT registered.").arg(channel));
 	return false;
 }
 
@@ -500,7 +489,7 @@ bool TouchPanel::send(int id, String& msg)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse ÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -986,14 +975,6 @@ bool TouchPanel::parsePages()
 	cssFile << "* {\n\tbox-sizing: border-box;\n}\n";
 	// Font faces
 	cssFile << getFontList()->getFontStyles();
-	// The styles
-	// Write the main pages
-//	for (size_t i = 0; i < stPages.size(); i++)
-//		cssFile << getPageStyle(stPages[i].ID);
-	// write the styles of all popups
-//	for (size_t i = 0; i < stPopups.size(); i++)
-//		cssFile << getPageStyle(stPopups[i].ID);
-
 	cssFile.close();
 
 	try
@@ -1093,19 +1074,19 @@ bool TouchPanel::parsePages()
 	pgFile << "<link rel=\"manifest\" href=\"manifest.json\">" << std::endl;
 	pgFile << "<link rel=\"icon\" sizes=\"256x256\" href=\"images/icon.png\">" << std::endl;
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">" << std::endl;
-	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"scripts/keyboard/css/index.css\">" << std::endl;
+//	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"scripts/keyboard/css/index.css\">" << std::endl;
 	// Scripts
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/sw.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/imprint.min.js\"></script>" << std::endl;
+//	pgFile << "<script type=\"text/javascript\" src=\"scripts/imprint.min.js\"></script>" << std::endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/store.modern.min.js\"></script>" << std::endl;
-	pgFile << "<script>\n";
-	pgFile << "\"use strict\";\n";
-	pgFile << "var fingerprint = \"\";\n";
-	pgFile << "var pageName = \"\";\n";
-	pgFile << "var wsocket = null;\n";
+	pgFile << "<script>" << std::endl;
+	pgFile << "\"use strict\";" << std::endl;
+//	pgFile << "var fingerprint = \"\";" << std::endl;
+	pgFile << "var pageName = \"\";" << std::endl;
+	pgFile << "var wsocket = null;" << std::endl;
 	pgFile << "var ws_online = 0;		// 0 = offline, 1 = online, 2 = connecting" << std::endl;
 	pgFile << "var wsStatus = 0;" << std::endl << std::endl;
-	pgFile << "var browserTests = [\n";
+	pgFile << "var browserTests = [" << std::endl;
 	pgFile << "\t\"audio\",\n\t\"availableScreenResolution\",\n\t\"canvas\",\n";
 	pgFile << "\t\"colorDepth\",\n\t\"cookies\",\n\t\"cpuClass\",\n\t\"deviceDpi\",\n";
 	pgFile << "\t\"doNotTrack\",\n\t\"indexedDb\",\n\t\"installedFonts\",\n";
@@ -1380,11 +1361,11 @@ bool TouchPanel::parsePages()
 	pgFile << "\t\t\tws_online = 0;\t\t// offline\n\t\t\tregStatus = false;\n\t\t\tsetOnlineStatus(0);\n\t\t}\n\t}\n\tcatch (exception)\n";
 	pgFile << "\t{\n\t\tsetOnlineStatus(0);\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
 	// Create a fingerprint
-	pgFile << "function makeFingerprint()\n{\n";
+/*	pgFile << "function makeFingerprint()\n{\n";
 	pgFile << "\tconsole.time('getImprint');\n";
 	pgFile << "\t\timprint.test(browserTests).then(function(result) {\n";
 	pgFile << "\t\t\tconsole.timeEnd('getImprint');\n\t\t\tfingerprint = result;\n";
-	pgFile << "\t\t\tgetRegistrationID();\n\t});\n}\n\n";
+	pgFile << "\t\t\tgetRegistrationID();\n\t});\n}\n\n"; */
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
@@ -1413,7 +1394,8 @@ bool TouchPanel::parsePages()
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
-	pgFile << "<body onload=\"makeFingerprint(); main(); connect(); onlineStatus();\">" << std::endl;
+//	pgFile << "<body onload=\"makeFingerprint(); main(); connect(); onlineStatus();\">" << std::endl;
+	pgFile << "<body onload=\"main(); connect(); onlineStatus();\">" << std::endl;
 	pgFile << "   <div id=\"main\"></div>" << std::endl;
 	pgFile << "</body>\n</html>\n";
 	pgFile.close();
@@ -1537,36 +1519,6 @@ void TouchPanel::writePopups (fstream& pgFile)
 	pgFile << "\n\t]};\n";
 }
 
-void TouchPanel::writeAllPopups (fstream& pgFile)
-{
-	sysl->TRACE(std::string("TouchPanel::writeAllPopups (fstream& pgFile)"));
-
-	for (size_t i = 0; i < stPopups.size(); i++)
-		pgFile << stPopups[i].webcode;
-}
-
-void TouchPanel::writeStyles(std::fstream& pgFile)
-{
-	sysl->TRACE(String("TouchPanel::writeStyles(std::fstream& pgFile)"));
-	vector<String> pgs = getPageFileNames();
-
-	for (size_t i = 0; i < pgs.size(); i++)
-	{
-		Page pg(pgs[i]);
-		pg.setPalette(getPalettes());
-		pg.setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
-		pg.setFontClass(getFontList());
-
-		if (!pg.isOk())
-		{
-			sysl->warnlog(String("TouchPanel::writeStyles: Page ")+pg.getPageName()+" had an error! No styles will be written.");
-			continue;
-		}
-
-		pgFile << pg.getStyleCode();
-	}
-}
-
 void TouchPanel::writeBtArray(fstream& pgFile)
 {
 	sysl->TRACE(std::string("TouchPanel::writeBtArray(fstream& pgFile)"));
@@ -1624,11 +1576,6 @@ bool amx::TouchPanel::isParsed()
 	}
 
 	return false;
-}
-
-uint64_t TouchPanel::getMS()
-{
-	return std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
 void TouchPanel::setWebConnect(bool s, long pan)

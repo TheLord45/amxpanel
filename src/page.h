@@ -59,13 +59,11 @@ namespace amx
 			void setPageList(const std::vector<PAGE_T>& p) { pgList = p; }
 			void setProject(PROJECT_T *prj) { Project = prj; }
 
-			int findPage(const strings::String& name);
 			void serializeToFile();
 
 		private:
 			void clear();
 			void generateButtons();
-			strings::String isoToUTF(const strings::String& str);
 			TEXT_ORIENTATION iToTo(int t);
 
 			PAGE_T page;

@@ -449,14 +449,14 @@ function activeTouch(event, name, object)
 	if (objs === null)
 		return;
 
-	debug("activeTouch: Number objects: "+objs.length);
+//	debug("activeTouch: Number objects: "+objs.length);
 
 	for (i in objs)
 	{
 		if (objs[i].id.indexOf(name) == 0 && objs[i].id != name &&
 			(objs[i].localName == "canvas" || objs[i].localName == "img" || objs[i].localName == "div" || objs[i].localName == "span"))
 		{
-			debug("activeTouch: Selected["+i+"]: name="+name+", id="+objs[i].id+", localName="+objs[i].localName);
+//			debug("activeTouch: Selected["+i+"]: name="+name+", id="+objs[i].id+", localName="+objs[i].localName);
 
 			var ctx = document.createElement("canvas").getContext("2d");
 			var w = objs[i].width,
@@ -514,7 +514,7 @@ function activeTouch(event, name, object)
 
 				var idx = parseInt(i) + 1;
 				// If we've reached the last layer with no graphics, it is selected.
-				debug("activeTouch: idx="+idx+", objs.length="+objs.length);
+//				debug("activeTouch: idx="+idx+", objs.length="+objs.length);
 
 				if (idx == objs.length)
 					alpha = 255;

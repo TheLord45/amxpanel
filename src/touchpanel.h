@@ -101,18 +101,15 @@ namespace amx
 			void regWebConnect(long pan, int id);
 
 		private:
-			void writeStyles(std::fstream& pgFile);
 			void readPages();
-            void writePages(std::fstream& pgFile);
+			void writePages(std::fstream& pgFile);
 			void writeGroups(std::fstream& pgFile);
 			void writePopups(std::fstream& pgFile);
-			void writeAllPopups(std::fstream& pgFile);
 			void writeBtArray(std::fstream& pgFile);
 			void writeIconTable(std::fstream& pgFile);
 			void writeBargraphs(std::fstream& pgFile);
 			bool isPresent(const std::vector<strings::String>& vs, const strings::String& str);
 			bool isParsed();
-			uint64_t getMS();
 			bool haveFreeSlot();
 			int getFreeSlot();
 			bool isRegistered(strings::String& regID);
@@ -134,18 +131,13 @@ namespace amx
 			strings::String scBtArray;
 			strings::String sBargraphs;
 			bool gotPages;
-			int openPage;		// The index number of the currently open page
-			std::vector<int> openPopups;	// The currently open popups connected
 			std::vector<ST_PAGE> stPages;
 			std::vector<ST_POPUP> stPopups;
 			std::vector<PAGE_T> pageList;
 			bool busy;
-			bool webConnected;
-//			bool registrated;		// TRUE = Client (browser) is identified and has access
 
 			std::vector<ANET_COMMAND> commands;		// Commands from controller
 			strings::String amxBuffer;				// This is the cache for incomplete commands
-			uint64_t lastDisconnect;
 	};
 }
 

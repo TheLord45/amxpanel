@@ -299,6 +299,47 @@ function splittCmd(msg)
     return pID;
 }
 
+function iterateButtonStates(addr, bts, callback, pars)
+{
+    var addrRange = getRange(addr);
+    var btRange = getRange(bts);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('iterateButtons: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var j = 0; j < btRange.length; j++)
+                {
+                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
+                    {
+                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+                        var button = getButton(bt[b].pnum, bt[b].bi);
+                        var idx = 0;
+
+                        for (var i in button.sr)
+                        {
+                            if (button.sr[i].number == z)
+                                idx = parseInt(i);
+                        }
+
+                        callback(name, button, bt[b], idx, pars);
+                    }
+                }
+            }
+        }
+    }
+}
+
 function getButton(pnum, bi)
 {
     var pgKey = eval("structPage" + pnum);
@@ -376,165 +417,6 @@ function setBargraphLevel(pnum, id, level)
             bargraphs.bargraphs[i].level = level;
         else if (bg.pnum == pnum && bg.bi == id)
             bargraphs.bargraphs[i].level = level;
-    }
-}
-
-function saveTextReplace(port, channel, text, inst = [])
-{
-    var i, j;
-
-    for (i in buttonArray.buttons)
-    {
-        var bt = buttonArray.buttons[i];
-
-        if (bt.ap == port && bt.ac == channel)
-        {
-            var name = "structPage" + bt.pnum;
-            var pgKey = eval(name);
-
-            if (pgKey === null)
-                continue;
-
-            for (j in pgKey.buttons)
-            {
-                if (pgKey.buttons[j].bID == bt.bi)
-                {
-                    var a;
-
-                    for (a in pgKey.buttons[j].sr)
-                    {
-                        var idx = parseInt(a) + 1;
-
-                        if (inst.length == 0)
-                            pgKey.buttons[j].sr[a].te = text;
-                        else {
-                            var x;
-
-                            for (x in inst)
-                            {
-                                if (inst[x] == idx)
-                                    pgKey.buttons[j].sr[a].te = text;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-function saveTextAppend(port, channel, text, inst = [])
-{
-    var i, j;
-
-    for (i in buttonArray.buttons)
-    {
-        var bt = buttonArray.buttons[i];
-
-        if (bt.ap == port && bt.ac == channel)
-        {
-            var name = "structPage" + pnum;
-            var pgKey = eval(name);
-
-            if (pgKey === null)
-                continue;
-
-            for (j in pgKey.buttons)
-            {
-                if (pgKey.buttons[j].bID == bt.bi)
-                {
-                    var a;
-
-                    for (a in pgKey.buttons[j].sr)
-                    {
-                        var idx = parseInt(a) + 1;
-
-                        if (inst.length == 0)
-                            pgKey.buttons[j].sr[a].te = pgKey.buttons[j].sr[a].te + text;
-                        else
-                        {
-                            var x;
-
-                            for (x in inst)
-                            {
-                                if (inst[x] == idx)
-                                    pgKey.buttons[j].sr[a].te = pgKey.buttons[j].sr[a].te + text;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-function getText(port, channel, inst = 0)
-{
-    var i, j;
-
-    for (i in buttonArray.buttons)
-    {
-        var bt = buttonArray.buttons[i];
-
-        if (bt.ap == port && bt.ac == channel)
-        {
-            var name = "structPage" + bt.pnum;
-            var pgKey = eval(name);
-
-            if (pgKey === null)
-                continue;
-
-            for (j in pgKey.buttons)
-            {
-                if (pgKey.buttons[j].bID == bt.bi)
-                {
-                    if (inst == 0)
-                        return pgKey.buttons[j].sr[0].te;
-                    else if (inst <= pgKey.buttons[j].sr.length)
-                        return pgKey.buttons[j].sr[inst - 1].te;
-                }
-            }
-        }
-    }
-}
-
-function saveIcon(port, channel, icon, inst = 0)
-{
-    var i, j;
-
-    for (i in buttonArray.buttons)
-    {
-        var bt = buttonArray.buttons[i];
-
-        if (bt.ap == port && bt.ac == channel)
-        {
-            var name = "structPage" + bt.pnum;
-            var pgKey = eval(name);
-
-            if (pgKey === null)
-                continue;
-
-            for (j in pgKey.buttons)
-            {
-                if (pgKey.buttons[j].bID == bt.bi)
-                {
-                    var a, idx;
-
-                    for (a in pgKey.buttons[j].sr)
-                    {
-                        idx = parseInt(a) + 1;
-
-                        if (inst == 0)
-                            pgKey.buttons[j].sr[a].ii = icon;
-                        else if (idx == inst)
-                        {
-                            pgKey.buttons[j].sr[a].ii = icon;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -863,18 +745,6 @@ function findButtonDistinct(pnum, bi)
     return null;
 }
 
-function findPageButton(pnum, bi)
-{
-    var pgKey = eval("structPage"+pnum);
-
-    for (var x = 0; x < pgKey.buttons.length; x++)
-    {
-        if (pgKey.buttons[x].bID == bi)
-            return pgKey.buttons[x];
-    }
-
-    return null;
-}
 function findBargraphs(port, channel)
 {
     var i;
@@ -1859,7 +1729,7 @@ function doANI(msg)
         for (var b = 0; b < bt.length; b++)
         {
             var name = 'Page_' + bt[b].pnum + '_Button_' + bt[b].bi + '_';
-            var button = findPageButton(bt[b].pnum, bt[b].bi);
+            var button = getButton(bt[b].pnum, bt[b].bi);
             drawButtonMultistateAni(button, name, 1, stStart, stEnd, zeit);
         }
     }
@@ -1957,66 +1827,24 @@ function doDPG(msg)
  */
 function doBAT(msg)
 {
-    var bt;
-    var addr;
-    var bts;
-    var addrRange;
-    var btRange;
-    var text;
-    var bt;
-    var i;
-    var j;
-    var z;
-    var b;
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var text = getField(msg, 2, ',');
 
-    addr = getField(msg, 0, ',');
-    bts = getField(msg, 1, ',');
-    text = getField(msg, 2, ',');
+    text = textToWeb(text);
+    iterateButtonStates(addr, bts, cbBAT, text);
+}
+function cbBAT(name, button, bt, idx, text)
+{
+    button.sr[idx].te = button.sr[idx].te + text;
 
-    addrRange = getRange(addr);
-    btRange = getRange(bts);
-
-    for (i = 0; i < addrRange.length; i++)
+    try
     {
-        bt = findButton(addrRange[i]);
-
-        if (bt.length == 0)
-        {
-            errlog('doBAT: Error button ' + addrRange[i] + ' not found!');
-            continue;
-        }
-
-        for (b = 0; b < bt.length; b++)
-        {
-            if (btRange.length == 1 && btRange[0] == 0)
-            {
-                saveTextAppend(curPort, addrRange[i], text);
-                break;
-            }
-
-            for (z = 1; z <= bt[b].instances; z++)
-            {
-                for (j = 0; j < btRange.length; j++)
-                {
-                    if (btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z + "_font";
-                        saveTextAppend(curPort, addrRange[i], text, [z]);
-
-                        try
-                        {
-                            var elem = getText(curPort, addrRange[i], z);
-//							elem = elem + text;
-                            document.getElementById(name).innerHTML = elem;
-                        }
-                        catch (e)
-                        {
-                            errlog("doBAT: No element of name " + name + " found!");
-                        }
-                    }
-                }
-            }
-        }
+        document.getElementById(name).innerHTML = button.sr[idx].te;
+    }
+    catch (e)
+    {
+        errlog("cbBAT: No element of name " + name + " found!");
     }
 }
 /*
@@ -2028,53 +1856,25 @@ function doBAU(msg)
     var bts = getField(msg, 1, ',');
     var text = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    var utext = "";
 
-    // "text" is in hex notation. 4 bytes are a character, where
-    // 2 bytes are ued for one part of the 16 bit integer.
-    var chText = "";
+    for (var i = 0; i < text.length; i += 4)
+        utext = utext + "\\u" + text.substring(i, i + 4);
 
-    for (var i = 0; i < text.length; i++)
+    iterateButtonStates(addr, bts, cbBau, unescape(encodeURIComponent(utext)));
+}
+function cbBAU(name, button, bt, idx, text)
+{
+    text = textToWeb(text);
+    button.sr[idx].te = button.sr[idx].te + text;
+
+    try
     {
-        var num = parseInt(text.substring(i, 4), 16);
-        chText = chText + String.fromCharCode(num);
+        document.getElementById(name).innerHTML = button.sr[idx].te;
     }
-
-    for (var i = 0; i < addrRange.length; i++)
+    catch (e)
     {
-        var bt = findButtonPort(addrRange[i]);
-
-        if (bt.length == 0)
-        {
-            errlog('doBBR: Error button ' + addrRange[i] + ' not found!');
-            continue;
-        }
-
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var nm = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-                        saveTextAppend(curPort, addrRange[i], chText, [z]);
-
-                        try
-                        {
-                            var elem = getText(curPort, addrRange[i], z);
-                            document.getElementById(name).innerHTML = elem;
-                        }
-                        catch (e)
-                        {
-                            errlog("doBAU: No element of name " + name + " found!");
-                        }
-                    }
-                }
-            }
-        }
+        errlog("cbBAU: No element of name " + name + " found!");
     }
 }
 /*
@@ -2086,105 +1886,51 @@ function doBBR(msg)
     var bts = getField(msg, 1, ',');
     var name = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
-
-    for (var i = 0; i < addrRange.length; i++)
-    {
-        var bt = findButtonPort(addrRange[i]);
-
-        if (bt.length == 0)
-        {
-            errlog('doBBR: Error button ' + addrRange[i] + ' not found!');
-            continue;
-        }
-
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var nm = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-                        var button = getButton(bt[b].pnum, bt[b].bi);
-                        var idx = parseInt(z) - 1;
-
-                        button.sr[idx].sb = 1;
-                        button.sr[idx].bm = nm;
-                    }
-                }
-            }
-        }
-    }
-
+    iterateButtonStates(addr, bts, cbBBR, name);
     refreshResource(name);
+}
+function cbBBR(name, button, bt, idx, par)
+{
+    button.sr[idx].sb = 1;
+    button.sr[idx].bm = name;
 }
 /*
  * Set the border color to the specified color.
  */
 function doBCB(msg)
 {
-    var i;
-    var j;
-    var z;
-    var b;
-
     var addr = getField(msg, 0, ',');
     var bts = getField(msg, 1, ',');
     var col = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbBCB, col);
+}
+function cbBCB(name, button, bt, idx, col)
+{
+    button.sr[idx].cb = col;
 
-    for (i = 0; i < addrRange.length; i++)
+    try
     {
-        var bt = findButtonPort(addrRange[i]);
+        var colArr;
 
-        if (bt.length == 0)
+        if ((colArr = getHexColor(col)) === -1)
         {
-            errlog('doBCB: Error button ' + addrRange[i] + ' not found!');
-            continue;
+            errlog("cbBCB: Error getting color for " + name);
+            return;
         }
 
-        for (b = 0; b < bt.length; b++)
-        {
-            for (z = 1; z <= bt[b].instances; z++)
-            {
-                for (j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+        var color;
 
-                        try
-                        {
-                            var colArr;
+        if (colArr.length > 3)
+            color = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
+        else
+            color = rgb(colArr[0], colArr[1], colArr[2]);
 
-                            if ((colArr = getHexColor(col)) === -1)
-                            {
-                                errlog("doBCT: Error getting color for " + name);
-                                continue;
-                            }
-
-                            var color;
-
-                            if (colArr.length > 3)
-                                color = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
-                            else
-                                color = rgb(colArr[0], colArr[1], colArr[2]);
-
-                            document.getElementById(name).style.borderColor = color;
-                        }
-                        catch (e)
-                        {
-                            errlog("doBCB: No element of name " + name + " found!");
-                        }
-                    }
-                }
-            }
-        }
+        document.getElementById(name).style.borderColor = color;
+    }
+    catch (e)
+    {
+        errlog("cbBCB: No element of name " + name + " found!");
     }
 }
 /*
@@ -2192,65 +1938,38 @@ function doBCB(msg)
  */
 function doBCF(msg)
 {
-    var i;
-    var j;
-    var z;
-    var b;
-
     var addr = getField(msg, 0, ',');
     var bts = getField(msg, 1, ',');
     var col = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbBCF, col);
+}
+function cbBCF(name, button, bt, idx, col)
+{
+    button.sr[idx].cf = col;
 
-    for (i = 0; i < addrRange.length; i++)
+    try
     {
-        var bt = findButtonPort(addrRange[i]);
+        var colArr;
 
-        if (bt.length == 0)
+        if ((colArr = getHexColor(col)) === -1)
         {
-            errlog('doBCF: Error button ' + addrRange[i] + ' not found!');
-            continue;
+            errlog("cbBCT: Error getting color for " + name);
+            return;
         }
 
-        for (b = 0; b < bt.length; b++)
-        {
-            for (z = 1; z <= bt[b].instances; z++)
-            {
-                for (j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+        var color;
 
-                        try
-                        {
-                            var colArr;
+        if (colArr.length > 3)
+            color = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
+        else
+            color = rgb(colArr[0], colArr[1], colArr[2]);
 
-                            if ((colArr = getHexColor(col)) === -1)
-                            {
-                                errlog("doBCT: Error getting color for " + name);
-                                continue;
-                            }
-
-                            var color;
-
-                            if (colArr.length > 3)
-                                color = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
-                            else
-                                color = rgb(colArr[0], colArr[1], colArr[2]);
-
-                            document.getElementById(name).style.backgroundColor = color;
-                        }
-                        catch (e)
-                        {
-                            errlog("doBCF: No element of name " + name + " found!");
-                        }
-                    }
-                }
-            }
-        }
+        document.getElementById(name).style.backgroundColor = color;
+    }
+    catch (e)
+    {
+        errlog("cbBCF: No element of name " + name + " found!");
     }
 }
 /*
@@ -2258,65 +1977,38 @@ function doBCF(msg)
  */
 function doBCT(msg)
 {
-    var i;
-    var j;
-    var z;
-    var b;
-
     var addr = getField(msg, 0, ',');
     var bts = getField(msg, 1, ',');
     var col = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbBCT, col);
+}
+function cbBCT(name, button, bt, idx, col)
+{
+    button.sr[idx].ct = col;
 
-    for (i = 0; i < addrRange.length; i++)
+    try
     {
-        var bt = findButtonPort(addrRange[i]);
+        var colArr;
 
-        if (bt.length == 0)
+        if ((colArr = getHexColor(col)) === -1)
         {
-            errlog('doBCT: Error button ' + addrRange[i] + ' not found!');
-            continue;
+            errlog("cbBCT: Error getting color for " + name);
+            return;
         }
 
-        for (b = 0; b < bt.length; b++)
-        {
-            for (z = 1; z <= bt[b].instances; z++)
-            {
-                for (j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+        var color;
 
-                        try
-                        {
-                            var colArr;
+        if (colArr.length > 3)
+            color = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
+        else
+            color = rgb(colArr[0], colArr[1], colArr[2]);
 
-                            if ((colArr = getHexColor(col)) === -1)
-                            {
-                                errlog("doBCT: Error getting color for " + name);
-                                continue;
-                            }
-
-                            var color;
-
-                            if (colArr.length > 3)
-                                color = rgba(colArr[0], colArr[1], colArr[2], colArr[3]);
-                            else
-                                color = rgb(colArr[0], colArr[1], colArr[2]);
-
-                            document.getElementById(name).style.color = color;
-                        }
-                        catch (e)
-                        {
-                            errlog("doBCT: No element of name " + name + " found! Error: " + e);
-                        }
-                    }
-                }
-            }
-        }
+        document.getElementById(name).style.color = color;
+    }
+    catch (e)
+    {
+        errlog("cbBCT: No element of name " + name + " found! Error: " + e);
     }
 }
 /*
@@ -2380,84 +2072,48 @@ function doBMI(msg)
     var bts = getField(msg, 1, ',');
     var img = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbBMI, img);
+}
+function cbBMI(name, button, bt, idx, img)
+{
+    var sr = button.sr[idx];
+    sr.mi = img;
 
-    for (var i = 0; i < addrRange.length; i++)
+    try
     {
-        var bt = findButtonPort(addrRange[i]);
+        // This is needed to be sure the element exists currently.
+        var bsr = document.getElementById(name);
 
-        if (bt.length == 0)
+        if ((button.btype != BUTTONTYPE.BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_GENERAL) &&
+            button.sr.length == 2)	// chameleon image?
         {
-            errlog('doBMI: Error button ' + addrRange[i] + ' not found!');
-            continue;
+            if (sr.bm.length > 0)
+                drawButton(makeURL("images/"+img),makeURL("images/"+sr.bm),name,sr.mi_width, sr.mi_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+            else
+                drawArea(makeURL("images/"+img),name, sr.mi_width, sr.mi_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
         }
-
-        for (var b = 0; b < bt.length; b++)
+        else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
         {
-            var button = findPageButton(bt[b].pnum, bt[b].bi);
-
-            if (button === null)
-                continue;
-
-            for (var z = 1; z <= bt[b].instances; z++)
+            if (button.sr[idx+1].bm.length > 0)
             {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        for (var x in button.sr)
-                        {
-                            var idx = parseInt(x);
+                var lev = getBargraphLevel(bt.pnum, bt.bi);
+                var level = parseInt(100.0 / (button.rh - button.rl) * lev);
+                var dir = true;
 
-                            if (button.sr[x].number == z)
-                            {
-                                button.sr[x].mi = img;
+                if (button.dr == "horizontal")
+                    dir = false;
 
-                                var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-
-                                try
-                                {
-                                    var bsr = document.getElementById(name);
-
-                                    if ((button.btype != BUTTONTYPE.BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_GENERAL) &&
-                                        button.sr.length == 2)	// chameleon image?
-                                    {
-                                        if (sr.bm.length > 0)
-                                            drawButton(makeURL("images/"+img),makeURL("images/"+button.sr[x].bm),name,button.sr[x].mi_width, button.sr[x].mi_height, getAMXColor(button.sr[x].cf), getAMXColor(button.sr[x].cb));
-                                        else
-                                            drawArea(makeURL("images/"+img),name, button.sr[x].mi_width, button.sr[x].mi_height, getAMXColor(button.sr[x].cf), getAMXColor(button.sr[x].cb));
-                                    }
-                                    else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
-                                    {
-                                        if (button.sr[idx+1].bm.length > 0)
-                                        {
-                                            var lev = getBargraphLevel(pgKey.ID, button.bID);
-                                            var level = parseInt(100.0 / (button.rh - button.rl) * lev);
-                                            var dir = true;
-                    
-                                            if (button.dr == "horizontal")
-                                                dir = false;
-                    
-                                            drawBargraph(makeURL("images/"+img), makeURL("images/"+button.sr[idx+1].bm), name, level, button.sr[x].mi_width, button.sr[x].mi_height, getAMXColor(button.sr[idx+1].cf), getAMXColor(button.sr[idx+1].cb), dir, true, button);
-                                        }
-                                        else
-                                            drawArea(makeURL("images/"+img), name, button.sr[x].mi_width, button.sr[x].mi_height, getAMXColor(button.sr[x].cf), getAMXColor(button.sr[x].cb));
-                                    }
-                                }
-                                catch(e)
-                                {
-                                    errlog("doBMI: Button " + name + " not found!");
-                                }
-                            }
-                        }
-                    }
-                }
+                drawBargraph(makeURL("images/"+img), makeURL("images/"+button.sr[idx+1].bm), name, level, sr.mi_width, sr.mi_height, getAMXColor(button.sr[idx+1].cf), getAMXColor(button.sr[idx+1].cb), dir, true, button);
             }
+            else
+                drawArea(makeURL("images/"+img), name, sr.mi_width, sr.mi_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
         }
     }
+    catch(e)
+    {
+        errlog("cbBMI: Button " + name + " not found!");
+    }
 }
-
 /*
  * Set any/all button parameters by sending embedded codes and data.
  */
@@ -2467,263 +2123,241 @@ function doBMF(msg)
     var bts = getField(msg, 1, ',');
     var data = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbBMF, data);
+}
+function cbBMF(name, button, bt, idx, data)
+{
+    var len = data.length;
+    var bPFlag = false;
+    var z = button.sr[idx].number;
+    // var content = "";
 
-    for (var i = 0; i < addrRange.length; i++)
+    for (var a = 0; a < len; a++)
     {
-        var bt = findButtonPort(addrRange[i]);
-
-        if (bt.length == 0)
+        if (data.charAt(a) == '%' && !bPFlag)       // start of command
         {
-            errlog('doBMF: Error button ' + addrRange[i] + ' not found!');
+            bPFlag = true;
             continue;
         }
-
-        for (var b = 0; b < bt.length; b++)
+        else if (data.charAt(a) == '%' && bPFlag)   // % is the content
         {
-            for (var z = 1; z <= bt[b].instances; z++)
+//            content += '%';
+            bPFlag = false;
+            continue;
+        }
+        else if (bPFlag && data.charAt(a) == 'R')   // Set rectangle.
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var str = "";
+
+            if (next > a)
+                str = data.substring(a, next);
+            else
+                str = data.substring(a);
+
+            var parts = str.split(',');
+
+            if (parts.length != 4)
             {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-                        var len = data.length;
-                        var bPFlag = false;
-                        var content = "";
-
-                        for (var a = 0; a < len; a++)
-                        {
-                            if (data.charAt(a) == '%' && !bPFlag)       // start of command
-                            {
-                                bPFlag = true;
-                                continue;
-                            }
-                            else if (data.charAt(a) == '%' && bPFlag)   // % is the content
-                            {
-                                content += '%';
-                                bPFlag = false;
-                                continue;
-                            }
-                            else if (bPFlag && data.charAt(a) == 'R')   // Set rectangle.
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var str = "";
-
-                                if (next > a)
-                                    str = data.substring(a, next);
-                                else
-                                    str = data.substring(a);
-
-                                var parts = str.split(',');
-
-                                if (parts.length != 4)
-                                {
-                                    errlog('doBMF: Rectangle (%R) needs 4 coordinates!');
-                                    a = a + str.length;
-                                    continue;
-                                }
-
-                                a = a + str.length;
-                                str = "^BSP-"+bt[b].bi+','+parts[0]+','+parts[1]+','+parts[2]+','+parts[3];
-                                doBSP(str);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'B')   // Border style
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var str = "";
-
-                                if (next > a)
-                                {
-                                    str = data.substring(a, next);
-                                    a = next;
-                                }
-                                else
-                                {
-                                    str = data.substring(a);
-                                    a = data.length - 1;
-                                }
-
-                                doBRD("^BRD-"+bt[b].bi+','+btRange[j]+','+str);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'D' && data.charAt(a+1) == 'O')    // Draw order
-                            {
-                                errlog("doBMF: Command %DO is not implemented.");
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-
-                                if (next > a)
-                                    a = next;
-                                else
-                                    a = data.length - 1;
-                            }
-                            else if (bPFlag && data.charAt(a) == 'F')   // Set the font
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var fID = 0;
-
-                                if (next > a)
-                                    fID = parseInt(data.substring(a, next));
-                                else
-                                    fID = parseInt(data.substring(a));
-
-                                var str = "^FON-"+bt[b].bi+','+btRange[j]+','+fID;
-                                doFON(str);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'M' && data.charAt(a+1) == 'I')    // Set the mask image
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var str = "";
-
-                                if (next > a)
-                                {
-                                    str = data.substring(a, next);
-                                    a = next;
-                                }
-                                else
-                                {
-                                    str = data.substring(a);
-                                    a = data.length - 1;
-                                }
-
-                                doBMI("^BMI-"+bt[b].bi+','+btRange[j]+','+str);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'T')   // Set the text
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var str = "";
-
-                                if (next > a)
-                                {
-                                    str = data.substring(a, next);
-                                    a = next;
-                                }
-                                else
-                                {
-                                    str = data.substring(a);
-                                    a = data.length - 1;
-                                }
-
-                                doTXT("^TXT-"+bt[b].bi+','+btRange[j]+','+str);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'P')   // Set the picture filename
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var str = "";
-
-                                if (next > a)
-                                {
-                                    str = data.substring(a, next);
-                                    a = next;
-                                }
-                                else
-                                {
-                                    str = data.substring(a);
-                                    a = data.length - 1;
-                                }
-
-                                doBMP("^BMP-"+bt[b].bi+','+btRange[j]+','+str);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'I')   // Set the icon number
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var fID = 0;
-
-                                if (next > a)
-                                    fID = parseInt(data.substring(a, next));
-                                else
-                                    fID = parseInt(data.substring(a));
-
-                                doICO("^ICO-"+bt[b].bi+','+btRange[j]+','+fID);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'J' && data.charAt(a+1) == 'T')    // Alignment of text
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var str = "";
-
-                                if (next > a)
-                                {
-                                    str = data.substring(a, next);
-                                    a = next;
-                                }
-                                else
-                                {
-                                    str = data.substring(a);
-                                    a = data.length - 1;
-                                }
-
-                                doJST("^JST-"+bt[b].bi+","+btRange[j]+","+str);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'J' && data.charAt(a+1) == 'B')    // Alignment of bitmap/picture
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var str = "";
-
-                                if (next > a)
-                                {
-                                    str = data.substring(a, next);
-                                    a = next;
-                                }
-                                else
-                                {
-                                    str = data.substring(a);
-                                    a = data.length - 1;
-                                }
-
-                                doJSB("^JSB-"+bt[b].bi+","+btRange[j]+","+str);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'J' && data.charAt(a+1) == 'I')    // Alignment of icon
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var str = "";
-
-                                if (next > a)
-                                {
-                                    str = data.substring(a, next);
-                                    a = next;
-                                }
-                                else
-                                {
-                                    str = data.substring(a);
-                                    a = data.length - 1;
-                                }
-
-                                doJSI("^JSI-"+bt[b].bi+","+btRange[j]+","+str);
-                            }
-                            else if (bPFlag && data.charAt(a) == 'J')    // Alignment of text
-                            {
-                                bPFlag = false;
-                                var next = data.indexOf('%', a);
-                                var str = "";
-
-                                if (next > a)
-                                {
-                                    str = data.substring(a, next);
-                                    a = next;
-                                }
-                                else
-                                {
-                                    str = data.substring(a);
-                                    a = data.length - 1;
-                                }
-
-                                doJST("^JST-"+bt[b].bi+","+btRange[j]+","+str);
-                            }
-                        }
-                    }
-                }
+                errlog('doBMF: Rectangle (%R) needs 4 coordinates!');
+                a = a + str.length;
+                continue;
             }
+
+            a = a + str.length;
+            str = "^BSP-"+bt.bi+','+parts[0]+','+parts[1]+','+parts[2]+','+parts[3];
+            doBSP(str);
+        }
+        else if (bPFlag && data.charAt(a) == 'B')   // Border style
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var str = "";
+
+            if (next > a)
+            {
+                str = data.substring(a, next);
+                a = next;
+            }
+            else
+            {
+                str = data.substring(a);
+                a = data.length - 1;
+            }
+
+            doBRD("^BRD-"+bt.bi+','+z+','+str);
+        }
+        else if (bPFlag && data.charAt(a) == 'D' && data.charAt(a+1) == 'O')    // Draw order
+        {
+            errlog("doBMF: Command %DO is not implemented.");
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+
+            if (next > a)
+                a = next;
+            else
+                a = data.length - 1;
+        }
+        else if (bPFlag && data.charAt(a) == 'F')   // Set the font
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var fID = 0;
+
+            if (next > a)
+                fID = parseInt(data.substring(a, next));
+            else
+                fID = parseInt(data.substring(a));
+
+            var str = "^FON-"+bt.bi+','+z+','+fID;
+            doFON(str);
+        }
+        else if (bPFlag && data.charAt(a) == 'M' && data.charAt(a+1) == 'I')    // Set the mask image
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var str = "";
+
+            if (next > a)
+            {
+                str = data.substring(a, next);
+                a = next;
+            }
+            else
+            {
+                str = data.substring(a);
+                a = data.length - 1;
+            }
+
+            doBMI("^BMI-"+bt.bi+','+z+','+str);
+        }
+        else if (bPFlag && data.charAt(a) == 'T')   // Set the text
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var str = "";
+
+            if (next > a)
+            {
+                str = data.substring(a, next);
+                a = next;
+            }
+            else
+            {
+                str = data.substring(a);
+                a = data.length - 1;
+            }
+
+            doTXT("^TXT-"+bt.bi+','+z+','+str);
+        }
+        else if (bPFlag && data.charAt(a) == 'P')   // Set the picture filename
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var str = "";
+
+            if (next > a)
+            {
+                str = data.substring(a, next);
+                a = next;
+            }
+            else
+            {
+                str = data.substring(a);
+                a = data.length - 1;
+            }
+
+            doBMP("^BMP-"+bt.bi+','+z+','+str);
+        }
+        else if (bPFlag && data.charAt(a) == 'I')   // Set the icon number
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var fID = 0;
+
+            if (next > a)
+                fID = parseInt(data.substring(a, next));
+            else
+                fID = parseInt(data.substring(a));
+
+            doICO("^ICO-"+bt.bi+','+z+','+fID);
+        }
+        else if (bPFlag && data.charAt(a) == 'J' && data.charAt(a+1) == 'T')    // Alignment of text
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var str = "";
+
+            if (next > a)
+            {
+                str = data.substring(a, next);
+                a = next;
+            }
+            else
+            {
+                str = data.substring(a);
+                a = data.length - 1;
+            }
+
+            doJST("^JST-"+bt.bi+","+z+","+str);
+        }
+        else if (bPFlag && data.charAt(a) == 'J' && data.charAt(a+1) == 'B')    // Alignment of bitmap/picture
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var str = "";
+
+            if (next > a)
+            {
+                str = data.substring(a, next);
+                a = next;
+            }
+            else
+            {
+                str = data.substring(a);
+                a = data.length - 1;
+            }
+
+            doJSB("^JSB-"+bt.bi+","+z+","+str);
+        }
+        else if (bPFlag && data.charAt(a) == 'J' && data.charAt(a+1) == 'I')    // Alignment of icon
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var str = "";
+
+            if (next > a)
+            {
+                str = data.substring(a, next);
+                a = next;
+            }
+            else
+            {
+                str = data.substring(a);
+                a = data.length - 1;
+            }
+
+            doJSI("^JSI-"+bt.bi+","+z+","+str);
+        }
+        else if (bPFlag && data.charAt(a) == 'J')    // Alignment of text
+        {
+            bPFlag = false;
+            var next = data.indexOf('%', a);
+            var str = "";
+
+            if (next > a)
+            {
+                str = data.substring(a, next);
+                a = next;
+            }
+            else
+            {
+                str = data.substring(a);
+                a = data.length - 1;
+            }
+
+            doJST("^JST-"+bt.bi+","+z+","+str);
         }
     }
 }
@@ -2736,41 +2370,28 @@ function doBMP(msg)
     var bts = getField(msg, 1, ',');
     var img = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
-
-    for (var i = 0; i < addrRange.length; i++)
+    iterateButtonStates(addr, bts, cbBMP, img);
+}
+function cbBMP(name, button, bt, idx, img)
+{
+    if (button !== null)
     {
-        var bt = findButtonPort(addrRange[i]);
+        button.sr[idx].bm = img;
 
-        if (bt.length == 0)
-        {
-            errlog('doBMP: Error button ' + addrRange[i] + ' not found!');
-            continue;
-        }
+        if (button.sr[idx].bm_width == 0)
+            button.sr[idx].bm_width = button.wt;
 
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
+        if (button.sr[idx].bm_height == 0)
+            button.sr[idx].bm_height = button.ht;
+    }
 
-                        try
-                        {
-                            document.getElementById(name).src = img;
-                        }
-                        catch (e)
-                        {
-                            errlog("doBMP: No element of name " + name + " found!");
-                        }
-                    }
-                }
-            }
-        }
+    try
+    {
+        document.getElementById(name).src = "image/"+img;
+    }
+    catch (e)
+    {
+        errlog("doBMP: No element of name " + name + " found!");
     }
 }
 /*
@@ -2783,44 +2404,18 @@ function doBOP(msg)
     var oo = getField(msg, 2, ',');
     var opacity = amxInt(oo);
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
-
-    for (var i = 0; i < addrRange.length; i++)
+    iterateButtonStates(addr, bts, cbBOP, opacity);
+}
+function cbBOP(name, button, bt, idx, opacity)
+{
+    try
     {
-        var bt = findButtonPort(addrRange[i]);
-
-        if (bt.length == 0)
-        {
-            errlog('doBOP: Error button ' + addrRange[i] + ' not found!');
-            continue;
-        }
-
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var idx = parseInt(z) - 1;
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-                        var button = findPageButton(bt[b].pnum, bt[b].bi);
-
-                        try
-                        {
-                            button.sr[idx].oo = opacity;
-                            document.getElementById(name).style.opacity = 1.0 / 255.0 * opacity;
-                        }
-                        catch (e)
-                        {
-                            errlog("doBOP: No element of name " + name + " found!");
-                        }
-                    }
-                }
-            }
-        }
+        button.sr[idx].oo = opacity;
+        document.getElementById(name).style.opacity = 1.0 / 255.0 * opacity;
+    }
+    catch (e)
+    {
+        errlog("cbBOP: No element of name " + name + " found!");
     }
 }
 /*
@@ -2859,7 +2454,7 @@ function doBOR(msg)
 
         for (var b = 0; b < bt.length; b++)
         {
-            var button = findPageButton(bt[b].pnum, bt[b].bi);
+            var button = getButton(bt[b].pnum, bt[b].bi);
 
             for (var j = 0; j < button.sr.length; j++)
             {
@@ -2897,60 +2492,33 @@ function doBRD(msg)
     var bts = getField(msg, 1, ',');
     var frame = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbBRD, frame);
+}
+function cbBRD(name, button, bt, idx, frame)
+{
+    button.sr[idx].bs = frame;
+    var brd = getBorderStyle(button.sr[idx].bs);
 
-    for (var i = 0; i < addrRange.length; i++)
+    try
     {
-        var bt = findButtonPort(addrRange[i]);
+        var bsr = document.getElementById(name);
 
-        if (bt.length == 0)
+        if (brd !== -1)
         {
-            errlog('doBRD: Error button ' + addrRange[i] + ' not found!');
-            continue;
-        }
-
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
+            for (var x = 0; x < brd.length; x++)
             {
-                for (var j = 0; j < btRange.length; j++)
+                switch(x)
                 {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        if (button.sr[j].bs != frame)
-                        {
-                            var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-                            var button = getButton(bt[b].pnum, bt[b].bi);
-                            button.sr[j].bs = frame;
-                            var brd = getBorderStyle(sr.bs);
-
-                            try
-                            {
-                                var bsr = document.getElementById(name);
-
-                                if (brd !== -1)
-                                {
-                                    for (var x = 0; x < brd.length; x++)
-                                    {
-                                        switch(x)
-                                        {
-                                            case 0: bsr.style.borderStyle = brd[x]; break;
-                                            case 1: bsr.style.borderWidth = brd[x]; break;
-                                            case 2: bsr.style.borderRadius = brd[x]; break;
-                                        }
-                                    }
-                                }
-                            }
-                            catch(e)
-                            {
-                                errlog("doBRD: Button "+ name + " nicht gefunden!");
-                            }
-                        }
-                    }
+                    case 0: bsr.style.borderStyle = brd[x]; break;
+                    case 1: bsr.style.borderWidth = brd[x]; break;
+                    case 2: bsr.style.borderRadius = brd[x]; break;
                 }
             }
         }
+    }
+    catch(e)
+    {
+        errlog("cbBRD: Button "+ name + " nicht gefunden!");
     }
 }
 /*
@@ -2978,19 +2546,23 @@ function doBSP(msg)
 
         for (var b = 0; b < bt.length; b++)
         {
-            var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-
             try
             {
                 var button = getButton(bt[b].pnum, bt[b].bi);
-                button.lt = parts[0];
-                button.tp = parts[1];
-                button.wt = parts[2] - parts[0];
-                button.ht = parts[3] - parts[1];
-                document.getElementById(name).style.left = left;
-                document.getElementById(name).style.top = left;
-                document.getElementById(name).style.width = right - left;
-                document.getElementById(name).style.height = bottom - top;
+
+                for (var x = 0; x < button.sr.length; x++)
+                {
+                    var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + button.sr[x].number;
+
+                    button.lt = left;
+                    button.tp = top;
+                    button.wt = right - left;
+                    button.ht = bottom - top;
+                    document.getElementById(name).style.left = left;
+                    document.getElementById(name).style.top = left;
+                    document.getElementById(name).style.width = right - left;
+                    document.getElementById(name).style.height = bottom - top;
+                }
             }
             catch (e)
             {
@@ -3004,18 +2576,12 @@ function doBSP(msg)
  */
 function doCPF(msg)
 {
-    var bt;
-    var addr;
-    var addrRange;
-    var name;
-    var b;
-
-    addr = getField(msg, 0, ',');
-    addrRange = getRange(addr);
+    var addr = getField(msg, 0, ',');
+    var addrRange = getRange(addr);
 
     for (var i = 0; i < addrRange.length; i++)
     {
-        bt = findButtonPort(addrRange[i]);
+        var bt = findButtonPort(addrRange[i]);
 
         if (bt.length == 0)
         {
@@ -3023,9 +2589,9 @@ function doCPF(msg)
             continue;
         }
 
-        for (b = 0; b < bt.length; b++)
+        for (var b = 0; b < bt.length; b++)
         {
-            name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi;
+            var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi;
 
             try
             {
@@ -3064,19 +2630,13 @@ function doCPF(msg)
  */
 function doENA(msg)
 {
-    var bt;
-    var addr;
-    var addrRange;
-    var val;
-    var b;
-
-    addr = getField(msg, 0, ',');
-    val = getField(msg, 1, ',');
-    addrRange = getRange(addr);
+    var addr = getField(msg, 0, ',');
+    var val = getField(msg, 1, ',');
+    var addrRange = getRange(addr);
 
     for (var i = 0; i < addrRange.length; i++)
     {
-        bt = findButton(addrRange[i]);
+        var bt = findButton(addrRange[i]);
 
         if (bt.length == 0)
         {
@@ -3084,9 +2644,9 @@ function doENA(msg)
             continue;
         }
 
-        for (b = 0; b < bt.length; b++)
+        for (var b = 0; b < bt.length; b++)
         {
-            name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi;
+            var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi;
             bt[b].enabled = val;
         }
     }
@@ -3101,55 +2661,24 @@ function doFON(msg)
     var bts = getField(msg, 1, ',');
     var fID = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbFON, fID);
+}
+function cbFON(name, button, bt, idx, fID)
+{
+    var sr = button.sr[idx];
+    sr.fi = fID;
 
-    for (var i = 0; i < addrRange.length; i++)
+    try
     {
-        var bt = findButtonPort(addrRange[i]);
-
-        if (bt.length == 0)
-        {
-            errlog('doBMP: Error button ' + addrRange[i] + ' not found!');
-            continue;
-        }
-
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var button = getButton(bt[b].pnum, bt[b].bi);
-
-                        for (var a in button.sr)
-                        {
-                            var sr = button.sr[a];
-
-                            if (sr.number == btRange[j])
-                                sr.fi = fID;
-
-                            var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-
-                            try
-                            {
-                                var font = findFont(fID);
-                                document.getElementById(name).style.fontFamily = font.name;
-                                document.getElementById(name).style.fontSize = font.size+"pt";
-                                document.getElementById(name).style.fontStyle = getFontStyle(font.subfamilyName);
-                                document.getElementById(name).style.fontWeight = getFontWeight(font.subfamilyName);
-                            }
-                            catch(e)
-                            {
-                                errlog('doFON: Button '+name+' not found.');
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        var font = findFont(fID);
+        document.getElementById(name).style.fontFamily = font.name;
+        document.getElementById(name).style.fontSize = font.size+"pt";
+        document.getElementById(name).style.fontStyle = getFontStyle(font.subfamilyName);
+        document.getElementById(name).style.fontWeight = getFontWeight(font.subfamilyName);
+    }
+    catch(e)
+    {
+        errlog('cbFON: Button '+name+' not found.');
     }
 }
 /*
@@ -3161,134 +2690,110 @@ async function doICO(msg)
     var bts = getField(msg, 1, ',');
     var idx = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbICO, idx);
+}
+function cbICO(name, button, bt, i, idx)
+{
+    button.sr[i].ii = idx;
+    var newIcon = false;
+    var iFile = getIconFile(idx);
 
-    for (var i = 0; i < addrRange.length; i++)
+    if (iFile !== null)
     {
-        var bt = findButtonPort(addrRange[i]);
-
-        if (bt.length == 0)
+        try
         {
-            errlog('doICO: Error button ' + addrRange[i] + ' not found!');
-            continue;
+            var img = document.getElementById(name + '_img');
+            img.src = "images/" + iFile;
+            var dim = getIconDim(idx);
+            img.width = dim[0];
+            img.height = dim[1];
+            img.removeAttribute("style");
+            img.style.display = "flex";
+            img.style.order = 2;
+            justifyImage(img, getButton(bt.pnum, bt.bi), CENTER_CODE.SC_ICON, button.sr[i].number);
+        }
+        catch (e)
+        {
+            newIcon = true;
+        }
+    }
+    else
+    {
+        // Delete icon if it exists
+        try
+        {
+            var ico = document.getElementById(name + '_img');
+            var parent = document.getElementById(name);
+
+            if (parent !== null && ico !== null)
+                parent.removeChild(ico);
+            else if (ico !== null)
+                ico.style.display = 'none';
+        }
+        catch (e)
+        {
+            TRACE("cbICO: Delete icon error: " + e);
+        }
+    }
+
+    if (newIcon)
+    {
+        // Create a new icon image
+        var span;
+        var hasSpan = false;
+
+        try
+        {
+            span = document.getElementById(name + '_font');
+            hasSpan = true;
+        }
+        catch (e)
+        {
+            hasSpan = false;
         }
 
-        for (var b = 0; b < bt.length; b++)
+        var parent;
+        var hasParent = false;
+        var err = "";
+
+        try
         {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-                        saveIcon(bt[b].ap, bt[b].ac, idx, btRange[j]);
-                        var newIcon = false;
-                        var iFile = getIconFile(idx);
+            parent = document.getElementById(name);
 
-                        if (iFile !== null)
-                        {
-                            try
-                            {
-                                var img = document.getElementById(name + '_img');
-                                img.src = "images/" + iFile;
-                                var dim = getIconDim(idx);
-                                img.width = dim[0];
-                                img.height = dim[1];
-                                img.removeAttribute("style");
-                                img.style.display = "flex";
-                                img.style.order = 2;
-                                justifyImage(img, getButton(bt[b].pnum, bt[b].bi), CENTER_CODE.SC_ICON, z);
-                            }
-                            catch (e)
-                            {
-                                newIcon = true;
-                            }
-                        }
-                        else
-                        {
-                            // Delete icon if it exists
-                            try
-                            {
-                                var ico = document.getElementById(name + '_img');
-                                var parent = document.getElementById(name);
+            if (parent !== null)
+                hasParent = true;
+        }
+        catch (e)
+        {
+            err = e;
+        }
 
-                                if (parent !== null && ico !== null)
-                                    parent.removeChild(ico);
-                                else if (ico !== null)
-                                    ico.style.display = 'none';
-                            }
-                            catch (e)
-                            {
-                                TRACE("doICO: Delete icon error: " + e);
-                            }
-                        }
+        if (!hasParent || parent === null)
+        {
+            errlog("cbICO: No parent of name " + name + " found! [" + err + "]");
+            return;
+        }
 
-                        if (newIcon)
-                        {
-                            // Create a new icon image
-                            var span;
-                            var hasSpan = false;
+        var dim = getIconDim(idx);
 
-                            try
-                            {
-                                span = document.getElementById(name + '_font');
-                                hasSpan = true;
-                            }
-                            catch (e)
-                            {
-                                hasSpan = false;
-                            }
+        if (iFile !== null)
+        {
+            var img = document.createElement('img');
+            img.src = makeURL('images/' + iFile);
+            img.id = name + '_img';
+            img.width = dim[0];
+            img.height = dim[1];
+            img.style.display = "flex";
+            img.style.order = 2;
+            parent.appendChild(img);
 
-                            var parent;
-                            var hasParent = false;
-                            var cnt = 0;
-                            var err = "";
+            if (hasSpan)
+                parent.insertBefore(img, span);
 
-                            try
-                            {
-                                parent = document.getElementById(name);
+            var icoPos = getIconPosInfo(bt.pnum, bt.bi, button.sr[i].number);
 
-                                if (parent !== null)
-                                    hasParent = true;
-                            }
-                            catch (e)
-                            {
-                                err = e;
-                            }
-
-                            if (!hasParent || parent === null)
-                            {
-                                errlog("doICO: No parent of name " + name + " found! [" + err + "]");
-                                continue;
-                            }
-
-                            var dim = getIconDim(idx);
-
-                            if (iFile !== null)
-                            {
-                                var img = document.createElement('img');
-                                img.src = makeURL('images/' + iFile);
-                                img.id = name + '_img';
-                                img.width = dim[0];
-                                img.height = dim[1];
-                                img.style.display = "flex";
-                                img.style.order = 2;
-                                parent.appendChild(img);
-
-                                if (hasSpan)
-                                    parent.insertBefore(img, span);
-
-                                var icoPos = getIconPosInfo(bt[b].pnum, bt[b].bi, z);
-
-                                if (icoPos !== null)
-                                    justifyImage(img, getButton(bt[b].pnum, bt[b].bi), CENTER_CODE.SC_ICON, z);
-                            }
-                        }
-                    }
-                }
-            }
+            if (icoPos !== null)
+                justifyImage(img, getButton(bt.pnum, bt.bi), CENTER_CODE.SC_ICON, button.sr[i].number);
         }
     }
 }
@@ -3301,85 +2806,62 @@ function doJSB(msg)
     var addr = getField(msg, 0, ',');
     var bts = getField(msg, 1, ',');
     var align = getField(msg, 2, ',');
-    var left, top;
+    var pars = [];
+    pars.push(align);
 
     if (align == 0)
     {
-        left = getField(msg, 3, ',');
-        top = getField(msg, 4, ',');
+        pars.push(getField(msg, 3, ','));
+        pars.push(getField(msg, 4, ','));
     }
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbJSB, pars);
+}
+function cbJSB(name, button, bt, idx, pars)
+{
+    var left, top;
+    var align = pars[0];
 
-    for (var i = 0; i < addrRange.length; i++)
+    if (align == 0)
     {
-        var bt = findButtonPort(addrRange[i]);
+        left = pars[1];
+        top = pars[2];
+    }
 
-        if (bt.length == 0)
+    button.sr[idx].jb = align;
+
+    if (align == 0)
+    {
+        button.sr[idx].ix = left;
+        button.sr[idx].iy = top;
+    }
+
+    try
+    {
+        var bsr = document.getElementById(name);
+
+        switch (align)
         {
-            errlog('doJSB: Error button ' + addrRange[i] + ' not found!');
-            continue;
+            case 0:
+                bsr.style.backgroundPositionX = left+'px';
+                bsr.style.backgroundPositionY = top+'px';
+            break;
+
+            case 1: bsr.style.backgroundPosition = "left top"; break;
+            case 2: bsr.style.backgroundPosition = "center top"; break;
+            case 3: bsr.style.backgroundPosition = "right top"; break;
+            case 4: bsr.style.backgroundPosition = "left center"; break;
+            case 6: bsr.style.backgroundPosition = "right center"; break;
+            case 7: bsr.style.backgroundPosition = "left bottom"; break;
+            case 8: bsr.style.backgroundPosition = "center bottom"; break;
+            case 9: bsr.style.backgroundPosition = "right bottom"; break;
+            default:
+                bsr.style.backgroundPosition = "center center";
         }
-
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-                        var button = findPageButton(bt[b].pnum, bt[b].bi);
-
-                        for (var x in button.sr)
-                        {
-                            if (button.sr[x].bID == btRange[j])
-                            {
-                                button.sr[x].jb = align;
-
-                                if (align == 0)
-                                {
-                                    button.sr[x].ix = left;
-                                    button.sr[x].iy = top;
-                                }
-
-                                break;
-                            }
-                        }
-
-                        try
-                        {
-                            var bsr = document.getElementById(name);
-
-                            switch (align)
-                            {
-                                case 0:
-                                    bsr.style.backgroundPositionX = left+'px';
-                                    bsr.style.backgroundPositionY = top+'px';
-                                break;
-        
-                                case 1: bsr.style.backgroundPosition = "left top"; break;
-                                case 2: bsr.style.backgroundPosition = "center top"; break;
-                                case 3: bsr.style.backgroundPosition = "right top"; break;
-                                case 4: bsr.style.backgroundPosition = "left center"; break;
-                                case 6: bsr.style.backgroundPosition = "right center"; break;
-                                case 7: bsr.style.backgroundPosition = "left bottom"; break;
-                                case 8: bsr.style.backgroundPosition = "center bottom"; break;
-                                case 9: bsr.style.backgroundPosition = "right bottom"; break;
-                                default:
-                                    bsr.style.backgroundPosition = "center center";
-                            }
-                        }
-                        catch (e)
-                        {
-                            errlog("doJSB: Button " + name + " not found!");
-                        }
-                    }
-                }
-            }
-        }
+    }
+    catch (e)
+    {
+        errlog("cbJSB: Button " + name + " not found!");
     }
 }
 /*
@@ -3391,67 +2873,44 @@ function doJSI(msg)
     var addr = getField(msg, 0, ',');
     var bts = getField(msg, 1, ',');
     var align = getField(msg, 2, ',');
-    var left, top;
+    var pars = [];
+    pars.push(align);
 
     if (align == 0)
     {
-        left = getField(msg, 3, ',');
-        top = getField(msg, 4, ',');
+        pars.push(getField(msg, 3, ','));
+        pars.push(getField(msg, 4, ','));
     }
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbJSI, pars);
+}
+function cbJSI(name, button, bt, idx, pars)
+{
+    var left, top;
+    var align = pars[0];
 
-    for (var i = 0; i < addrRange.length; i++)
+    if (align == 0)
     {
-        var bt = findButtonPort(addrRange[i]);
+        left = pars[1];
+        top = pars[2];
+    }
 
-        if (bt.length == 0)
-        {
-            errlog('doJSI: Error button ' + addrRange[i] + ' not found!');
-            continue;
-        }
+    button.sr[idx].ji = align;
 
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z + "_img";
-                        var button = findPageButton(bt[b].pnum, bt[b].bi);
+    if (align == 0)
+    {
+        button.sr[idx].ix = left;
+        button.sr[idx].iy = top;
+    }
 
-                        for (var x in button.sr)
-                        {
-                            if (button.sr[x].bID == btRange[j])
-                            {
-                                button.sr[x].ji = align;
-
-                                if (align == 0)
-                                {
-                                    button.sr[x].ix = left;
-                                    button.sr[x].iy = top;
-                                }
-
-                                break;
-                            }
-                        }
-
-                        try
-                        {
-                            var img = document.getElementById(name);
-                            justifyImage(img, button, CENTER_CODE.SC_ICON, btRange[j]);
-                        }
-                        catch (e)
-                        {
-                            errlog("doJSI: Button " + name + " not found!");
-                        }
-                    }
-                }
-            }
-        }
+    try
+    {
+        var img = document.getElementById(name);
+        justifyImage(img, button, CENTER_CODE.SC_ICON, button.sr[idx].number);
+    }
+    catch (e)
+    {
+        errlog("cbJSI: Button " + name + " not found!");
     }
 }
 /*
@@ -3463,119 +2922,95 @@ function doJST(msg)
     var addr = getField(msg, 0, ',');
     var bts = getField(msg, 1, ',');
     var align = getField(msg, 2, ',');
-    var left, top;
+    var pars = [];
+    pars.push(align);
 
     if (align == 0)
     {
-        left = getField(msg, 3, ',');
-        top = getField(msg, 4, ',');
+        pars.push(getField(msg, 3, ','));
+        pars.push(getField(msg, 4, ','));
     }
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
+    iterateButtonStates(addr, bts, cbJST, pars);
+}
+function cbJST(name, button, bt, idx, pars)
+{
+    var left, top;
+    var align = pars[0];
 
-    for (var i = 0; i < addrRange.length; i++)
+    if (align == 0)
     {
-        var bt = findButtonPort(addrRange[i]);
+        left = pars[1];
+        top = pars[2];
+    }
 
-        if (bt.length == 0)
+    button.sr[idx].jt = align;
+
+    if (align == 0)
+    {
+        button.sr[idx].tx = left;
+        button.sr[idx].ty = top;
+    }
+
+    try
+    {
+        var fnt = document.getElementById(name);
+        var sr = button.sr[idx];
+
+        switch(sr.jt)
         {
-            errlog('doJST: Error button ' + addrRange[i] + ' not found!');
-            continue;
+            case TEXT_ORIENTATION.ORI_ABSOLUT:
+                fnt.style.left = sr.tx+"px";
+                fnt.style.top = sr.ty+"px";
+                fnt.style.width = (bsr.style.width - (sr.tx + border))+'px';
+                fnt.style.height = (bsr.style.height - (sr.ty + border))+'px';
+            break;
+            case TEXT_ORIENTATION.ORI_TOP_LEFT:
+                fnt.style.left = "0px";
+                fnt.style.top = "0px";
+            break;
+            case TEXT_ORIENTATION.ORI_TOP_MIDDLE:
+                fnt.style.left = "50%";
+                fnt.style.transform = "translateX(-50%)";
+                fnt.style.top = "0px";
+            break;
+            case TEXT_ORIENTATION.ORI_TOP_RIGHT:
+                fnt.style.right = "0px";
+                fnt.style.top = "0px";
+            break;
+            case TEXT_ORIENTATION.ORI_CENTER_LEFT:
+                fnt.style.top = '50%';
+                fnt.style.left = "0px";
+                fnt.style.transform = "translate(0%, -50%)";
+            break;
+            case TEXT_ORIENTATION.ORI_CENTER_MIDDLE:
+                fnt.style.left = "50%";
+                fnt.style.top = '50%';
+                fnt.style.transform = "translate(-50%, -50%)"
+            break;
+            case TEXT_ORIENTATION.ORI_CENTER_RIGHT:
+                fnt.style.right = "0px";
+                fnt.style.top = '50%';
+                fnt.style.transform = "translateY(-50%)";
+            break;
+            case TEXT_ORIENTATION.ORI_BOTTOM_LEFT:
+                fnt.style.left = "0px";
+                fnt.style.bottom = "0px";
+            break;
+            case TEXT_ORIENTATION.ORI_BOTTOM_MIDDLE:
+                fnt.style.left = "50%";
+                fnt.style.transform = "translateX(-50%)";
+                fnt.style.bottom = "0px";
+            break;
+            case TEXT_ORIENTATION.ORI_BOTTOM_RIGHT:
+                fnt.style.right = "0px";
+                fnt.style.bottom = "0px";
+            break;
         }
-
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z + "_font";
-                        var button = findPageButton(bt[b].pnum, bt[b].bi);
-                        var sr = button.sr[0];
-
-                        for (var x in button.sr)
-                        {
-                            if (button.sr[x].bID == btRange[j])
-                            {
-                                sr = button.sr[x];
-                                button.sr[x].jt = align;
-
-                                if (align == 0)
-                                {
-                                    button.sr[x].tx = left;
-                                    button.sr[x].ty = top;
-                                }
-
-                                break;
-                            }
-                        }
-
-                        try
-                        {
-                            var fnt = document.getElementById(name);
-
-                            switch(sr.jt)
-                            {
-                                case TEXT_ORIENTATION.ORI_ABSOLUT:
-                                    fnt.style.left = sr.tx+"px";
-                                    fnt.style.top = sr.ty+"px";
-                                    fnt.style.width = (bsr.style.width - (sr.tx + border))+'px';
-                                    fnt.style.height = (bsr.style.height - (sr.ty + border))+'px';
-                                break;
-                                case TEXT_ORIENTATION.ORI_TOP_LEFT:
-                                    fnt.style.left = "0px";
-                                    fnt.style.top = "0px";
-                                break;
-                                case TEXT_ORIENTATION.ORI_TOP_MIDDLE:
-                                    fnt.style.left = "50%";
-                                    fnt.style.transform = "translateX(-50%)";
-                                    fnt.style.top = "0px";
-                                break;
-                                case TEXT_ORIENTATION.ORI_TOP_RIGHT:
-                                    fnt.style.right = "0px";
-                                    fnt.style.top = "0px";
-                                break;
-                                case TEXT_ORIENTATION.ORI_CENTER_LEFT:
-                                    fnt.style.top = '50%';
-                                    fnt.style.left = "0px";
-                                    fnt.style.transform = "translate(0%, -50%)";
-                                break;
-                                case TEXT_ORIENTATION.ORI_CENTER_MIDDLE:
-                                    fnt.style.left = "50%";
-                                    fnt.style.top = '50%';
-                                    fnt.style.transform = "translate(-50%, -50%)"
-                                break;
-                                case TEXT_ORIENTATION.ORI_CENTER_RIGHT:
-                                    fnt.style.right = "0px";
-                                    fnt.style.top = '50%';
-                                    fnt.style.transform = "translateY(-50%)";
-                                break;
-                                case TEXT_ORIENTATION.ORI_BOTTOM_LEFT:
-                                    fnt.style.left = "0px";
-                                    fnt.style.bottom = "0px";
-                                break;
-                                case TEXT_ORIENTATION.ORI_BOTTOM_MIDDLE:
-                                fnt.style.left = "50%";
-                                fnt.style.transform = "translateX(-50%)";
-                                fnt.style.bottom = "0px";
-                                break;
-                                case TEXT_ORIENTATION.ORI_BOTTOM_RIGHT:
-                                    fnt.style.right = "0px";
-                                    fnt.style.bottom = "0px";
-                                break;
-                            }
-                        }
-                        catch (e)
-                        {
-                            errlog("doJST: Button " + name + " not found!");
-                        }
-                    }
-                }
-            }
-        }
+    }
+    catch (e)
+    {
+        errlog("cbJST: Button " + name + " not found!");
     }
 }
 /*
@@ -3834,89 +3269,28 @@ function doSHO(msg)
 /*
  * Assign a text string to those buttons with a defined address range.
  */
-async function doTXT(msg)
+function doTXT(msg)
 {
     var addr = getField(msg, 0, ',');
     var bts = getField(msg, 1, ',');
     var text = getField(msg, 2, ',');
 
-    var addrRange = getRange(addr);
-    var btRange = getRange(bts);
     text = textToWeb(text);
+    iterateButtonStates(addr, bts, cbTXT, text);
+}
+function cbTXT(name, button, bt, idx, text)
+{
+    button.sr[idx].te = text;
 
-    for (var i = 0; i < addrRange.length; i++)
+    try
     {
-        var bt = findButtonPort(addrRange[i]);
-
-        if (bt.length == 0)
-        {
-            errlog('doTXT: Error button ' + addrRange[i] + ' not found!');
-            continue;
-        }
-
-        for (var b = 0; b < bt.length; b++)
-        {
-            for (var z = 1; z <= bt[b].instances; z++)
-            {
-                for (var j = 0; j < btRange.length; j++)
-                {
-                    if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
-                    {
-                        var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + z;
-                        saveTextReplace(curPort, addrRange[i], text, [z]);
-
-                        try
-                        {
-                            document.getElementById(name + '_font').innerHTML = text;
-                        }
-                        catch (e)
-                        {
-                            var parent;
-                            var hasParent = false;
-                            var cnt = 0;
-                            var err = "";
-
-                            while (!hasParent && cnt < 2)
-                            {
-                                try
-                                {
-                                    parent = document.getElementById(name);
-
-                                    if (parent !== null)
-                                    {
-                                        hasParent = true;
-                                        break;
-                                    }
-                                }
-                                catch (e)
-                                {
-                                    err = e;
-                                }
-
-                                await new Promise(r => setTimeout(r, 200));
-                                cnt++;
-                            }
-
-                            if (!hasParent || parent === null)
-                            {
-                                errlog("doTXT: No parent of name " + name + " found! [" + err + "]");
-                                continue;
-                            }
-
-                            var span = document.createElement('span');
-                            span.id = name + '_font';
-                            span.style.display = "flex";
-                            span.style.order = 3;
-                            span.innerHTML = text;
-                            parent.appendChild(span);
-                        }
-                    }
-                }
-            }
-        }
+        document.getElementById(name + '_font').innerHTML = text;
+    }
+    catch (e)
+    {
+        errlog("cbTXT: No parent of name " + name + " found!");
     }
 }
-
 function doABEEP(msg)
 {
     beep();
@@ -4277,41 +3651,36 @@ function getRegistrationID()
 
     if (regID == null || regID.length == 0)
     {
-        if (fingerprint !== null && fingerprint.length > 0)
-            registrationID = fingerprint;
-        else
+        try
         {
+            var ID = 'T' + Math.random().toString(36).substr(2, 9);
+            store.set("regID", ID);
+            registrationID = ID;
+        }
+        catch (e)
+        {
+            errlog("getRegistrationID: Error: " + e);
+
             try
             {
-                var ID = 'T' + Math.random().toString(36).substr(2, 9);
+                var d = new Date();
+
+                for (var i = 0; i < d.length; i++)
+                {
+                    var ID = "";
+                    var c = d.charCodeAt(i);
+                    var str = Number(c).toString(16);
+                    ID = ID + ((str.length == 1) ? "0" + str : str);
+                }
+
                 store.set("regID", ID);
                 registrationID = ID;
             }
             catch (e)
             {
                 errlog("getRegistrationID: Error: " + e);
-
-                try
-                {
-                    var d = new Date();
-
-                    for (var i = 0; i < d.length; i++)
-                    {
-                        var ID = "";
-                        var c = d.charCodeAt(i);
-                        var str = Number(c).toString(16);
-                        ID = ID + ((str.length == 1) ? "0" + str : str);
-                    }
-
-                    store.set("regID", ID);
-                    registrationID = ID;
-                }
-                catch (e)
-                {
-                    errlog("getRegistrationID: Error: " + e);
-                    registrationID = "";
-                    return registrationID;
-                }
+                registrationID = "";
+                return registrationID;
             }
         }
     }
@@ -4328,7 +3697,7 @@ function getRegistrationID()
     writeTextOut("REGISTER:" + registrationID);
     return registrationID;
 }
-
+/*
 function onInitFs(name, root)
 {
     var ID = 'T' + Math.random().toString(36).substr(2, 9);
@@ -4355,7 +3724,7 @@ function errorHandler(err)
     errlog("errorHandler: Error: " + err);
     registrationID = "";
 }
-
+*/
 function setOnlineStatus(stat)
 {
     if (stat < 0 || stat > 11 || stat == wsStatus)
