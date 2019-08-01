@@ -32,17 +32,18 @@
 #include "syslog.h"
 #include "nameformat.h"
 #include "fontlist.h"
+#include "str.h"
+#include "trace.h"
 
 extern Syslog *sysl;
 extern Config *Configuration;
 
 using namespace std;
 using namespace amx;
-using namespace strings;
 
-amx::FontList::FontList(const strings::String& file)
+amx::FontList::FontList(const string& file)
 {
-	sysl->TRACE(Syslog::ENTRY, std::string("FontList::FontList(const strings::String& file)"));
+	sysl->TRACE(Syslog::ENTRY, std::string("FontList::FontList(const string& file)"));
 	// Clear the empty font
 	emptyFont.number = 0;
 	emptyFont.fileSize = 0;
@@ -51,23 +52,23 @@ amx::FontList::FontList(const strings::String& file)
 	emptyFont.usageCount = 0;
 	fillSysFonts();
 	FONT_T font;
-	String lastName;
+	string lastName;
 	int fi = 0;
-	String uri = "file://";
+	string uri = "file://";
 	uri.append(Configuration->getHTTProot());
 	uri.append("/");
 	uri.append(file);
 
 	try
 	{
-		xmlpp::TextReader reader(uri.toString());
+		xmlpp::TextReader reader(uri);
 
 		while(reader.read())
 		{
-			String name = string(reader.get_name());
+			Str name(reader.get_name().raw());
 
-			if (name.at(0) == '#')
-				name = lastName;
+			if (name.get().at(0) == '#')
+				name.set(lastName);
 
 			if (reader.has_attributes())
 				fi = atoi(reader.get_attribute(0).c_str());
@@ -84,7 +85,7 @@ amx::FontList::FontList(const strings::String& file)
 				font.size = 0;
 				font.usageCount = 0;
 				fontList.push_back(font);
-				sysl->TRACE(String("FontList::FontList: Added font number: ")+font.number);
+				sysl->TRACE("FontList::FontList: Added font number: "+to_string(font.number));
 			}
 			else if (name.caseCompare("file") == 0 && reader.has_value())
 				fontList.back().file = reader.get_value();
@@ -103,11 +104,11 @@ amx::FontList::FontList(const strings::String& file)
 			else if (name.caseCompare("usageCount") == 0 && reader.has_value())
 				fontList.back().usageCount = atoi(reader.get_value().c_str());
 
-			lastName = name;
+			lastName = name.get();
 		}
 
 		reader.close();
-		sysl->TRACE(String("FontList::FontList: Found ")+fontList.size()+" fonts.");
+		sysl->TRACE("FontList::FontList: Found "+to_string(fontList.size())+" fonts.");
 	}
 	catch (xmlpp::internal_error& e)
 	{
@@ -124,34 +125,34 @@ amx::FontList::~FontList()
 	sysl->TRACE(Syslog::EXIT, std::string("FontList::FontList(...)"));
 }
 
-strings::String amx::FontList::getFontStyles()
+string amx::FontList::getFontStyles()
 {
-	sysl->TRACE(String("FontList::getFontStyles()"));
+	DECL_TRACER("FontList::getFontStyles()");
 
-	String styles;
+	string styles;
 	fontFaces.clear();
 
 	// Fixed system fonts first
 	styles += "@font-face {\n";
-	styles += String("  font-family: \"Courier New\", Courier, monospace;\n");
-	styles += String("  font-style: normal;\n");
-	styles += String("  font-weight: normal;\n");
+	styles += "  font-family: \"Courier New\", Courier, monospace;\n";
+	styles += "  font-style: normal;\n";
+	styles += "  font-weight: normal;\n";
 	styles += "}\n";
 	styles += "@font-face {\n";
-	styles += String("  font-family: \"AMX Bold\";\n");
-	styles += String("  src: url(fonts/amxbold_.ttf);\n");
-	styles += String("  font-style: normal;\n");
-	styles += String("  font-weight: bold;\n");
+	styles += "  font-family: \"AMX Bold\";\n";
+	styles += "  src: url(fonts/amxbold_.ttf);\n";
+	styles += "  font-style: normal;\n";
+	styles += "  font-weight: bold;\n";
 	styles += "}\n";
 	styles += "@font-face {\n";
-	styles += String("  font-family: Arial, Helvetica, sans-serif;\n");
-	styles += String("  font-style: normal;\n");
-	styles += String("  font-weight: normal;\n");
+	styles += "  font-family: Arial, Helvetica, sans-serif;\n";
+	styles += "  font-style: normal;\n";
+	styles += "  font-weight: normal;\n";
 	styles += "}\n";
 	styles += "@font-face {\n";
-	styles += String("  font-family: \"Arial Black\", Gadget, sans-serif;\n");
-	styles += String("  font-style: normal;\n");
-	styles += String("  font-weight: bold;\n");
+	styles += "  font-family: \"Arial Black\", Gadget, sans-serif;\n";
+	styles += "  font-style: normal;\n";
+	styles += "  font-weight: bold;\n";
 	styles += "}\n\n";
 
 	for (size_t i = 0; i < fontList.size(); i++)
@@ -159,16 +160,16 @@ strings::String amx::FontList::getFontStyles()
 		if (fontList[i].number < 32)
 			continue;
 
-		String name = fontList[i].name+","+fontList[i].subfamilyName;
+		string name = fontList[i].name+","+fontList[i].subfamilyName;
 
 		if (fontFaces.size() == 0 || !exist(name))
 		{
 			fontFaces.push_back(name);
 			styles += "@font-face {\n";
-			styles += String("  font-family: \"")+fontList[i].name+"\";\n";
-			styles += String("  src: url(fonts/")+NameFormat::toURL(fontList[i].file)+");\n";
-			styles += String("  font-style: ")+getFontStyle(fontList[i].subfamilyName)+";\n";
-			styles += String("  font-weight: ")+getFontWeight(fontList[i].subfamilyName)+";\n";
+			styles += "  font-family: \""+fontList[i].name+"\";\n";
+			styles += "  src: url(fonts/"+NameFormat::toURL(fontList[i].file)+");\n";
+			styles += "  font-style: "+getFontStyle(fontList[i].subfamilyName)+";\n";
+			styles += "  font-weight: "+getFontWeight(fontList[i].subfamilyName)+";\n";
 			styles += "}\n";
 		}
 	}
@@ -178,18 +179,18 @@ strings::String amx::FontList::getFontStyles()
 
 bool FontList::serializeToJson()
 {
-	sysl->TRACE(String("FontList::serializeToJson()"));
+	DECL_TRACER("FontList::serializeToJson()");
 
 	fstream pgFile;
-	String fname = Configuration->getHTTProot()+"/scripts/fonts.js";
+	string fname = Configuration->getHTTProot()+"/scripts/fonts.js";
 
 	try
 	{
-		pgFile.open(fname.toString(), ios::in | ios::out | ios::trunc | ios::binary);
+		pgFile.open(fname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!pgFile.is_open())
 		{
-			sysl->errlog(String("Page::serializeToFile: Error opening file ")+fname);
+			sysl->errlog("Page::serializeToFile: Error opening file "+fname);
 			return false;
 		}
 	}
@@ -219,7 +220,7 @@ bool FontList::serializeToJson()
 
 FONT_T& FontList::findFont(int idx)
 {
-	sysl->TRACE(String("FontList::findFont(int idx)"));
+	DECL_TRACER("FontList::findFont(int idx)");
 
 	for (size_t i = 0; i < fontList.size(); i++)
 	{
@@ -227,13 +228,13 @@ FONT_T& FontList::findFont(int idx)
 			return fontList[i];
 	}
 
-	sysl->TRACE(String("FontList::findFont: Font ID ")+idx+" not found. Have "+fontList.size()+" fonts in cache.");
+	sysl->TRACE("FontList::findFont: Font ID "+to_string(idx)+" not found. Have "+to_string(fontList.size())+" fonts in cache.");
 	return emptyFont;
 }
 
-bool amx::FontList::exist(const String& ff)
+bool amx::FontList::exist(const string& ff)
 {
-	sysl->TRACE(String("FontList::exist(const String& ff)"));
+	DECL_TRACER("FontList::exist(const string& ff)");
 
 	for (size_t i = 0; i < fontFaces.size(); i++)
 	{
@@ -244,27 +245,27 @@ bool amx::FontList::exist(const String& ff)
 	return false;
 }
 
-strings::String FontList::getFontStyle(const strings::String& fs)
+string FontList::getFontStyle(const string& fs)
 {
-	sysl->TRACE(String("FontList::getFontStyle(const strings::String& fs)"));
+	DECL_TRACER("FontList::getFontStyle(const string& fs)");
 
-	if (fs.caseCompare("Regular") == 0)
+	if (Str::caseCompare(fs, "Regular") == 0)
 		return "normal";
 
-	if (fs.caseCompare("Italic") == 0 || fs.caseCompare("Bold Italic") == 0)
+	if (Str::caseCompare(fs, "Italic") == 0 || Str::caseCompare(fs, "Bold Italic") == 0)
 		return "italic";
 
 	return "normal";
 }
 
-strings::String amx::FontList::getFontWeight(const strings::String& fw)
+string amx::FontList::getFontWeight(const string& fw)
 {
-	sysl->TRACE(String("FontList::getFontWeight(const strings::String& fw)"));
+	DECL_TRACER("FontList::getFontWeight(const string& fw)");
 
-	if (fw.caseCompare("Regular") == 0)
+	if (Str::caseCompare(fw, "Regular") == 0)
 		return "normal";
 
-	if (fw.caseCompare("Bold") == 0 || fw.caseCompare("Bold Italic") == 0)
+	if (Str::caseCompare(fw, "Bold") == 0 || Str::caseCompare(fw, "Bold Italic") == 0)
 		return "bold";
 
 	return "normal";
@@ -272,6 +273,7 @@ strings::String amx::FontList::getFontWeight(const strings::String& fw)
 
 void amx::FontList::fillSysFonts()
 {
+	DECL_TRACER("FontList::fillSysFonts()");
 	FONT_T font;
 
 	font.number = 1;

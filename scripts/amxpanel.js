@@ -61,7 +61,7 @@ var cmdArray = {
         { "cmd": "PPOF-", "call": doPPF }, // Popup off
         { "cmd": "PPOG-", "call": unsupported },
         { "cmd": "PPON-", "call": doPPN }, // Popup on
-        { "cmd": "^ANI-", "call": doANI }, // Run a button animation        
+        { "cmd": "^ANI-", "call": doANI }, // Run a button animation
         { "cmd": "^APF-", "call": doAPF }, // Add page flip action to button
         { "cmd": "^BAT-", "call": doBAT }, // Append non-unicode text.
         { "cmd": "^BAU-", "call": doBAU }, // Append unicode text
@@ -80,7 +80,7 @@ var cmdArray = {
         { "cmd": "^BNC-", "call": unsupported },
         { "cmd": "^BNN-", "call": unsupported },
         { "cmd": "^BNT-", "call": unsupported },
-        { "cmd": "^BOP-", "call": doBOP }, // Set the button opacity.        
+        { "cmd": "^BOP-", "call": doBOP }, // Set the button opacity.
         { "cmd": "^BOR-", "call": doBOR }, // Set a border to a specific border style.
         { "cmd": "^BOS-", "call": unsupported },
         { "cmd": "^BPP-", "call": unsupported },
@@ -216,9 +216,7 @@ function amxInt(num)
 
 function findFont(id)
 {
-    var i;
-
-    for (i in fontList.fonts)
+    for (var i in fontList.fonts)
     {
         var fnt = fontList.fonts[i];
 
@@ -299,26 +297,31 @@ function splittCmd(msg)
     return pID;
 }
 
-function iterateButtonStates(addr, bts, callback, pars)
+function iterateButtonStates(addr, bts, callback, pars, port = true)
 {
     var addrRange = getRange(addr);
     var btRange = getRange(bts);
 
-    for (var i = 0; i < addrRange.length; i++)
+	if (addrRange === null || addrRange.length == 0 || btRange === null || btRange.length == 0)
+		return;
+
+    for (var i in addrRange)
     {
-        var bt = findButtonPort(addrRange[i]);
+		var bt = null;
+		
+		if (port)
+			bt = findButtonPort(addrRange[i]);
+		else
+			bt = findButton(addrRange[i]);
 
-        if (bt.length == 0)
-        {
-            errlog('iterateButtons: Error button ' + addrRange[i] + ' not found!');
+        if (bt === null || bt.length == 0)
             continue;
-        }
 
-        for (var b = 0; b < bt.length; b++)
+        for (var b in bt)
         {
             for (var z = 1; z <= bt[b].instances; z++)
             {
-                for (var j = 0; j < btRange.length; j++)
+                for (var j in btRange)
                 {
                     if ((btRange.length == 1 && btRange[0] == 0) || btRange[j] == z)
                     {
@@ -326,13 +329,20 @@ function iterateButtonStates(addr, bts, callback, pars)
                         var button = getButton(bt[b].pnum, bt[b].bi);
                         var idx = 0;
 
-                        for (var i in button.sr)
-                        {
-                            if (button.sr[i].number == z)
-                                idx = parseInt(i);
-                        }
+						if (button !== null)
+						{
+							for (var x in button.sr)
+							{
+								if (button.sr[x].number == z)
+									idx = parseInt(x);
+							}
 
-                        callback(name, button, bt[b], idx, pars);
+							callback(name, button, bt[b], idx, pars);
+						}
+						else
+						{
+							errlog('iterateButtons: Error button ' + name + ' seems not to exist!');
+						}
                     }
                 }
             }
@@ -463,13 +473,10 @@ function getField(msg, field, sep)
 
 function getRange(sr)
 {
-    var narr;
-    var sp1;
-    var sp2;
-    var i;
-    var a;
+	if (typeof sr == "undefined" || sr.length == 0)
+		return null;
 
-    narr = [];
+    var narr = [];
 
     if (sr.indexOf('&') < 0 && sr.indexOf('.') < 0)
     {
@@ -479,15 +486,15 @@ function getRange(sr)
 
     if (sr.indexOf('&') >= 0)
     {
-        sp1 = sr.split('&');
+        var sp1 = sr.split('&');
 
-        for (i = 0; i < sp1.length; i++)
+        for (var i = 0; i < sp1.length; i++)
         {
             if (sp1[i].indexOf('.') >= 0)
             {
-                sp2 = sp1[i].split('.');
+                var sp2 = sp1[i].split('.');
 
-                for (a = parseInt(sp2[0]); a < parseInt(sp2[1]); a++)
+                for (var a = parseInt(sp2[0]); a <= parseInt(sp2[1]); a++)
                     narr.push(a);
             }
             else
@@ -496,9 +503,9 @@ function getRange(sr)
     }
     else
     {
-        sp1 = sr.split('.');
+        var sp1 = sr.split('.');
 
-        for (a = parseInt(sp1[0]); a < parseInt(sp1[1]); a++)
+        for (var a = parseInt(sp1[0]); a <= parseInt(sp1[1]); a++)
             narr.push(a);
     }
 
@@ -507,15 +514,13 @@ function getRange(sr)
 
 function getRGBAColor(name)
 {
-    var i;
-    var nm = name;
     var colArr = [];
 
-    for (i in palette.colors)
+    for (var i in palette.colors)
     {
         var col = palette.colors[i];
 
-        if (col.name == nm)
+        if (col.name == name)
         {
             colArr.push(col.red);
             colArr.push(col.green);
@@ -530,15 +535,13 @@ function getRGBAColor(name)
 
 function getRGBColor(name)
 {
-    var i;
-    var nm = name;
     var colArr = [];
 
-    for (i in palette.colors)
+    for (var i in palette.colors)
     {
         var col = palette.colors[i];
 
-        if (col.name == nm)
+        if (col.name == name)
         {
             colArr.push(col.red);
             colArr.push(col.green);
@@ -631,9 +634,7 @@ function getWebColor(value)
 
 function findPopupNumber(name)
 {
-    var i;
-
-    for (i in Popups.pages)
+    for (var i in Popups.pages)
     {
         if (Popups.pages[i].name == name)
             return Popups.pages[i].ID;
@@ -644,9 +645,7 @@ function findPopupNumber(name)
 
 function findPageNumber(name)
 {
-    var i;
-
-    for (i in Pages.pages)
+    for (var i in Pages.pages)
     {
         if (Pages.pages[i].name == name)
             return Pages.pages[i].ID;
@@ -657,9 +656,7 @@ function findPageNumber(name)
 
 function findPageName(num)
 {
-    var i;
-
-    for (i in Pages.pages)
+    for (var i in Pages.pages)
     {
         if (Pages.pages[i].ID == num)
             return Pages.pages[i].name;
@@ -670,9 +667,7 @@ function findPageName(num)
 
 function findPopupName(num)
 {
-    var i;
-
-    for (i in Popups.pages)
+    for (var i in Popups.pages)
     {
         if (Popups.pages[i].ID == num)
             return Popups.pages[i].name;
@@ -683,9 +678,7 @@ function findPopupName(num)
 
 function findPageGroup(name)
 {
-    var i;
-
-    for (i in Popups.pages)
+    for (var i in Popups.pages)
     {
         if (Popups.pages[i].name == name)
             return Popups.pages[i].group;
@@ -696,18 +689,14 @@ function findPageGroup(name)
 
 function findButton(num)
 {
-    var bt;
-    var btArray;
-    var i;
+    var btArray = [];
 
-    btArray = [];
-
-    for (i in buttonArray.buttons)
+    for (var i in buttonArray.buttons)
     {
-        bt = buttonArray.buttons[i];
+        var bt = buttonArray.buttons[i];
 
         if (bt.cp == curPort && bt.ch == num)
-            btArray.push(buttonArray.buttons[i]);
+            btArray.push(bt);
     }
 
     return btArray;
@@ -715,18 +704,14 @@ function findButton(num)
 
 function findButtonPort(num)
 {
-    var bt;
-    var btArray;
-    var i;
+    var btArray = [];
 
-    btArray = [];
-
-    for (i in buttonArray.buttons)
+    for (var i in buttonArray.buttons)
     {
-        bt = buttonArray.buttons[i];
+        var bt = buttonArray.buttons[i];
 
         if (bt.ap == curPort && bt.ac == num)
-            btArray.push(buttonArray.buttons[i]);
+            btArray.push(bt);
     }
 
     return btArray;
@@ -1211,6 +1196,9 @@ function sendString(cport, cnum, txt)
 
 function textToWeb(txt)
 {
+	if (typeof txt != "string" || txt.length == 0)
+		return txt;
+
     var nt = txt.replace(/&/g, "&amp;");
     nt = nt.replace(/>/g, "&gt;");
     nt = nt.replace(/</g, "&lt;");
@@ -1861,7 +1849,7 @@ function doBAU(msg)
     for (var i = 0; i < text.length; i += 4)
         utext = utext + "\\u" + text.substring(i, i + 4);
 
-    iterateButtonStates(addr, bts, cbBau, unescape(encodeURIComponent(utext)));
+    iterateButtonStates(addr, bts, cbBAU, unescape(encodeURIComponent(utext)));
 }
 function cbBAU(name, button, bt, idx, text)
 {
@@ -1889,10 +1877,10 @@ function doBBR(msg)
     iterateButtonStates(addr, bts, cbBBR, name);
     refreshResource(name);
 }
-function cbBBR(name, button, bt, idx, par)
+function cbBBR(name, button, bt, idx, nm)
 {
     button.sr[idx].sb = 1;
-    button.sr[idx].bm = name;
+    button.sr[idx].bm = nm;
 }
 /*
  * Set the border color to the specified color.
@@ -2076,8 +2064,7 @@ function doBMI(msg)
 }
 function cbBMI(name, button, bt, idx, img)
 {
-    var sr = button.sr[idx];
-    sr.mi = img;
+    var sr = button.sr[idx].mi = img;
 
     try
     {
@@ -2374,16 +2361,13 @@ function doBMP(msg)
 }
 function cbBMP(name, button, bt, idx, img)
 {
-    if (button !== null)
-    {
-        button.sr[idx].bm = img;
+	button.sr[idx].bm = img;
 
-        if (button.sr[idx].bm_width == 0)
-            button.sr[idx].bm_width = button.wt;
+	if (button.sr[idx].bm_width == 0)
+		button.sr[idx].bm_width = button.wt;
 
-        if (button.sr[idx].bm_height == 0)
-            button.sr[idx].bm_height = button.ht;
-    }
+	if (button.sr[idx].bm_height == 0)
+		button.sr[idx].bm_height = button.ht;
 
     try
     {
@@ -2430,7 +2414,7 @@ function doBOR(msg)
 
     if (bname.charAt(0) >= '0' && bname.charAt(0) <= '9')
         border = getBorderStyleNum(bname);
-    
+
     if (border === -1)
         border = getBorderStyle(bname);
 
@@ -2460,7 +2444,7 @@ function doBOR(msg)
             {
                 var sr = button.sr[j];
                 var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi + "_" + sr.number;
-                
+
                 try
                 {
                     var style = document.getElementById(name).style;
@@ -2665,21 +2649,24 @@ function doFON(msg)
 }
 function cbFON(name, button, bt, idx, fID)
 {
-    var sr = button.sr[idx];
-    sr.fi = fID;
+	var sr = button.sr[idx].fi = fID;
 
-    try
-    {
-        var font = findFont(fID);
-        document.getElementById(name).style.fontFamily = font.name;
-        document.getElementById(name).style.fontSize = font.size+"pt";
-        document.getElementById(name).style.fontStyle = getFontStyle(font.subfamilyName);
-        document.getElementById(name).style.fontWeight = getFontWeight(font.subfamilyName);
-    }
-    catch(e)
-    {
-        errlog('cbFON: Button '+name+' not found.');
-    }
+	try
+	{
+		var font = findFont(fID);
+
+		if (font === -1)
+			return;
+
+		document.getElementById(name).style.fontFamily = font.name;
+		document.getElementById(name).style.fontSize = font.size+"pt";
+		document.getElementById(name).style.fontStyle = getFontStyle(font.subfamilyName);
+		document.getElementById(name).style.fontWeight = getFontWeight(font.subfamilyName);
+	}
+	catch(e)
+	{
+		errlog('cbFON: Button '+name+' not found.');
+	}
 }
 /*
  * Set the icon to a button.
@@ -2710,7 +2697,7 @@ function cbICO(name, button, bt, i, idx)
             img.removeAttribute("style");
             img.style.display = "flex";
             img.style.order = 2;
-            justifyImage(img, getButton(bt.pnum, bt.bi), CENTER_CODE.SC_ICON, button.sr[i].number);
+            justifyImage(img, button, CENTER_CODE.SC_ICON, button.sr[i].number);
         }
         catch (e)
         {
@@ -2793,7 +2780,7 @@ function cbICO(name, button, bt, i, idx)
             var icoPos = getIconPosInfo(bt.pnum, bt.bi, button.sr[i].number);
 
             if (icoPos !== null)
-                justifyImage(img, getButton(bt.pnum, bt.bi), CENTER_CODE.SC_ICON, button.sr[i].number);
+                justifyImage(img, button, CENTER_CODE.SC_ICON, button.sr[i].number);
         }
     }
 }

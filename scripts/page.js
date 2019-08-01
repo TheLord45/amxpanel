@@ -417,6 +417,22 @@ function onOnline()
 	else
 		setOnlineStatus(0);
 }
+function onOffline()
+{
+	debug("onOffline: We are offline!");
+
+	if (wsocket !== null)
+	{
+		if (wsocket.readyState == WebSocket.CLOSED)	// offline?
+			setOnlineStatus(0);
+		else if (wsocket.readyState == WebSocket.CLOSING)	// on the way to became offline
+			setOnlineStatus(9);
+		else
+			setOnlineStatus(1);
+	}
+	else
+		setOnlineStatus(0);
+}
 /*
  * Gets the x/y coordinates of the mouse click and finds the pixel
  * of the image. If the pixel is transparent, the image underneath
@@ -504,7 +520,7 @@ function activeTouch(event, name, object)
 			}
 			else
 			{
-				debug("activeTouch: No graphics: "+objs[i].id);
+//				debug("activeTouch: No graphics: "+objs[i].id);
 				var col = getAMXColor(button.sr[0].cf);
 
 				if (col.length == 4)
@@ -1117,7 +1133,7 @@ function doDraw(pgKey, pageID, what)
 					fnt.style.mozUserSelect = 'none';
 					fnt.style.userSelect = 'none';
 					fnt.style.pointerEvents = 'none';
-					fnt.style.fontFamily = font.name;
+					fnt.style.fontFamily = "\""+font.name+"\"";
 					fnt.style.fontSize = font.size+"pt";
 					fnt.style.fontStyle = getFontStyle(font.subfamilyName);
 					fnt.style.fontWeight = getFontWeight(font.subfamilyName);

@@ -34,6 +34,7 @@
 #include "syslog.h"
 #include "daemonize.h"
 #include "config.h"
+#include "trace.h"
 
 using namespace std;
 
@@ -59,7 +60,7 @@ Daemonize::Daemonize()
  */
 void Daemonize::daemon_start (bool ignsigcld)
 {
-	sysl->TRACE(std::string("Daemonize::daemon_start (bool ignsigcld)"));
+	DECL_TRACER("Daemonize::daemon_start (bool ignsigcld)");
 
 	int childpid, fd;
 
@@ -117,7 +118,7 @@ out:
 
 	if (!of.is_open())
 	{
-		sysl->warnlog(string("Can't create PID file ") + Configuration->getPidFile().toString() + ": " + strerror(errno));
+		sysl->warnlog(string("Can't create PID file ") + Configuration->getPidFile() + ": " + strerror(errno));
 		return;
 	}
 
@@ -127,7 +128,7 @@ out:
 
 void Daemonize::changeToUser(const std::string &usr, const std::string &grp)
 {
-	sysl->TRACE(std::string("Daemonize::changeToUser(const std::string &usr, const std::string &grp)"));
+	DECL_TRACER("Daemonize::changeToUser(const std::string &usr, const std::string &grp)");
 	gid_t gr_gid;
 
 	if (!usr.empty())
@@ -193,7 +194,7 @@ Daemonize::~Daemonize()
 
 void sig_child (int /* x */)
 {
-	sysl->TRACE(std::string("sig_child(int)"));
+	DECL_TRACER("sig_child(int)");
 
 #if defined(BSD) && !defined(sinix) && !defined(Linux)
 	int pid;
@@ -210,7 +211,7 @@ void sig_child (int /* x */)
  */
 void sig_handler(int sig)
 {
-	sysl->TRACE(std::string("sig_handler(int sig) [sig=")+std::to_string(sig)+"]");
+	DECL_TRACER("sig_handler(int sig) [sig="+std::to_string(sig)+"]");
 
 	if (sig == SIGTERM || sig == SIGKILL)
 	{

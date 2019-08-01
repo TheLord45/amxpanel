@@ -36,6 +36,8 @@
 #include <iostream>
 #include <cstring>
 #include <string>
+#include <chrono>
+#include <thread>
 #include "syslog.h"
 #include "strings.h"
 #include "config.h"
@@ -46,6 +48,8 @@
 #include <asio/read.hpp>
 #endif
 #include "nameformat.h"
+#include "trace.h"
+#include "str.h"
 
 #ifdef __APPLE__
 using namespace boost;
@@ -56,11 +60,14 @@ extern Config *Configuration;
 
 using asio::steady_timer;
 using asio::ip::tcp;
-using std::placeholders::_1;
-using std::placeholders::_2;
-using namespace amx;
 
-std::string cmdList[] = {
+using namespace amx;
+using namespace std;
+
+using placeholders::_1;
+using placeholders::_2;
+
+string cmdList[] = {
 	"@WLD-", "@AFP-", "@GCE-", "@APG-", "@CPG-", "@DPG-", "@PDR-", "@PHE-",
 	"@PHP-", "@PHT-", "@PPA-", "@PPF-", "@PPG-", "@PPK-", "@PPM-", "@PPN-",
 	"@PPT-", "@PPX", "@PSE-", "@PSP-", "@PST-", "PAGE-", "PPOF-", "PPOG-",
@@ -78,7 +85,8 @@ std::string cmdList[] = {
 	"@BRT-", "DBEEP", "@EKP-", "PKEYP-", "@PKP-", "SETUP", "SHUTDOWN", "SLEEP",
 	"@SOU-", "@TKP-", "TPAGEON", "TPAGEOFF", "@VKB", "WAKE", "^CAL", "^KPS-",
 	"^VKS-", "@PWD-", "^PWD-", "^BBR-", "^RAF-", "^RFR-", "^RMF-", "^RSR-",
-	"^MODEL?", "^ICS-", "^ICE-", "^ICM-", "^PHN-", "?PHN-", "LEVON", "RXON"
+	"^MODEL?", "^ICS-", "^ICE-", "^ICM-", "^PHN-", "?PHN-", "LEVON", "RXON",
+	"\0"
 };
 
 #define NUMBER_CMDS		144
@@ -88,9 +96,9 @@ AMXNet::AMXNet()
 	  heartbeat_timer_(io_context),
 	  socket_(io_context)
 {
-	sysl->TRACE(Syslog::ENTRY, std::string("AMXNet::AMXNet()"));
+	sysl->TRACE(Syslog::ENTRY, "AMXNet::AMXNet()");
+	waitCallback = false;
 	callback = 0;
-	cbWebConn = 0;
 	stopped_ = false;
 	init();
 }
@@ -100,10 +108,9 @@ AMXNet::~AMXNet()
 	devInfo.clear();
 	comStack.clear();
 	callback = 0;
-	cbWebConn = 0;
 	stop();
     io_context.stop();
-	sysl->TRACE(Syslog::EXIT, std::string("AMXNet::~AMXNet()"));
+	sysl->TRACE(Syslog::EXIT, "AMXNet::~AMXNet()");
 }
 
 void AMXNet::init()
@@ -112,7 +119,7 @@ void AMXNet::init()
 	initSend = false;
 	ready = false;
 	write_busy = false;
-	strings::String version = "v1.00.00";
+	string version = "v1.00.00";
 	// Initialize the devive info structure
 	DEVICE_INFO di;
 	// Answer to MC = 0x0017 --> MC = 0x0097
@@ -173,30 +180,30 @@ void AMXNet::init()
 
 void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)
 {
-	sysl->TRACE(std::string("AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)"));
+	DECL_TRACER(string("AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)"));
 	endpoints_ = endpoints;
 	panelID = id;
 
 	try
 	{
 		start_connect(endpoints_.begin());
-		deadline_.async_wait(std::bind(&AMXNet::check_deadline, this));
+		deadline_.async_wait(bind(&AMXNet::check_deadline, this));
 	}
-	catch (std::exception& e)
+	catch (exception& e)
 	{
-		sysl->errlog(std::string("AMXNet::start: Error: ")+e.what());
+		sysl->errlog(string("AMXNet::start: Error: ")+e.what());
 	}
 }
 
 bool AMXNet::isConnected()
 {
-	sysl->TRACE(std::string("AMXNet::isConnected() --> ")+((socket_.is_open())?"TRUE":"FALSE"));
+	DECL_TRACER(string("AMXNet::isConnected() --> ")+((socket_.is_open())?"TRUE":"FALSE"));
 	return socket_.is_open();
 }
 
 void AMXNet::stop()
 {
-	sysl->TRACE(std::string("AMXNet::stop: Stopping the client..."));
+	DECL_TRACER(string("AMXNet::stop: Stopping the client..."));
 
 	if (stopped_)
 		return;
@@ -205,7 +212,7 @@ void AMXNet::stop()
 #ifdef __APPLE__
 	system::error_code ignored_error;
 #else
-	std::error_code ignored_error;
+	error_code ignored_error;
 #endif
 	try
 	{
@@ -213,36 +220,36 @@ void AMXNet::stop()
 		heartbeat_timer_.cancel();
 		socket_.shutdown(asio::socket_base::shutdown_both, ignored_error);
 		socket_.close(ignored_error);
-		sysl->TRACE(std::string("AMXNet::stop: Client was stopped."));
+		sysl->TRACE(string("AMXNet::stop: Client was stopped."));
 	}
-	catch (std::exception& e)
+	catch (exception& e)
 	{
-		sysl->errlog(std::string("AMXNet::stop: Error: ")+e.what());
+		sysl->errlog(string("AMXNet::stop: Error: ")+e.what());
 	}
 }
 
 void AMXNet::Run()
 {
-	sysl->TRACE(std::string("AMXNet::Run()"));
+	DECL_TRACER("AMXNet::Run()");
 
 	try
 	{
 		asio::ip::tcp::resolver r(io_context);
-		start(r.resolve(Configuration->getAMXController().toString(), strings::String(Configuration->getAMXPort()).toString()), panelID);
+		start(r.resolve(Configuration->getAMXController(), to_string(Configuration->getAMXPort())), panelID);
 		io_context.run();
-		sysl->TRACE(std::string("AMXNet::Run: Thread ended."));
+		sysl->TRACE("AMXNet::Run: Thread ended.");
 	}
-	catch (std::exception& e)
+	catch (exception& e)
 	{
-		sysl->errlog(strings::String("AMXNet::Run: Error connecting to %1:%2!").arg(Configuration->getAMXController()).arg(Configuration->getAMXPort()));
-		sysl->errlog(std::string("AMXNet::Run: ")+e.what());
+		sysl->errlog("AMXNet::Run: Error connecting to "+Configuration->getAMXController()+":"+to_string(Configuration->getAMXPort())+"!");
+		sysl->errlog(string("AMXNet::Run: ")+e.what());
 		stopped_ = true;
 	}
 }
 
 void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)
 {
-	sysl->TRACE(std::string("AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
+	DECL_TRACER("AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)");
 
 	if (socket_.is_open())
 	{
@@ -252,15 +259,15 @@ void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpo
 
 	if (endpoint_iter != endpoints_.end())
 	{
-		sysl->TRACE(strings::String("AMXNet::start_connect: Trying ")+endpoint_iter->endpoint().address().to_string()+":"+endpoint_iter->endpoint().port()+" ...\n");
+		sysl->TRACE("AMXNet::start_connect: Trying "+endpoint_iter->endpoint().address().to_string()+":"+to_string(endpoint_iter->endpoint().port())+" ...");
 
 		// Set a deadline for the connect operation.
-		deadline_.expires_after(std::chrono::seconds(60));
+		deadline_.expires_after(chrono::seconds(60));
 		stopped_ = false;
 
 		// Start the asynchronous connect operation.
 		socket_.async_connect(endpoint_iter->endpoint(),
-			std::bind(&AMXNet::handle_connect,
+			bind(&AMXNet::handle_connect,
 			this, _1, endpoint_iter));
 	}
 	else
@@ -270,9 +277,9 @@ void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpo
 	}
 }
 
-void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter)
+void AMXNet::handle_connect(const error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter)
 {
-	sysl->TRACE(std::string("handle_connect(const std::error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
+	DECL_TRACER(string("handle_connect(const error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
 
 	if (stopped_)
 		return;
@@ -282,14 +289,14 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 	// the timeout handler must have run first.
 	if (!socket_.is_open())
 	{
-		sysl->TRACE(std::string("Connect timed out"));
+		sysl->TRACE(string("Connect timed out"));
 
 		// Try the next available endpoint.
 		start_connect(++endpoint_iter);
     }
 	else if (error)		// Check if the connect operation failed before the deadline expired.
 	{
-		sysl->errlog(std::string("AMXNet::handle_connect: Connect error: ")+error.message());
+		sysl->errlog(string("AMXNet::handle_connect: Connect error: ")+error.message());
 
 		// We need to close the socket used in the previous connection attempt
 		// before starting a new one.
@@ -300,7 +307,7 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 	}
 	else
 	{
-		sysl->log(Syslog::INFO, strings::String("AMXNet::handle_connect: Connected to ")+endpoint_iter->endpoint().address().to_string()+":"+endpoint_iter->endpoint().port());
+		sysl->log(Syslog::INFO, "AMXNet::handle_connect: Connected to "+endpoint_iter->endpoint().address().to_string()+":"+to_string(endpoint_iter->endpoint().port()));
 
 		try
 		{
@@ -309,7 +316,7 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 				// Start the input actor.
 				start_read();
 
-				// Start the heartbeat actor.
+				// Start the output actor.
 				if (isRunning())
 					start_write();
 			}
@@ -317,23 +324,22 @@ void AMXNet::handle_connect(const std::error_code& error, asio::ip::tcp::resolve
 			if (!stopped_ && killed)
 				stop();
 		}
-		catch (std::exception& e)
+		catch (exception& e)
 		{
-			sysl->errlog(std::string("AMXNet::handle_connect: Error: ")+e.what());
+			sysl->errlog(string("AMXNet::handle_connect: Error: ")+e.what());
 		}
 	}
 }
 
 void AMXNet::start_read()
 {
-	sysl->TRACE(std::string("start_read()"));
+	DECL_TRACER(string("start_read()"));
 
 	if (!isRunning())
 		return;
 
 	// Set a deadline for the read operation.
-	deadline_.expires_after(std::chrono::seconds(60));
-//	input_buffer_.clear();
+	deadline_.expires_after(chrono::seconds(60));
 	protError = false;
 	comm.clear();
 #ifdef __APPLE__
@@ -341,86 +347,86 @@ void AMXNet::start_read()
 #else
 	asio::error_code error;
 #endif
-	// Start an asynchronous operation to read a newline-delimited message.
+	// Start an asynchronous operation to read a message.
 	// Read the first byte. It should be 0x02
 	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
 		handle_read(error, 1, RT_ID);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_LEN);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
 		handle_read(error, 1, RT_SEP1);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
 		handle_read(error, 1, RT_TYPE);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD1);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_DEVICE);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD2);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD3);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD4);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_WORD5);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 1), asio::transfer_exactly(1), error) == 1)
 		handle_read(error, 1, RT_SEP2);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_COUNT);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	if (asio::read(socket_, asio::buffer(buff_, 2), asio::transfer_exactly(2), error) == 2)
 		handle_read(error, 2, RT_MC);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 
 	// Calculate the length of the data block. This is the rest of the total length
 	size_t len = (comm.hlen + 3) - 0x0015;
 
 	if (len >= 2048)
 	{
-		sysl->errlog(strings::String("AMXnet::start_read: Length to read is ")+len+" bytes, but the buffer is only 2048 bytes!");
+		sysl->errlog("AMXnet::start_read: Length to read is "+to_string(len)+" bytes, but the buffer is only 2048 bytes!");
 		return;
 	}
 
 	if (asio::read(socket_, asio::buffer(buff_, len), asio::transfer_exactly(len), error) == len)
 		handle_read(error, len, RT_DATA);
 	else
-		throw std::invalid_argument(error.message());
+		throw invalid_argument(error.message());
 }
 
 #ifdef __APPLE__
@@ -429,12 +435,11 @@ void AMXNet::handle_read(const system::error_code& error, size_t n, R_TOKEN tk)
 void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 #endif
 {
-	sysl->TRACE(std::string("handle_read(const std::error_code& error, std::size_t n, R_TOKEN tk)"));
+	DECL_TRACER("handle_read(const error_code& error, size_t n, R_TOKEN tk)");
 
 	if (!isRunning())
 		return;
 
-//	if ((cbWebConn && !cbWebConn(this)) || killed)
 	if (killed)
 	{
 		stop();
@@ -446,7 +451,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 	size_t len;
 	bool ignore = false;
 	ANET_SEND s;		// Used to answer system requests
-	strings::String cmd;
+	string cmd;
 
 	if (!error)
 	{
@@ -454,9 +459,9 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 		input_buffer_.assign((char *)&buff_[0], len);
 
 		if (len >= 8)
-			sysl->DebugMsg(strings::String("AMXNet::handle_read: read:\n")+NameFormat::strToHex(input_buffer_, 8, true)+"\n\t\t\t\t\tToken: "+tk+", "+len+" bytes");
+			sysl->DebugMsg("AMXNet::handle_read: read:\n"+NameFormat::strToHex(input_buffer_, 8, true)+"\n\t\t\t\t\tToken: "+to_string(tk)+", "+to_string(len)+" bytes");
 		else
-			sysl->DebugMsg(strings::String("AMXNet::handle_read: read: ")+NameFormat::strToHex(input_buffer_, 1)+", Token: "+tk+", "+len+" bytes");
+			sysl->DebugMsg("AMXNet::handle_read: read: "+NameFormat::strToHex(input_buffer_, 1)+", Token: "+to_string(tk)+", "+to_string(len)+" bytes");
 
 		switch (tk)
 		{
@@ -498,7 +503,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 				if (protError || !isRunning())
 					break;
 
-				sysl->TRACE(strings::String("AMXNet::handle_read: Received message type: 0x")+NameFormat::toHex(comm.MC, 4));
+				sysl->TRACE("AMXNet::handle_read: Received message type: 0x"+NameFormat::toHex(comm.MC, 4));
 
 				switch (comm.MC)
 				{
@@ -537,7 +542,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						if (comm.MC < 0x0020)
 						{
 							if (callback)
-								callback(comm);
+								callCallback(comm);
 						}
 						else
 							sendCommand(s);
@@ -574,7 +579,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						}
 
 						if (callback)
-							callback(comm);
+							callCallback(comm);
 					break;
 
 					case 0x000b:	// string value change
@@ -587,30 +592,37 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.message_string.type = buff_[6];
 						comm.data.message_string.length = makeWord(buff_[7], buff_[8]);
 						len = (buff_[6] == 0x01) ? comm.data.message_string.length : comm.data.message_string.length * 2;
+
+						if (len >= sizeof(comm.data.message_string.content))
+						{
+							len = sizeof(comm.data.message_string.content) - 1;
+							comm.data.message_string.length = (buff_[6] == 0x01) ? len : len / 2;
+						}
+
 						memcpy(&comm.data.message_string.content[0], &buff_[9], len);
 						pos = (int)(len + 10);
 						comm.checksum = buff_[pos];
 						cmd.assign((char *)&comm.data.message_string.content[0]);
-						sysl->DebugMsg(strings::String("AMXNet::handle_read: cmd=")+cmd);
+						sysl->DebugMsg("AMXNet::handle_read: cmd="+cmd);
 
 						if (isCommand(cmd))
 						{
-							sysl->DebugMsg(strings::String("AMXNet::handle_read: Command found!"));
+							sysl->DebugMsg("AMXNet::handle_read: Command found!");
 							oldCmd.assign(cmd);
 						}
 						else
 						{
-							sysl->DebugMsg(strings::String("AMXNet::handle_read: Before concatenated ..."));
+							sysl->DebugMsg("AMXNet::handle_read: Before concatenated ...");
 							oldCmd.append(cmd);
-							sysl->DebugMsg(strings::String("AMXNet::handle_read: Concatenated cmd=")+oldCmd);
-							memset(&comm.data.message_string.content[0], 0, 1500);
-							memcpy(&comm.data.message_string.content[0], oldCmd.data(), 1499);
+							sysl->DebugMsg("AMXNet::handle_read: Concatenated cmd="+oldCmd);
+							memset(&comm.data.message_string.content[0], 0, sizeof(comm.data.message_string.content));
+							memcpy(&comm.data.message_string.content[0], oldCmd.data(), sizeof(comm.data.message_string.content)-1);
 							comm.data.message_string.length = oldCmd.length();
 							oldCmd.clear();
 						}
 
 						if (callback)
-							callback(comm);
+							callCallback(comm);
 					break;
 
 					case 0x000e:	// request level value
@@ -621,7 +633,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.checksum = buff_[8];
 
 						if (callback)
-							callback(comm);
+							callCallback(comm);
 					break;
 
 					case 0x000f:	// request output channel status
@@ -632,7 +644,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.checksum = buff_[8];
 
 						if (callback)
-							callback(comm);
+							callCallback(comm);
 					break;
 
 					case 0x0010:	// request port count
@@ -715,7 +727,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.sendStatusCode.system = makeWord(buff_[4], buff_[5]);
 
 						if (callback)
-							callback(comm);
+							callCallback(comm);
 					break;
 
 					case 0x0097:	// receive device info
@@ -767,7 +779,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 						sendCommand(s);
 
-						sysl->TRACE(strings::String("AMXNet::handle_read: S/N: ")+(char *)&comm.data.srDeviceInfo.serial[0]+" | "+(char *)&comm.data.srDeviceInfo.info[0]);
+						sysl->TRACE(string("AMXNet::handle_read: S/N: ")+(char *)&comm.data.srDeviceInfo.serial[0]+" | "+(char *)&comm.data.srDeviceInfo.info[0]);
 					break;
 
 					case 0x00a1:	// request status
@@ -794,21 +806,21 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 	}
 	else
 	{
-		sysl->errlog(std::string("AMXNet::handle_read: Error on receive: ")+error.message());
+		sysl->errlog(string("AMXNet::handle_read: Error on receive: ")+error.message());
 		stop();
 	}
 }
 
 bool AMXNet::sendCommand (const ANET_SEND& s)
 {
-	sysl->TRACE(std::string("AMXNet::sendCommand (const ANET_SEND& s)"));
+	DECL_TRACER("AMXNet::sendCommand (const ANET_SEND& s)");
 
 	bool status = false;
 	ANET_COMMAND com;
 	com.clear();
 	com.MC = s.MC;
 	com.device1 = 0;
-	com.device2 = panelID; // Configuration->getAMXChannel();
+	com.device2 = panelID;
 	com.port1 = 1;
 	com.system = Configuration->getAMXSystem();
 	com.port2 = s.port;
@@ -982,8 +994,8 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.srDeviceInfo.info[1] = 4;	// length of following data
 
 			{
-				strings::String addr = socket_.local_endpoint().address().to_string();
-				std::vector<strings::String> parts = addr.split('.');
+				string addr = socket_.local_endpoint().address().to_string();
+				vector<string> parts = Str::split(addr, '.');
 
 				for (size_t i = 0; i < parts.size(); i++)
 					com.data.srDeviceInfo.info[i+2] = (unsigned char)atoi(parts[i].data());
@@ -1003,8 +1015,10 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 
 int AMXNet::msg97fill(ANET_COMMAND *com)
 {
+	DECL_TRACER("AMXNet::msg97fill(ANET_COMMAND *com)");
+
 	int pos = 0;
-	unsigned char buf[128];
+	unsigned char buf[512];
 
 	for (size_t i = 0; i < devInfo.size(); i++)
 	{
@@ -1032,13 +1046,13 @@ int AMXNet::msg97fill(ANET_COMMAND *com)
 		pos++;
 		*(buf+pos) = 0x04;	// field length: 4 bytes
 		// Now the IP Address
-		strings::String addr = socket_.local_endpoint().address().to_string();
-		std::vector<strings::String> parts = addr.split('.');
+		string addr = socket_.local_endpoint().address().to_string();
+		vector<string> parts = Str::split(addr, '.');
 
 		for (size_t i = 0; i < parts.size(); i++)
 		{
 			pos++;
-			*(buf+pos) = (unsigned char)atoi(parts[i].data());
+			*(buf+pos) = (unsigned char)atoi(parts[i].c_str());
 		}
 
 		pos++;
@@ -1053,7 +1067,7 @@ int AMXNet::msg97fill(ANET_COMMAND *com)
 
 void AMXNet::start_write()
 {
-	sysl->TRACE(std::string("AMXNet::start_write()"));
+	DECL_TRACER(string("AMXNet::start_write()"));
 
 	if (!isRunning())
 		return;
@@ -1071,20 +1085,20 @@ void AMXNet::start_write()
 
 		if (buf == 0)
 		{
-			sysl->errlog(strings::String("AMXNet::start_write: Error creating a buffer! Token number: ")+send.MC);
+			sysl->errlog(string("AMXNet::start_write: Error creating a buffer! Token number: ")+to_string(send.MC));
 			continue;
 		}
 
-		asio::async_write(socket_, asio::buffer(buf, send.hlen + 4), std::bind(&AMXNet::handle_write, this, _1));
+		asio::async_write(socket_, asio::buffer(buf, send.hlen + 4), bind(&AMXNet::handle_write, this, _1));
 		delete[] buf;
 	}
 
 	write_busy = false;
 }
 
-void AMXNet::handle_write(const std::error_code& error)
+void AMXNet::handle_write(const error_code& error)
 {
-	sysl->TRACE(std::string("handle_write(const std::error_code& error)"));
+	DECL_TRACER("handle_write(const error_code& error)");
 
 	if (!isRunning())
 		return;
@@ -1092,9 +1106,9 @@ void AMXNet::handle_write(const std::error_code& error)
 	if (!error)
 	{
 		while (comStack.size() == 0)
-			heartbeat_timer_.expires_after(std::chrono::microseconds(150));
+			heartbeat_timer_.expires_after(chrono::microseconds(150));
 
-		heartbeat_timer_.async_wait(std::bind(&AMXNet::start_write, this));
+		heartbeat_timer_.async_wait(bind(&AMXNet::start_write, this));
 	}
 	else
 	{
@@ -1105,7 +1119,7 @@ void AMXNet::handle_write(const std::error_code& error)
 
 void AMXNet::check_deadline()
 {
-	sysl->TRACE(std::string("check_deadline()"));
+	DECL_TRACER(string("check_deadline()"));
 
 	if (!isRunning())
 		return;
@@ -1126,7 +1140,7 @@ void AMXNet::check_deadline()
 	}
 
 	// Put the actor back to sleep.
-	deadline_.async_wait(std::bind(&AMXNet::check_deadline, this));
+	deadline_.async_wait(bind(&AMXNet::check_deadline, this));
 }
 
 uint16_t AMXNet::swapWord(uint16_t w)
@@ -1145,14 +1159,14 @@ uint32_t AMXNet::swapDWord(uint32_t dw)
 
 unsigned char AMXNet::calcChecksum(const unsigned char* buffer, size_t len)
 {
-	sysl->TRACE(std::string("AMXNet::calcChecksum(const unsigned char* buffer, size_t len)"));
+	DECL_TRACER("AMXNet::calcChecksum(const unsigned char* buffer, size_t len)");
 	unsigned long sum = 0;
 
 	for (size_t i = 0; i < len; i++)
 		sum += (unsigned long)(*(buffer+i)) & 0x000000ff;
 
 	sum &= 0x000000ff;
-	sysl->TRACE(strings::String("AMXNet::calcChecksum: Checksum=")+NameFormat::toHex((int)sum, 2)+", "+len+" bytes.");
+	sysl->TRACE("AMXNet::calcChecksum: Checksum="+NameFormat::toHex((int)sum, 2)+", #bytes="+to_string(len)+" bytes.");
 	return (unsigned char)sum;
 }
 
@@ -1166,14 +1180,18 @@ uint32_t AMXNet::makeDWord ( unsigned char b1, unsigned char b2, unsigned char b
 	return ((b1 << 24) & 0xff000000) | ((b2 << 16) & 0x00ff0000) | ((b3  << 8) & 0x0000ff00) | b4;
 }
 
-bool AMXNet::isCommand(const strings::String& cmd)
+bool AMXNet::isCommand(const string& cmd)
 {
-	sysl->TRACE(strings::String("AMXNet::isCommand(strings::String& cmd)"));
+	DECL_TRACER("AMXNet::isCommand(string& cmd)");
 
-	for (int i = 0; i < NUMBER_CMDS; i++)
+	int i = 0;
+
+	while (cmdList[i][0] != 0)
 	{
-		if (cmd.findOf(cmdList[i]) == 0)
+		if (cmd.find(cmdList[i]) == 0)
 			return true;
+
+		i++;
 	}
 
 	return false;
@@ -1181,7 +1199,7 @@ bool AMXNet::isCommand(const strings::String& cmd)
 
 unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 {
-	sysl->TRACE(std::string("AMXNet::makeBuffer (const ANET_COMMAND& s)"));
+	DECL_TRACER("AMXNet::makeBuffer (const ANET_COMMAND& s)");
 
 	int pos = 0;
 	bool valid = false;
@@ -1192,9 +1210,9 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 		buf = new unsigned char[s.hlen+5];
 		memset(buf, 0, s.hlen+5);
 	}
-	catch(std::exception& e)
+	catch(exception& e)
 	{
-		sysl->errlog(std::string("AMXNet::makeBuffer: Error allocating memory: ")+e.what());
+		sysl->errlog(string("AMXNet::makeBuffer: Error allocating memory: ")+e.what());
 		return 0;
 	}
 
@@ -1466,7 +1484,31 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 		return 0;
 	}
 
-	strings::String b((char *)buf, s.hlen+4);
-	sysl->TRACE(strings::String("AMXNet::makeBuffer:\n")+NameFormat::strToHex(b, 8, true));
+	string b((char *)buf, s.hlen+4);
+	sysl->TRACE("AMXNet::makeBuffer: "+NameFormat::strToHex(b, 8, true));
 	return buf;
 }
+
+/*
+ * This method is necessary because we're calling a callback method out of a
+ * thread. This means, that we may call the same methode 2 times. But the method
+ * is not reentrand! So we must make sure, the method is called one by one.
+ * This is done with the atomic variable "waitCallback". As long as it is true,
+ * we've to wait. At the moment it is false, we can end the wait loop and call
+ * the callback method.
+ */
+void AMXNet::callCallback(const ANET_COMMAND& acmd)
+{
+	DECL_TRACER("AMXNet::callCallback(const ANET_COMMAND& acmd)");
+
+	if (callback == 0)
+		return;
+
+	while (waitCallback)
+		this_thread::sleep_for(chrono::milliseconds(50));
+
+	waitCallback = true;
+	callback(acmd);
+	waitCallback = false;
+}
+

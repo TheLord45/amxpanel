@@ -20,7 +20,6 @@
 #define __PAGE_H__
 
 #include <vector>
-#include "strings.h"
 #include "panelstruct.h"
 #include "pushbutton.h"
 #include "icon.h"
@@ -31,24 +30,24 @@ namespace amx
 	{
 		public:
 			Page();
-			Page(const strings::String& file);
+			Page(const std::string& file);
 			~Page();
 
-			void setFileName(const strings::String& f) { pageFile = f; }
-			strings::String getFileName() { return pageFile; }
+			void setFileName(const std::string& f) { pageFile = f; }
+			std::string getFileName() { return pageFile; }
 			bool parsePage();
 			bool isOk() { return status; }
-			strings::String& getStyleCode();
-			strings::String& getWebCode();
+			std::string& getStyleCode();
+			std::string& getWebCode();
 			int getPageID() { return page.pageID; }
-			strings::String& getPageName() { return page.name; }
+			std::string& getPageName() { return page.name; }
 			PAGETYPE getType() { return page.type; }
-			strings::String& getGroupName() { return page.group; }
-			strings::String& getScriptCode() { return scriptCode; }
-			strings::String& getScriptStart() { return scrStart; }
-			strings::String& getBtArray() { return btArray; }
+			std::string& getGroupName() { return page.group; }
+			std::string& getScriptCode() { return scriptCode; }
+			std::string& getScriptStart() { return scrStart; }
+			std::string& getBtArray() { return btArray; }
 			bool haveBtArray() { return !btArray.empty(); }
-			strings::String& getBargraphs() { return sBargraphs; }
+			std::string& getBargraphs() { return sBargraphs; }
 			bool haveBargraphs() { return !sBargraphs.empty(); }
 			PAGE_T& getPageData() { return page; }
 
@@ -72,15 +71,15 @@ namespace amx
 			bool buttonsDone;
 			bool styleDone;
 			bool webDone;
-			strings::String webBuffer;
-			std::vector<strings::String> btWebBuffer;
-			strings::String styleBuffer;
-			strings::String scriptCode;
-			strings::String scrStart;
-			strings::String paletteFile;
-			strings::String pageFile;
-			strings::String btArray;
-			strings::String sBargraphs;
+			std::string webBuffer;
+			std::vector<std::string> btWebBuffer;
+			std::string styleBuffer;
+			std::string scriptCode;
+			std::string scrStart;
+			std::string paletteFile;
+			std::string pageFile;
+			std::string btArray;
+			std::string sBargraphs;
 			int totalWidth;
 			int totalHeight;
 			FontList *fontClass;

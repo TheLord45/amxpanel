@@ -45,34 +45,34 @@ namespace amx
      */
     typedef struct PROJECT_INFO
     {
-        strings::String protection;
+        std::string protection;
         bool encrypted;
-        strings::String password;
-        strings::String panelType;
-        strings::String fileRevision;
-        strings::String dealerID;
-        strings::String jobName;
-        strings::String salesOrder;
-        strings::String purchaseOrder;
-        strings::String jobComment;
-        strings::String designerID;
+        std::string password;
+        std::string panelType;
+        std::string fileRevision;
+        std::string dealerID;
+        std::string jobName;
+        std::string salesOrder;
+        std::string purchaseOrder;
+        std::string jobComment;
+        std::string designerID;
         DateTime creationDate;
         DateTime revisionDate;
         DateTime lastSaveDate;
-        strings::String fileName;
-        strings::String colorChoice;
+        std::string fileName;
+        std::string colorChoice;
         int specifyPortCount;
         int specifyChanCount;
     }PROJECT_INFO_T;
 
     typedef struct SUPPORT_FILE_LIST
     {
-        strings::String mapFile;
-        strings::String colorFile;
-        strings::String fontFile;
-        strings::String themeFile;
-        strings::String iconFile;
-        strings::String externalButtonFile;
+        std::string mapFile;
+        std::string colorFile;
+        std::string fontFile;
+        std::string themeFile;
+        std::string iconFile;
+        std::string externalButtonFile;
     }SUPPORT_FILE_LIST_T;
 
     typedef struct PANEL_SETUP
@@ -82,22 +82,22 @@ namespace amx
         int addressCount;
         int channelCount;
         int levelCount;
-        strings::String powerUpPage;
-        std::vector<strings::String> powerUpPopup;
+        std::string powerUpPage;
+        std::vector<std::string> powerUpPopup;
         int feedbackBlinkRate;
-        strings::String startupString;
-        strings::String wakeupString;
-        strings::String sleepString;
-        strings::String standbyString;
-        strings::String shutdownString;
-        strings::String idlePage;
+        std::string startupString;
+        std::string wakeupString;
+        std::string sleepString;
+        std::string standbyString;
+        std::string shutdownString;
+        std::string idlePage;
         int idleTimeout;
         int extButtonsKey;
         int screenWidth;
         int screenHeight;
         int screenRefresh;
         int screenRotate;
-        strings::String screenDescription;
+        std::string screenDescription;
         int pageTracking;
         int cursor;
         int brightness;
@@ -117,12 +117,12 @@ namespace amx
         int irPortUser2;
         int cradleChannelPort;
         int cradleChannelCode;
-        strings::String uniqueID;
-        strings::String appCreated;
+        std::string uniqueID;
+        std::string appCreated;
         int buildNumber;
-        strings::String appModified;
+        std::string appModified;
         int buildNumberMod;
-        strings::String buildStatusMod;
+        std::string buildStatusMod;
         int activePalette;
         int marqueeSpeed;
         int setupPagesProject;
@@ -131,10 +131,10 @@ namespace amx
 
     typedef struct PAGE_ENTRY
     {
-        strings::String name;
+        std::string name;
         int pageID;
-        strings::String file;
-        strings::String group;
+        std::string file;
+        std::string group;
         int isValid;
         int popupType;
 
@@ -151,20 +151,20 @@ namespace amx
 
     typedef struct PAGE_LIST
     {
-        strings::String type;
+        std::string type;
         std::vector<PAGE_ENTRY_T> pageList;
     }PAGE_LIST_T;
 
     typedef struct RESOURCE
     {
-        strings::String name;
-        strings::String protocol;
-        strings::String user;
-        strings::String password;
+        std::string name;
+        std::string protocol;
+        std::string user;
+        std::string password;
         bool encrypted;
-        strings::String host;
-        strings::String path;
-        strings::String file;
+        std::string host;
+        std::string path;
+        std::string file;
         int refresh;
 
         void clear()
@@ -183,20 +183,20 @@ namespace amx
 
     typedef struct RESOURCE_LIST
     {
-        strings::String type;
+        std::string type;
         std::vector<RESOURCE_T> ressource;
     }RESOURCE_LIST_T;
 
     typedef struct FEATURE
     {
-        strings::String featureID;
+        std::string featureID;
         int usageCount;
     }FEATURE_T;
 
     typedef struct PALETTE
     {
-        strings::String name;
-        strings::String file;
+        std::string name;
+        std::string file;
         int paletteID;
     }PALETTE_T;
 
@@ -234,16 +234,16 @@ namespace amx
 	typedef struct SR
 	{
 		int number;
-		strings::String _do;	// Order on how to show a multistate bargraph (010203...)
-		strings::String bs;     // Frame type (circle, ...)
-		strings::String mi;     // Chameleon image
+		std::string _do;	// Order on how to show a multistate bargraph (010203...)
+		std::string bs;     // Frame type (circle, ...)
+		std::string mi;     // Chameleon image
 		int mi_width;           // Width of image
 		int mi_height;          // Height of image
-		strings::String cb;     // Border color
-		strings::String cf;     // Fill color
-		strings::String ct;     // Text Color
-		strings::String ec;     // Text effect color
-		strings::String bm;     // bitmap file name
+		std::string cb;     // Border color
+		std::string cf;     // Fill color
+		std::string ct;     // Text Color
+		std::string ec;     // Text effect color
+		std::string bm;     // bitmap file name
 		int bm_width;           // Width of image
 		int bm_height;          // Height of image
 		bool dynamic;			// TRUE = moving image
@@ -254,7 +254,7 @@ namespace amx
 		int ix;                 // bitmap X position
 		int iy;                 // bitmap Y position
 		int fi;                 // Font index?
-		strings::String te;     // Text
+		std::string te;     // Text
 		TEXT_ORIENTATION jt;	// Text orientation
 		int tx;                 // Text X position
 		int ty;                 // Text Y position
@@ -317,22 +317,22 @@ namespace amx
 
 	typedef struct PUSH_FUNC
 	{
-		strings::String pfType;	// command to execute when button was pushed
-		strings::String pfName;	// Name of popup
+		std::string pfType;	// command to execute when button was pushed
+		std::string pfName;	// Name of popup
 	}PUSH_FUNC_T;
 
 	typedef struct BUTTON
 	{
 		BUTTONTYPE type;
 		int bi;                	// button ID
-		strings::String na;		// name
+		std::string na;		// name
 		int lt;					// pixel from left
 		int tp;					// pixel from top
 		int wt;                	// width
 		int ht;                	// height
 		int zo;                	// Z-Order
-		strings::String hs;    	// bounding, ...
-		strings::String bs;    	// Frame type (circle, ...)
+		std::string hs;    	// bounding, ...
+		std::string bs;    	// Frame type (circle, ...)
 		FEEDBACK fb;			// momentary, ...
 		int ap;					// Address port
 		int ad;					// Address channel
@@ -340,7 +340,7 @@ namespace amx
 		int cp;					// Channel port
 		int lp;					// Level port
 		int lv;					// Level code
-		strings::String dr;		// Level "horizontal" or "vertical"
+		std::string dr;		// Level "horizontal" or "vertical"
 		int va;
 		int stateCount;			// State count with multistate buttons
 		int rm;					// State count with multistate buttons?
@@ -352,7 +352,7 @@ namespace amx
 		int rv;
 		int rl;					// Range low
 		int rh;					// Range high
-		strings::String op;		// String the button send
+		std::string op;		// String the button send
 		std::vector<PUSH_FUNC_T> pushFunc;	// Push functions: This are executed on button press
 		std::vector<SR_T> sr;
 
@@ -415,12 +415,12 @@ namespace amx
     {
         PAGETYPE type;
         int pageID;
-        strings::String name;
+        std::string name;
         int left;
         int top;
         int width;
         int height;
-        strings::String group;
+        std::string group;
         SHOWEFFECT showEffect;
         int showTime;
         SHOWEFFECT hideEffect;
@@ -436,25 +436,25 @@ namespace amx
         int ax;
         int pg;             // page number
         int bt;             // button number
-        strings::String pn; // page name
-        strings::String bn; // button name
+        std::string pn; // page name
+        std::string bn; // button name
     }MAP_T;
 
     // Images
     typedef struct MAP_BM
     {
-        strings::String i;  // name
+        std::string i;  // name
         int id;
     }MAP_BM_T;
 
     typedef struct MAP_PM
     {
         int a;
-        strings::String t;  // Text
+        std::string t;  // Text
         int pg;             // page number
         int bt;             // button number
-        strings::String pn; // page name
-        strings::String bn; // button name
+        std::string pn; // page name
+        std::string bn; // button name
     }MAP_PM_T;
 
     typedef struct MAPS
@@ -463,7 +463,7 @@ namespace amx
         std::vector<MAP_T> map_am;
         std::vector<MAP_T> map_lm;
         std::vector<MAP_BM_T> map_bm;       // Images
-        std::vector<strings::String> map_sm;// sound file names
+        std::vector<std::string> map_sm;// sound file names
         std::vector<MAP_T> map_strm;        // System resources
         std::vector<MAP_PM_T> map_pm;       // Button -> text
     }MAPS_T;

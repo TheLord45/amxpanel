@@ -36,8 +36,9 @@
 #include "amxnet.h"
 #include "websocket.h"
 #include "fontlist.h"
+#include "atomicvector.h"
 
-#define VERSION		"1.0.1"
+#define VERSION		"1.1.0"
 #define PAIR(ID, REG)	std::pair<int, REGISTRATION_T>(ID, REG)
 
 namespace amx
@@ -45,32 +46,33 @@ namespace amx
 	typedef struct ST_PAGE
 	{
 		int ID;						// ID of page
-		strings::String name;		// Name of page
-		strings::String file;		// File name of page
+		std::string name;		// Name of page
+		std::string file;		// File name of page
 		bool active;				// true = active/visible.
-		strings::String styles;		// The needed styles
-		strings::String webcode;	// The webcode
+		std::string styles;		// The needed styles
+		std::string webcode;	// The webcode
 	}ST_PAGE;
 
 	typedef struct ST_POPUP
 	{
 		int ID;						// ID of popup
-		strings::String name;		// Name of page
-		strings::String file;		// File name of page
+		std::string name;		// Name of page
+		std::string file;		// File name of page
 		bool active;				// true = visible
-		strings::String group;		// Group name
+		std::string group;		// Group name
 		std::vector<int> onPages;	// Linked to page ID
-		strings::String styles;		// The needed styles
-		strings::String webcode;	// The webcode
+		std::string styles;		// The needed styles
+		std::string webcode;	// The webcode
 	}ST_POPUP;
 
 	typedef struct REGISTRATION_T
 	{
 		int channel;						// The channel used for the panel (>10000 && <11000)
-		strings::String regID;				// The registration ID of the client
-		amx::AMXNet *amxnet;				// The class communicating with the AMX controller
+		std::string regID;					// The registration ID of the client
+		AMXNet *amxnet;						// The class communicating with the AMX controller
 		long pan;							// The handle to the connection to the internet browser
 		bool status;
+		std::string amxBuffer;				// Individual buffer for inclomplete commands
 
 		REGISTRATION_T& operator= (REGISTRATION_T& reg) {
 			channel = reg.channel;
@@ -78,6 +80,7 @@ namespace amx
 			amxnet = reg.amxnet;
 			pan = reg.pan;
 			status = reg.status;
+			amxBuffer = reg.amxBuffer;
 			return reg;
 		}
 	}REGISTRATION_T;
@@ -90,14 +93,13 @@ namespace amx
 			TouchPanel();
 			~TouchPanel();
 
-			int findPage(const strings::String& name);
+			int findPage(const std::string& name);
 			bool parsePages();
 
-			void setCommand(const struct ANET_COMMAND& cmd);
+			void setCommand(const ANET_COMMAND& cmd);
 			void webMsg(std::string& msg, long pan);
 			void stopClient();
 			void setWebConnect(bool s, long pan);
-			bool getWebConnect(AMXNet *);
 			void regWebConnect(long pan, int id);
 
 		private:
@@ -108,36 +110,40 @@ namespace amx
 			void writeBtArray(std::fstream& pgFile);
 			void writeIconTable(std::fstream& pgFile);
 			void writeBargraphs(std::fstream& pgFile);
-			bool isPresent(const std::vector<strings::String>& vs, const strings::String& str);
+			bool isPresent(const std::vector<std::string>& vs, const std::string& str);
 			bool isParsed();
 			bool haveFreeSlot();
 			int getFreeSlot();
-			bool isRegistered(strings::String& regID);
+			bool isRegistered(const std::string& regID);
 			bool isRegistered(int channel);
-			bool registerSlot(int channel, strings::String& regID, long pan);
+			bool registerSlot(int channel, std::string& regID, long pan);
 			bool releaseSlot(int channel);
-			bool releaseSlot(strings::String& regID);
+			bool releaseSlot(const std::string& regID);
 			bool newConnection(int id);
 			AMXNet *getConnection(int id);
 			bool delConnection(int id);
-			bool send(int id, strings::String& msg);
+			std::string& getAMXBuffer(int id);
+			void setAMXBuffer(int id, const std::string& buf);
+			bool send(int id, std::string& msg);
 			bool replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg);
 
 			void showContent(long pan);
 
 			PANELS_T registration;
-			strings::String scrBuffer;
-			strings::String scrStart;
-			strings::String scBtArray;
-			strings::String sBargraphs;
+			std::string scrBuffer;
+			std::string scrStart;
+			std::string scBtArray;
+			std::string sBargraphs;
 			bool gotPages;
 			std::vector<ST_PAGE> stPages;
 			std::vector<ST_POPUP> stPopups;
 			std::vector<PAGE_T> pageList;
-			bool busy;
+			std::atomic<bool> busy;
+			std::string none;
 
-			std::vector<ANET_COMMAND> commands;		// Commands from controller
-			strings::String amxBuffer;				// This is the cache for incomplete commands
+			AtomicVector<ANET_COMMAND> commands;		// Commands from controller
+            std::mutex mut;
+            std::condition_variable cond;
 	};
 }
 

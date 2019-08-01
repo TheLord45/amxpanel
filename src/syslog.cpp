@@ -45,12 +45,6 @@ void Syslog::close()
 		closelog();
 }
 
-void Syslog::cclose() const
-{
-	if (fflag)
-		closelog();
-}
-
 void Syslog::log(Level l, const std::string& str)
 {
 	if (debug && l == IDEBUG && !LogFile.empty())
@@ -71,24 +65,48 @@ void Syslog::log(Level l, const std::string& str)
 	close();
 }
 
-void Syslog::errlog(const std::string& str) const
+void Syslog::log(Syslog::Level l, const std::string& str) const
+{
+	Syslog *my = const_cast<Syslog *>(this);
+	my->log(l, str);
+}
+
+void Syslog::errlog(const std::string& str)
 {
 	if (!fflag)
+	{
 		openlog(pname.c_str(), option, priority);
+		fflag = true;
+	}
 
 	appendToFile(ERR, str);
 	syslog(LOG_ERR, "%s", str.c_str());
-	cclose();
+	close();
+}
+
+void Syslog::errlog(const std::string& str) const
+{
+	Syslog *my = const_cast<Syslog *>(this);
+	my->errlog(str);
+}
+
+void Syslog::warnlog(const std::string& str)
+{
+	if (!fflag)
+	{
+		openlog(pname.c_str(), option, priority);
+		fflag = true;
+	}
+
+	appendToFile(WARNING, str);
+	syslog(LOG_WARNING, "%s", str.c_str());
+	close();
 }
 
 void Syslog::warnlog(const std::string& str) const
 {
-	if (!fflag)
-		openlog(pname.c_str(), option, priority);
-
-	appendToFile(WARNING, str);
-	syslog(LOG_WARNING, "%s", str.c_str());
-	cclose();
+	Syslog *my = const_cast<Syslog *>(this);
+	my->warnlog(str);
 }
 
 void Syslog::log_serial(Level l, const std::string& str)
@@ -104,6 +122,12 @@ void Syslog::log_serial(Level l, const std::string& str)
 
 	appendToFile(l, str);
 	syslog(l, "%s", str.c_str());
+}
+
+void Syslog::log_serial(Syslog::Level l, const std::string& str) const
+{
+	Syslog *my = const_cast<Syslog *>(this);
+	my->log_serial(l, str);
 }
 
 void Syslog::setPriority(Priority p)
@@ -178,12 +202,6 @@ void Syslog::appendToFile(Level l, const std::string& str)
 	}
 }
 
-void Syslog::appendToFile(Level l, const std::string& str) const
-{
-	Syslog *my = const_cast<Syslog *>(this);
-	my->appendToFile(l, str);
-}
-
 void Syslog::TRACE(FUNCTION f, const std::string& msg)
 {
 	std::string s;
@@ -192,7 +210,7 @@ void Syslog::TRACE(FUNCTION f, const std::string& msg)
 		deep--;
 
 	for (int i = 0; i < deep; i++)
-		s += "  ";
+		s += " ";
 
 	if (f == ENTRY)
 	{

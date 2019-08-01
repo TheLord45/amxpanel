@@ -32,34 +32,35 @@
 #include "syslog.h"
 #include "pushbutton.h"
 #include "icon.h"
+#include "str.h"
+#include "trace.h"
 
 extern Syslog *sysl;
 extern Config *Configuration;
 
 using namespace std;
 using namespace amx;
-using namespace strings;
 
-amx::Icon::Icon(const strings::String& file)
+Icon::Icon(const string& file)
 {
-	sysl->TRACE(Syslog::ENTRY, std::string("Icon::Icon(const strings::String& file)"));
+	sysl->TRACE(Syslog::ENTRY, "Icon::Icon(const strings::string& file)");
 	int index = 0;
-	String lastName;
-	String uri = "file://";
+	string lastName;
+	string uri = "file://";
 	uri.append(Configuration->getHTTProot());
 	uri.append("/");
 	uri.append(file);
 
 	try
 	{
-		xmlpp::TextReader reader(uri.toString());
+		xmlpp::TextReader reader(uri);
 
 		while(reader.read())
 		{
-			String name = string(reader.get_name());
+			Str name(reader.get_name().raw());
 
-			if (name.at(0) == '#')
-				name = lastName;
+			if (name.get().at(0) == '#')
+				name.set(lastName);
 
 			if (name.caseCompare("icon") == 0 && reader.has_attributes())
 				index = atoi(reader.get_attribute(0).c_str());
@@ -83,7 +84,7 @@ amx::Icon::Icon(const strings::String& file)
 
 				icons.push_back(ico);
 				index = -1;
-				sysl->TRACE(String("Icon::Icon: index=")+ico.index+", file="+ico.file);
+				sysl->TRACE("Icon::Icon: index="+to_string(ico.index)+", file="+ico.file);
 			}
 
 			lastName = name;
@@ -101,14 +102,14 @@ amx::Icon::Icon(const strings::String& file)
 	status = true;
 }
 
-amx::Icon::~Icon()
+Icon::~Icon()
 {
-    sysl->TRACE(Syslog::EXIT, std::string("Icon::Icon(const strings::String& file)"));
+    sysl->TRACE(Syslog::EXIT, std::string("Icon::Icon(const string& file)"));
 }
 
-strings::String amx::Icon::getFileName(size_t idx)
+string Icon::getFileName(size_t idx)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getFileName(size_t idx)"));
+	DECL_TRACER("Icon::getFileName(size_t idx)");
 
 	if (idx > icons.size())
 		return "";
@@ -118,7 +119,7 @@ strings::String amx::Icon::getFileName(size_t idx)
 
 int Icon::getID(size_t idx)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getID(size_t idx)"));
+	DECL_TRACER("Icon::getID(size_t idx)");
 
 	if (idx > icons.size())
 		return -1;
@@ -128,7 +129,7 @@ int Icon::getID(size_t idx)
 
 int Icon::getWidth(size_t idx)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getWidth(size_t idx)"));
+	DECL_TRACER("Icon::getWidth(size_t idx)");
 
 	if (idx > icons.size())
 		return -1;
@@ -138,7 +139,7 @@ int Icon::getWidth(size_t idx)
 
 int Icon::getHeight(size_t idx)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Icon::getHeight(size_t idx)"));
+	DECL_TRACER("Icon::getHeight(size_t idx)");
 
 	if (idx > icons.size())
 		return -1;
@@ -146,19 +147,19 @@ int Icon::getHeight(size_t idx)
 	return icons.at(idx).height;
 }
 
-strings::String amx::Icon::getFileFromID(int id)
+string Icon::getFileFromID(int id)
 {
-	sysl->TRACE(String("Icon::getFileFromID(int id)"));
+	DECL_TRACER("Icon::getFileFromID(int id)");
 
 	for (size_t i = 0; i < icons.size(); i++)
 	{
 		if (icons[i].index == id)
 		{
-			sysl->TRACE(String("Icon::getFileFromID: ID ")+id+" with file "+icons[i].file+" found.");
+			sysl->TRACE("Icon::getFileFromID: ID "+to_string(id)+" with file "+icons[i].file+" found.");
 			return icons[i].file;
 		}
 	}
 
-	sysl->TRACE(String("Icon::getFileFromID: No icon for ID ")+id+" found!");
+	sysl->TRACE("Icon::getFileFromID: No icon for ID "+to_string(id)+" found!");
 	return "";
 }

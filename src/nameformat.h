@@ -19,8 +19,6 @@
 #ifndef __NAMEFORMAT_H__
 #define __NAMEFORMAT_H__
 
-#include "strings.h"
-
 typedef struct
 {
 	unsigned char ch;
@@ -164,18 +162,18 @@ class NameFormat
 		NameFormat();
 		~NameFormat();
 
-		static strings::String toValidName(strings::String& str);
-		static strings::String cutNumbers(strings::String& str);
-		static strings::String toShortName(strings::String& str);
-		static strings::String transFontName(strings::String& str);
-		static strings::String toURL(strings::String& str);
-		static char *EncodeTo(char *buf, size_t *len, const strings::String& str, const strings::String& from, const strings::String& to);
-		static strings::String textToWeb(const strings::String& txt);
-		static strings::String toHex(int num, int width);
-		static strings::String strToHex(strings::String str, int width, bool format = false);
-		static strings::String latin1ToUTF8(const strings::String& str);
-		static strings::String cp1250ToUTF8(const strings::String& str);
-		static strings::String UTF8ToCp1250(const strings::String& str);
+		static std::string toValidName(std::string& str);
+		static std::string cutNumbers(std::string& str);
+		static std::string toShortName(std::string& str);
+		static std::string transFontName(std::string& str);
+		static std::string toURL(std::string& str);
+		static char *EncodeTo(char *buf, size_t *len, const std::string& str, const std::string& from, const std::string& to);
+		static std::string textToWeb(const std::string& txt);
+		static std::string toHex(int num, int width);
+		static std::string strToHex(std::string str, int width, bool format = false);
+		static std::string latin1ToUTF8(const std::string& str);
+		static std::string cp1250ToUTF8(const std::string& str);
+		static std::string UTF8ToCp1250(const std::string& str);
 };
 
 #endif

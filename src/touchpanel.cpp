@@ -34,21 +34,24 @@
 #include "touchpanel.h"
 #include "panelstruct.h"
 #include "nameformat.h"
+#include "trace.h"
+#include "str.h"
 
 #ifdef __APPLE__
 using namespace boost;
 #endif
 
 using namespace amx;
-using namespace strings;
 using namespace std;
 
 extern Config *Configuration;
 extern Syslog *sysl;
 
 TouchPanel::TouchPanel()
+		: mut(),
+		  cond()
 {
-	sysl->TRACE(Syslog::ENTRY, String("TouchPanel::TouchPanel()"));
+	sysl->TRACE(Syslog::ENTRY, "TouchPanel::TouchPanel()");
 	busy = false;
 	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1, placeholders::_2));
 	regCallbackStop(bind(&TouchPanel::stopClient, this));
@@ -61,26 +64,26 @@ TouchPanel::TouchPanel()
 		thread thr = thread([=] { run(); });
 		thr.detach();
 	}
-	catch (std::exception &e)
+	catch (exception &e)
 	{
-		sysl->errlog(std::string("TouchPanel::TouchPanel: Error creating a thread: ")+e.what());
+		sysl->errlog(string("TouchPanel::TouchPanel: Error creating a thread: ")+e.what());
 	}
 }
 
 TouchPanel::~TouchPanel()
 {
-	sysl->TRACE(Syslog::EXIT, String("TouchPanel::TouchPanel()"));
+	sysl->TRACE(Syslog::EXIT, "TouchPanel::TouchPanel()");
 }
 
 bool TouchPanel::haveFreeSlot()
 {
-	sysl->TRACE(String("TouchPanel::haveFreeSlot()"));
+	DECL_TRACER("TouchPanel::haveFreeSlot()");
 
-	if (registration.size() == 0)
-		return true;
-
+	vector<int>& Slots = Configuration->getAMXChannels();
 	bool loop = false;
-	std::vector<int>& Slots = Configuration->getAMXChannels();
+
+	if (registration.size() == 0 && Slots.size() > 0)
+		return true;
 
 	for (size_t i = 0; i < Slots.size(); i++)
 	{
@@ -89,10 +92,7 @@ bool TouchPanel::haveFreeSlot()
 		for (size_t j = 0; j < registration.size(); j++)
 		{
 			if (!registration[j].status && registration[j].channel == Slots[i])
-			{
-//				sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Reuse free slot ")+Slots[i]);
 				return true;
-			}
 			else if (registration[j].status && registration[j].channel == Slots[i])
 			{
 				loop = true;
@@ -101,22 +101,19 @@ bool TouchPanel::haveFreeSlot()
 		}
 
 		if (!loop)
-		{
-//			sysl->DebugMsg(String("TouchPanel::haveFreeSlot: Found free slot ")+Slots[i]);
 			return true;
-		}
 	}
 
-	sysl->warnlog(std::string("TouchPanel::haveFreeSlot: No free slot found!"));
+	sysl->warnlog("TouchPanel::haveFreeSlot: No free slot found!");
 	return false;
 }
 
 int TouchPanel::getFreeSlot()
 {
-	sysl->TRACE(String("TouchPanel::getFreeSlot()"));
+	DECL_TRACER("TouchPanel::getFreeSlot()");
 
 	bool loop = false;
-	std::vector<int>& Slots = Configuration->getAMXChannels();
+	vector<int>& Slots = Configuration->getAMXChannels();
 
 	for (size_t i = 0; i < Slots.size(); i++)
 	{
@@ -125,10 +122,7 @@ int TouchPanel::getFreeSlot()
 		for (size_t j = 0; j < registration.size(); j++)
 		{
 			if (!registration[j].status && registration[j].channel == Slots[i])
-			{
-//				sysl->DebugMsg(String("TouchPanel::getFreeSlot: Reuse free slot ")+Slots[i]);
 				return Slots[i];
-			}
 			else if (registration[j].status && registration[j].channel == Slots[i])
 			{
 				loop = true;
@@ -137,25 +131,22 @@ int TouchPanel::getFreeSlot()
 		}
 
 		if (!loop)
-		{
-//			sysl->DebugMsg(String("TouchPanel::getFreeSlot: Found free slot ")+Slots[i]);
 			return Slots[i];
-		}
 	}
 
-	sysl->warnlog(std::string("TouchPanel::getFreeSlot: No free slot found!"));
+	sysl->warnlog("TouchPanel::getFreeSlot: No free slot found!");
 	return 0;
 }
 
 bool TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)
 {
-	sysl->TRACE(String("TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)"));
+	DECL_TRACER("TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)");
 
 	if (registration.size() == 0 || key == registration.end())
 		return false;
 
 	int id = key->first;
-	std::pair <PANELS_T::iterator, bool> ptr;
+	pair <PANELS_T::iterator, bool> ptr;
 
 	if (id != reg.channel && id == 0 && reg.channel >= 10000 && reg.channel <= 11000)
 	{
@@ -164,7 +155,7 @@ bool TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)
 		ptr = registration.insert(PAIR(id, reg));
 
 		if (!ptr.second)
-			sysl->warnlog(String("TouchPanel::replaceSlot: Key %1 was not inserted again!").arg(id));
+			sysl->warnlog(string("TouchPanel::replaceSlot: Key ")+to_string(id)+" was not inserted again!");
 	}
 	else
 		registration[key->first] = reg;
@@ -173,14 +164,14 @@ bool TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)
 	return true;
 }
 
-bool TouchPanel::registerSlot (int channel, String& regID, long pan)
+bool TouchPanel::registerSlot (int channel, string& regID, long pan)
 {
-	sysl->TRACE(String("TouchPanel::registerSlot (int channel, String& regID, long pan)"));
+	DECL_TRACER("TouchPanel::registerSlot (int channel, string& regID, long pan)");
 
-	PANELS_T::iterator itr;
+	PANELS_T::iterator itr = registration.begin();
 	size_t i = 0;
 
-	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	while (i < registration.size())
 	{
 		if (itr->second.pan == pan)
 		{
@@ -194,14 +185,12 @@ bool TouchPanel::registerSlot (int channel, String& regID, long pan)
 
 			reg.regID = regID;
 			replaceSlot(itr, reg);
-			sysl->DebugMsg(String("TouchPanel::registerSlot: Registered channel %1 with registration ID %2.").arg(channel).arg(regID));
+			sysl->DebugMsg("TouchPanel::registerSlot: Registered channel "+to_string(channel)+" with registration ID "+regID+".");
 			return true;
 		}
 
 		i++;
-
-		if (i >= registration.size())
-			break;
+		++itr;
 	}
 
 	REGISTRATION_T reg;
@@ -211,13 +200,13 @@ bool TouchPanel::registerSlot (int channel, String& regID, long pan)
 	reg.status = true;
 	reg.pan = pan;
 	reg.amxnet = 0;
-	std::pair <PANELS_T::iterator, bool> ptr;
+	pair <PANELS_T::iterator, bool> ptr;
 	ptr = registration.insert(PAIR(channel, reg));
 
 	if (!ptr.second)
-		sysl->warnlog(String("TouchPanel::registerSlot: Key %1 was not inserted again!").arg(channel));
+		sysl->warnlog("TouchPanel::registerSlot: Key "+to_string(channel)+" was not inserted again!");
 	else
-		sysl->DebugMsg(String("TouchPanel::registerSlot: Registering channel %1 with registration ID %2.").arg(channel).arg(regID));
+		sysl->DebugMsg("TouchPanel::registerSlot: Registering channel "+to_string(channel)+" with registration ID "+regID+".");
 
 	showContent(pan);
 	return true;
@@ -225,23 +214,23 @@ bool TouchPanel::registerSlot (int channel, String& regID, long pan)
 
 bool TouchPanel::releaseSlot (int channel)
 {
-	sysl->TRACE(String("TouchPanel::releaseSlot (int channel)"));
+	DECL_TRACER(string("TouchPanel::releaseSlot (int channel)"));
 
 	PANELS_T::iterator itr;
 
 	if ((itr = registration.find(channel)) != registration.end())
 	{
 		itr->second.status = false;
-		sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(channel).arg(itr->second.regID));
+		sysl->DebugMsg(string("TouchPanel::registerSlot: Unregistered channel ")+to_string(channel)+" with registration ID "+itr->second.regID+".");
 		return true;
 	}
 
 	return false;
 }
 
-bool TouchPanel::releaseSlot (String& regID)
+bool TouchPanel::releaseSlot (const string& regID)
 {
-	sysl->TRACE(String("TouchPanel::releaseSlot (String& regID)"));
+	DECL_TRACER("TouchPanel::releaseSlot (string& regID)");
 
 	PANELS_T::iterator itr;
 	size_t i = 0;
@@ -251,7 +240,7 @@ bool TouchPanel::releaseSlot (String& regID)
 		if (itr->second.regID.compare(regID) == 0)
 		{
 			itr->second.status = false;
-			sysl->DebugMsg(String("TouchPanel::releaseSlot: Unregistered channel %1 with registration ID %2.").arg(itr->first).arg(regID));
+			sysl->DebugMsg("TouchPanel::releaseSlot: Unregistered channel "+to_string(itr->first)+" with registration ID "+regID+".");
 			return true;
 		}
 
@@ -264,9 +253,9 @@ bool TouchPanel::releaseSlot (String& regID)
 	return false;
 }
 
-bool TouchPanel::isRegistered(String& regID)
+bool TouchPanel::isRegistered(const string& regID)
 {
-	sysl->TRACE(String("TouchPanel::isRegistered(String& regID)"));
+	DECL_TRACER("TouchPanel::isRegistered(string& regID)");
 
 	for (size_t i = 0; i < registration.size(); i++)
 	{
@@ -279,20 +268,17 @@ bool TouchPanel::isRegistered(String& regID)
 
 bool TouchPanel::isRegistered(int channel)
 {
-	sysl->TRACE(String("TouchPanel::isRegistered(int channel)"));
+	DECL_TRACER("TouchPanel::isRegistered(int channel)");
+
+	if (registration.size() == 0)
+		return false;
 
 	PANELS_T::iterator itr;
-	size_t i = 0;
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->first == channel && itr->second.status)
 			return true;
-
-		i++;
-
-		if (i >= registration.size())
-			break;
 	}
 
 	return false;
@@ -300,25 +286,45 @@ bool TouchPanel::isRegistered(int channel)
 
 AMXNet *TouchPanel::getConnection(int id)
 {
-	sysl->TRACE(String("TouchPanel::getConnection(int id)"));
+	DECL_TRACER("TouchPanel::getConnection(int id)");
 
 	AMXNet *amxnet = 0;
 	PANELS_T::iterator key;
 
 	if ((key = registration.find(id)) != registration.end())
-	{
 		amxnet = key->second.amxnet;
-	}
 
 	if (amxnet == 0)
-		sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(id));
+		sysl->errlog("TouchPanel::webMsg: Network connection not found for panel "+to_string(id)+"!");
 
 	return amxnet;
 }
 
+string& TouchPanel::getAMXBuffer(int id)
+{
+	DECL_TRACER("TouchPanel::getAMXBuffer(int id)");
+
+	PANELS_T::iterator key;
+
+	if ((key = registration.find(id)) != registration.end())
+		return key->second.amxBuffer;
+
+	return none;
+}
+
+void TouchPanel::setAMXBuffer(int id, const string& buf)
+{
+	DECL_TRACER("TouchPanel::setAMXBuffer(int id, const string& buf)");
+
+	PANELS_T::iterator key;
+
+	if ((key = registration.find(id)) != registration.end())
+		key->second.amxBuffer = buf;
+}
+
 bool TouchPanel::delConnection(int id)
 {
-	sysl->TRACE(String("TouchPanel::delConnection(int id)"));
+	DECL_TRACER("TouchPanel::delConnection(int id)");
 
 	if (id < 10000 || id > 11000)
 		return false;
@@ -337,44 +343,50 @@ bool TouchPanel::delConnection(int id)
 	return false;
 }
 
+/*
+ * This method is called from WebSocket::tcp_post_init(). It is registered as
+ * a callback function and will be called whenever a browser makes a new
+ * contact over WEB socket.
+ */
 void TouchPanel::regWebConnect(long pan, int id)
 {
-	sysl->TRACE(String("TouchPanel::regWebConnect(websocketpp::connection_hdl hdl, int id)"));
+	std::lock_guard<std::mutex> lock(mut);
+	DECL_TRACER("TouchPanel::regWebConnect(websocketpp::connection_hdl hdl, int id)");
 
 	PANELS_T::iterator itr;
-	size_t i = 0;
-	sysl->DebugMsg(String("TouchPanel::regWebConnect: Registering id %1 with pan %2").arg(id).arg(pan));
+	sysl->DebugMsg("TouchPanel::regWebConnect: Registering id "+to_string(id)+" with pan "+to_string(pan));
 
-	for (itr = registration.begin(); itr != registration.end(); ++itr)
+	if (id != 0)
 	{
-		if (id >= 10000 && id <= 11000 && itr->second.pan == pan)
+		for (itr = registration.begin(); itr != registration.end(); ++itr)
 		{
-			REGISTRATION_T reg = itr->second;
-			reg.channel = id;
-			reg.pan = pan;
-			replaceSlot(itr, reg);
-			return;
+			if (id >= 10000 && id <= 11000 && itr->second.pan == pan)
+			{
+				itr->second.channel = id;
+				itr->second.pan = pan;
+				showContent(pan);
+				return;
+			}
+			else if (id == -1 && itr->second.pan == pan)
+			{
+				if (itr->second.amxnet != 0)
+					itr->second.amxnet->stop();
+				else
+					sysl->warnlog("TouchPanel::regWebConnect: No pointer to class AMXNet for ID "+to_string(itr->first)+" with pan "+to_string(itr->second.pan)+"!");
+
+				releaseSlot(itr->first);
+				delConnection(itr->first);
+				cond.notify_one();
+				return;
+			}
 		}
-		else if (id == -1 && itr->second.pan == pan)
-		{
-			if (itr->second.amxnet != 0)
-				itr->second.amxnet->stop();
-			else
-				sysl->warnlog(String("TouchPanel::regWebConnect: No pointer to class AMXNet for ID %1 with pan %2!").arg(itr->first).arg(itr->second.pan));
-
-			releaseSlot(itr->first);
-			delConnection(itr->first);
-			return;
-		}
-
-		i++;
-
-		if (i >= registration.size())
-			break;
 	}
 
 	if (id == -1)
+	{
+		cond.notify_one();
 		return;
+	}
 
 	// Add the data
 	REGISTRATION_T reg;
@@ -395,23 +407,24 @@ void TouchPanel::regWebConnect(long pan, int id)
 	}
 	else
 	{
-		std::pair <PANELS_T::iterator, bool> ptr;
+		pair <PANELS_T::iterator, bool> ptr;
 		ptr = registration.insert(PAIR(id, reg));
 
 		if (!ptr.second)
-			sysl->warnlog(String("TouchPanel::regWebConnect: Key %1 was not inserted again!").arg(id));
+			sysl->warnlog("TouchPanel::regWebConnect: Key "+to_string(id)+" was not inserted again!");
 	}
 
 	showContent(pan);
+	cond.notify_one();
 }
 
 bool TouchPanel::newConnection(int id)
 {
-	sysl->TRACE(String("TouchPanel::newConnection(int id) [id=%1]").arg(id));
+	DECL_TRACER("TouchPanel::newConnection(int id) [id="+to_string(id)+"]");
 
 	if (id < 10000 || id > 11000)
 	{
-		sysl->warnlog(String("TouchPanel::newConnection: Refused to register a panel with id %1").arg(id));
+		sysl->warnlog("TouchPanel::newConnection: Refused to register a panel with id "+to_string(id));
 		return false;
 	}
 
@@ -420,32 +433,36 @@ bool TouchPanel::newConnection(int id)
 		AMXNet *pANet = new AMXNet();
 		pANet->setPanelID(id);
 		pANet->setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
-		pANet->setCallbackConn(bind(&TouchPanel::getWebConnect, this, placeholders::_1));
 
 		PANELS_T::iterator key;
 
 		if ((key = registration.find(id)) != registration.end())
-			key->second.amxnet = pANet;
+		{
+			if (key->second.amxnet == 0)
+				key->second.amxnet = pANet;
+			else
+				delete pANet;
+		}
 		else
 		{
 			REGISTRATION_T reg;
 			reg.channel = id;
 			reg.amxnet = pANet;
 			reg.status = false;
-			std::pair <PANELS_T::iterator, bool> ptr;
+			pair <PANELS_T::iterator, bool> ptr;
 			ptr = registration.insert(PAIR(id, reg));
-			sysl->warnlog(String("TouchPanel::newConnection: Registered panel ID %1 without a registration key and with no websocket handle!").arg(id));
+			sysl->warnlog("TouchPanel::newConnection: Registered panel ID "+to_string(id)+" without a registration key and with no websocket handle!");
 
 			if (!ptr.second)
-				sysl->warnlog(String("TouchPanel::newConnection: Key %1 was not inserted again!").arg(id));
+				sysl->warnlog("TouchPanel::newConnection: Key "+to_string(id)+" was not inserted again!");
 		}
 
 		thread thr = thread([=] { pANet->Run(); });
 		thr.detach();
 	}
-	catch (std::exception& e)
+	catch (exception& e)
 	{
-		sysl->TRACE(String("TouchPanel::newConnection: Exception: ")+e.what());
+		sysl->TRACE(string("TouchPanel::newConnection: Exception: ")+e.what());
 		PANELS_T::iterator key;
 
 		if ((key = registration.find(id)) != registration.end())
@@ -462,39 +479,30 @@ bool TouchPanel::newConnection(int id)
 	return true;
 }
 
-bool TouchPanel::getWebConnect(AMXNet* pANet)
+bool TouchPanel::send(int id, string& msg)
 {
-	sysl->TRACE(String("TouchPanel::getWebConnect(AMXNet* pANet)"));
-
-	for (size_t i = 0; i < registration.size(); i++)
-	{
-		if (registration[i].amxnet == pANet)
-			return registration[i].status;
-	}
-
-	return false;
-}
-
-bool TouchPanel::send(int id, String& msg)
-{
-	sysl->TRACE(String("TouchPanel::send(int id, String& msg) [id=%1, msg=%2]").arg(id).arg(msg));
+	DECL_TRACER(string("TouchPanel::send(int id, string& msg) [id=")+to_string(id)+", msg="+msg+"]");
 
 	PANELS_T::iterator itr;
 
 	if ((itr = registration.find(id)) != registration.end())
-		return WebSocket::send(msg, itr->second.pan);
+	{
+		string m(msg);
+		return WebSocket::send(m, itr->second.pan);
+	}
 
 	return false;
 }
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse ÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 {
-	sysl->TRACE(String("TouchPanel::setCommand(const ANET_COMMAND& cmd)"));
+	std::lock_guard<std::mutex> lock(mut);
+	DECL_TRACER("TouchPanel::setCommand(const ANET_COMMAND& cmd)");
 
 	if (!isRegistered(cmd.device1))
 		return;
@@ -505,59 +513,54 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 		return;
 
 	busy = true;
-	String com;
+	string com;
 
 	while (commands.size() > 0)
 	{
 		ANET_COMMAND& bef = commands.at(0);
 		commands.erase(commands.begin());
-
-		if (!isRegistered(bef.device1))
-			continue;
+		string amxBuffer = getAMXBuffer(bef.device1);
 
 		switch (bef.MC)
 		{
 			case 0x0006:
 			case 0x0018:	// feedback channel on
-//				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
-				com.assign(bef.device1);
+				com.assign(to_string(bef.device1));
 				com.append(":");
-				com.append(bef.data.chan_state.port);
+				com.append(to_string(bef.data.chan_state.port));
 				com.append("|ON-");
-				com.append(bef.data.chan_state.channel);
+				com.append(to_string(bef.data.chan_state.channel));
 				send(bef.device1, com);
 			break;
 
 			case 0x0007:
 			case 0x0019:	// feedback channel off
-//				com = String("%1:%2").arg(bef.device1).arg(bef.data.chan_state.port);
-				com.assign(bef.device1);
+				com.assign(to_string(bef.device1));
 				com.append(":");
-				com.append(bef.data.chan_state.port);
+				com.append(to_string(bef.data.chan_state.port));
 				com.append("|OFF-");
-				com.append(bef.data.chan_state.channel);
+				com.append(to_string(bef.data.chan_state.channel));
 				send(bef.device1, com);
 			break;
 
 			case 0x000a:	// level value change
-//				com = String("%1:%2").arg(bef.device1).arg(bef.data.message_value.port);
-				com.assign(bef.device1);
+				com.assign(to_string(bef.device1));
 				com.append(":");
-				com.append(bef.data.message_value.port);
+				com.append(to_string(bef.data.message_value.port));
 				com += "|LEVEL-";
-				com += bef.data.message_value.value;
+				com += to_string(bef.data.message_value.value);
 				com += ",";
 
 				switch (bef.data.message_value.type)
 				{
-					case 0x10: com += bef.data.message_value.content.byte; break;
-					case 0x11: com += bef.data.message_value.content.ch; break;
-					case 0x20: com += bef.data.message_value.content.integer; break;
-					case 0x21: com += bef.data.message_value.content.sinteger; break;
-					case 0x40: com += bef.data.message_value.content.dword; break;
-					case 0x41: com += bef.data.message_value.content.sdword; break;
-					case 0x4f: com += bef.data.message_value.content.fvalue; break;
-					case 0x8f: com += bef.data.message_value.content.dvalue; break;
+					case 0x10: com += to_string(bef.data.message_value.content.byte); break;
+					case 0x11: com += to_string(bef.data.message_value.content.ch); break;
+					case 0x20: com += to_string(bef.data.message_value.content.integer); break;
+					case 0x21: com += to_string(bef.data.message_value.content.sinteger); break;
+					case 0x40: com += to_string(bef.data.message_value.content.dword); break;
+					case 0x41: com += to_string(bef.data.message_value.content.sdword); break;
+					case 0x4f: com += to_string(bef.data.message_value.content.fvalue); break;
+					case 0x8f: com += to_string(bef.data.message_value.content.dvalue); break;
 				}
 
 				send(bef.device1, com);
@@ -569,20 +572,21 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				if (msg.length < strlen((char *)&msg.content))
 				{
 					amxBuffer.append((char *)&msg.content);
+					setAMXBuffer(bef.device1, amxBuffer);
 					break;
 				}
 				else if (amxBuffer.length() > 0)
 				{
 					amxBuffer.append((char *)&msg.content);
+					setAMXBuffer(bef.device1, amxBuffer);
 					size_t len = (amxBuffer.length() >= sizeof(msg.content)) ? 1499 : amxBuffer.length();
-					strncpy((char *)&msg.content, amxBuffer.data(), len);
+					strncpy((char *)&msg.content, amxBuffer.c_str(), len);
 					msg.content[len] = 0;
 				}
 
-//				com = String("%1:%2").arg(bef.device1).arg(msg.port);
-				com.assign(bef.device1);
+				com.assign(to_string(bef.device1));
 				com.append(":");
-				com.append(msg.port);
+				com.append(to_string(msg.port));
 				com.append("|");
 				com.append(NameFormat::cp1250ToUTF8((char *)&msg.content));
 				send(bef.device1, com);
@@ -591,6 +595,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 	}
 
 	busy = false;
+	cond.notify_one();
 }
 
 /*
@@ -598,107 +603,72 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
  * client web browser is received. The messages are processed and then the
  * result is send to the controller, if there is something to send.
  */
-void TouchPanel::webMsg(std::string& msg, long pan)
+void TouchPanel::webMsg(string& msg, long pan)
 {
-	sysl->TRACE(String("TouchPanel::webMsg(std::string& msg, websocketpp::connection_hdl hdl) [")+msg+"]");
+	std::lock_guard<std::mutex> lock(mut);
+	DECL_TRACER("TouchPanel::webMsg(string& msg, websocketpp::connection_hdl hdl) ["+msg+"]");
 
-	std::vector<String> parts = String(msg).split(":");
+	vector<string> parts = Str::split(msg, ":");
 	ANET_SEND as;
 
-	if (msg.find("REGISTER:") == std::string::npos)
-		as.device = atoi(parts[1].data());
+	if (msg.find("REGISTER:") == string::npos)
+		as.device = atoi(parts[1].c_str());
 	else
 		as.device = 0;
 
-	if (isRegistered(as.device) && msg.find("PUSH:") != std::string::npos)
-	{
-		AMXNet *amxnet;
-
-		if ((amxnet = getConnection(as.device)) == 0)
-		{
-			sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(as.device));
-			return;
-		}
-
-		as.port = atoi(parts[2].data());
-		as.channel = atoi(parts[3].data());
-		int value = atoi(parts[4].data());
-
-		if (value)
-			as.MC = 0x0084;
-		else
-			as.MC = 0x0085;
-
-		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", value: "+value+", MC: 0x"+NameFormat::toHex(as.MC, 4));
-
-		if (amxnet != 0)
-			amxnet->sendCommand(as);
-		else
-			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
-	}
-	else if (isRegistered(as.device) && msg.find("LEVEL:") != std::string::npos)
-	{
-		AMXNet *amxnet;
-
-		if ((amxnet = getConnection(as.device)) == 0)
-		{
-			sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(as.device));
-			return;
-		}
-
-		as.port = atoi(parts[2].data());
-		as.channel = atoi(parts[3].data());
-		as.level = as.channel;
-		as.value = atoi(parts[4].data());
-		as.MC = 0x008a;
-		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", value: "+as.value+", MC: 0x"+NameFormat::toHex(as.MC, 4));
-
-		if (amxnet != 0)
-			amxnet->sendCommand(as);
-		else
-			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
-	}
-	else if (isRegistered(as.device) && msg.find("PING:") != std::string::npos)	// PING:<device>:<counter>:<time>
-	{
-		if (parts.size() >= 4)
-		{
-			String answer = String("%1:0|#PONG-%1,%2,%3").arg(parts[1]).arg(parts[2]).arg(parts[3]);
-			send(as.device, answer);
-		}
-	}
-	else if (msg.find("REGISTER:") != std::string::npos)
+	if (msg.find("REGISTER:") != string::npos)
 	{
 		if (parts.size() != 2)
+		{
+			cond.notify_one();
 			return;
+		}
 
-		String regID = parts[1].substring((size_t)0, parts[1].length()-1);
-		sysl->warnlog(String("TouchPanel::webMsg: Try to registrate with ID: %1 ...").arg(regID));
-		std::vector<String> ht = Configuration->getHashTable(Configuration->getHashTablePath());
-		String ip = getIP(pan);
+		string regID = parts[1].substr(0, parts[1].length()-1);
+		sysl->warnlog("TouchPanel::webMsg: Try to registrate with ID: "+regID+" ...");
+		vector<string> ht;
 
-		if (isPresent(ht, regID) || (ip.length() > 0 && Configuration->isAllowedNet(ip)))
+		try
+		{
+			ht = Configuration->getHashTable(Configuration->getHashTablePath());
+		}
+		catch (exception& e)
+		{
+			sysl->warnlog("TouchPanel::webMsg: No hashtable found!");
+			ht.clear();
+		}
+
+		string ip = getIP(pan);
+
+		if ((ip.length() > 0 && Configuration->isAllowedNet(ip)) || isPresent(ht, regID))
 		{
 			if (!haveFreeSlot() && !isRegistered(regID))
 			{
-				sysl->errlog(String("TouchPanel::webMsg: No free slots available!"));
-				String com = "0|#REG-NAK";
+				sysl->errlog("TouchPanel::webMsg: No free slots available!");
+				string com = "0|#REG-NAK";
 				send(as.device, com);
 				com = "0:0|#ERR-No free slots available!";
 				send(as.device, com);
+				cond.notify_one();
 				return;
 			}
 			else if (isRegistered(regID))
+			{
+				sysl->warnlog("TouchPanel::webMsg: Panel with registration ID "+regID+" is already registrated!");
+				cond.notify_one();
 				return;
+			}
 
 			int slot = getFreeSlot();
 
 			if (slot == 0)
 			{
-				sysl->errlog(String("TouchPanel::webMsg: No more free slots available!"));
-				String s = "0:0|#REG-NAK";
+				sysl->errlog("TouchPanel::webMsg: No more free slots available!");
+				string s = "0:0|#REG-NAK";
 				send(as.device, s);
 				s = "0:0|#ERR-No more free slots!";
 				send(as.device, s);
+				cond.notify_one();
 				return;
 			}
 
@@ -706,42 +676,104 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 
 			if (!newConnection(slot))
 			{
-				sysl->errlog(std::string("TouchPanel::webMsg: Error connecting to controller!"));
-				String s = "0:0|#REG-NAK";
+				sysl->errlog(string("TouchPanel::webMsg: Error connecting to controller!"));
+				string s = "0:0|#REG-NAK";
 				send(as.device, s);
 				s = "0:0|#ERR-Connection error!";
 				send(as.device, s);
+				cond.notify_one();
 				return;
 			}
 
-			sysl->warnlog(String("TouchPanel::webMsg: Registration with ID: %1 was successfull.").arg(regID));
-			String com = String("0:0|#REG-OK,%1,%2").arg(slot).arg(regID);
+			sysl->warnlog("TouchPanel::webMsg: Registration with ID: "+regID+" was successfull.");
+			string com = "0:0|#REG-OK,"+to_string(slot)+","+regID;
 			send(slot, com);
+			cond.notify_one();
 			return;
 		}
 		else
 		{
-			sysl->warnlog(String("TouchPanel::webMsg: Access for ID: %1 is denied!").arg(regID));
-			String com = "0:0|#REG-NAK";
+			sysl->warnlog("TouchPanel::webMsg: Access for ID: "+regID+" is denied!");
+			string com = "0:0|#REG-NAK";
 			send(as.device, com);
 			com = "0:0|#ERR-Access denied!";
 			send(as.device, com);
+			cond.notify_one();
 		}
 	}
-	else if (isRegistered(as.device) &&
-			 (msg.find("KEY:") != std::string::npos ||		// KEY:<panelID>:<port>:<channel>:<string>;
-			  msg.find("STRING:") != std::string::npos))	// STRING:<panelID>:<port>:<channel>:<string>;
+	else if (isRegistered(as.device) && msg.find("PUSH:") != string::npos)
 	{
 		AMXNet *amxnet;
 
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
-			sysl->errlog(String("TouchPanel::webMsg: Network connection not found for panel %1!").arg(as.device));
+			sysl->errlog(string("TouchPanel::webMsg: Network connection not found for panel ")+to_string(as.device)+"!");
+			cond.notify_one();
 			return;
 		}
 
-		as.port = atoi(parts[2].data());
-		as.channel = atoi(parts[3].data());
+		as.port = atoi(parts[2].c_str());
+		as.channel = atoi(parts[3].c_str());
+		int value = atoi(parts[4].c_str());
+
+		if (value)
+			as.MC = 0x0084;
+		else
+			as.MC = 0x0085;
+
+		sysl->TRACE(string("TouchPanel::webMsg: port: ")+to_string(as.port)+", channel: "+to_string(as.channel)+", value: "+to_string(value)+", MC: 0x"+NameFormat::toHex(as.MC, 4));
+
+		if (amxnet != 0)
+			amxnet->sendCommand(as);
+		else
+			sysl->warnlog(string("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
+	}
+	else if (isRegistered(as.device) && msg.find("LEVEL:") != string::npos)
+	{
+		AMXNet *amxnet;
+
+		if ((amxnet = getConnection(as.device)) == 0)
+		{
+			sysl->errlog(string("TouchPanel::webMsg: Network connection not found for panel ")+to_string(as.device)+"!");
+			cond.notify_one();
+			return;
+		}
+
+		as.port = atoi(parts[2].c_str());
+		as.channel = atoi(parts[3].c_str());
+		as.level = as.channel;
+		as.value = atoi(parts[4].c_str());
+		as.MC = 0x008a;
+		sysl->TRACE(string("TouchPanel::webMsg: port: ")+to_string(as.port)+", channel: "+to_string(as.channel)+", value: "+to_string(as.value)+", MC: 0x"+NameFormat::toHex(as.MC, 4));
+
+		if (amxnet != 0)
+			amxnet->sendCommand(as);
+		else
+			sysl->warnlog(string("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
+	}
+	else if (isRegistered(as.device) && msg.find("PING:") != string::npos)	// PING:<device>:<counter>:<time>
+	{
+		if (parts.size() >= 4)
+		{
+			string answer = parts[1]+":0|#PONG-"+parts[1]+","+parts[2]+","+parts[3];
+			send(as.device, answer);
+		}
+	}
+	else if (isRegistered(as.device) &&
+			 (msg.find("KEY:") != string::npos ||		// KEY:<panelID>:<port>:<channel>:<string>;
+			  msg.find("STRING:") != string::npos))	// STRING:<panelID>:<port>:<channel>:<string>;
+	{
+		AMXNet *amxnet;
+
+		if ((amxnet = getConnection(as.device)) == 0)
+		{
+			sysl->errlog("TouchPanel::webMsg: Network connection not found for panel "+to_string(as.device)+"!");
+			cond.notify_one();
+			return;
+		}
+
+		as.port = atoi(parts[2].c_str());
+		as.channel = atoi(parts[3].c_str());
 		size_t i = 4;
 
 		while (i < parts.size())
@@ -753,27 +785,30 @@ void TouchPanel::webMsg(std::string& msg, long pan)
 			i++;
 		}
 
-		size_t pos = as.msg.findLastOf(';');
+		size_t pos = as.msg.find_last_of(';');
 
-		if (pos != std::string::npos)
-			as.msg = as.msg.substring((size_t)0, pos);
+		if (pos != string::npos)
+			as.msg = as.msg.substr(0, pos);
 
-		if (msg.find("KEY:") != std::string::npos)
+		if (msg.find("KEY:") != string::npos)
 			as.msg = NameFormat::UTF8ToCp1250(as.msg);
 
 		as.MC = 0x008b;
-		sysl->TRACE(String("TouchPanel::webMsg: port: ")+as.port+", channel: "+as.channel+", msg: "+as.msg+", MC: 0x"+NameFormat::toHex(as.MC, 4));
+		sysl->TRACE("TouchPanel::webMsg: port: "+to_string(as.port)+", channel: "+to_string(as.channel)+", msg: "+as.msg+", MC: 0x"+NameFormat::toHex(as.MC, 4));
 
 		if (amxnet != 0)
 			amxnet->sendCommand(as);
 		else
-			sysl->warnlog(String("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!"));
+			sysl->warnlog("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!");
 	}
+
+	cond.notify_one();
 }
 
 void TouchPanel::stopClient()
 {
-	sysl->TRACE(String("TouchPanel::stopClient()"));
+	std::lock_guard<std::mutex> lock(mut);
+	DECL_TRACER("TouchPanel::stopClient()");
 
 	PANELS_T::iterator itr;
 
@@ -790,10 +825,13 @@ void TouchPanel::stopClient()
 
 		registration.erase(itr);
 	}
+
+	cond.notify_one();
 }
 
-int TouchPanel::findPage(const String& name)
+int TouchPanel::findPage(const string& name)
 {
+	DECL_TRACER("TouchPanel::findPage(const string& name)");
 	PROJECT_T pro = getProject();
 
 	for (size_t i = 0; i < pro.pageLists.size(); i++)
@@ -814,20 +852,20 @@ int TouchPanel::findPage(const String& name)
 
 void TouchPanel::readPages()
 {
-	sysl->TRACE(String("TouchPanel::readPages()"));
+	DECL_TRACER("TouchPanel::readPages()");
 
 	if (gotPages || isParsed())
 		return;
 
 	try
 	{
-		vector<String> pgs = getPageFileNames();
+		vector<string> pgs = getPageFileNames();
 		scBtArray = "\"buttons\":[";
 		bool first = false;
 
 		for (size_t i = 0; i < pgs.size(); i++)
 		{
-			sysl->TRACE(String("TouchPanel::readPages: Parsing page ")+pgs[i]);
+			sysl->TRACE("TouchPanel::readPages: Parsing page "+pgs[i]);
 			Page p(pgs[i]);
 			p.setPalette(getPalettes());
 			p.setParentSize(getProject().panelSetup.screenWidth, getProject().panelSetup.screenHeight);
@@ -837,7 +875,7 @@ void TouchPanel::readPages()
 
 			if (!p.parsePage())
 			{
-				sysl->warnlog(String("TouchPanel::readPages: Page ")+p.getPageName()+" had an error! Page will be ignored.");
+				sysl->warnlog("TouchPanel::readPages: Page "+p.getPageName()+" had an error! Page will be ignored.");
 				continue;
 			}
 
@@ -928,24 +966,24 @@ void TouchPanel::readPages()
 
 		scBtArray += "]";
 	}
-	catch (std::exception& e)
+	catch (exception& e)
 	{
-		sysl->errlog(String("TouchPanel::readPages: ")+e.what());
+		sysl->errlog(string("TouchPanel::readPages: ")+e.what());
 		exit(1);
 	}
 }
 
 bool TouchPanel::parsePages()
 {
-	sysl->TRACE(std::string("TouchPanel::parsePages()"));
+	DECL_TRACER(string("TouchPanel::parsePages()"));
 
 	fstream pgFile, cssFile, jsFile, cacheFile;
 	// Did we've already parsed?
 	if (isParsed())
 		return true;
 
-	std::string fname = Configuration->getHTTProot().toString()+"/index.html";
-	std::string cssname = Configuration->getHTTProot().toString()+"/amxpanel.css";
+	string fname = Configuration->getHTTProot()+"/index.html";
+	string cssname = Configuration->getHTTProot()+"/amxpanel.css";
 
 	try
 	{
@@ -953,7 +991,7 @@ bool TouchPanel::parsePages()
 
 		if (!pgFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+fname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+fname);
 			return false;
 		}
 
@@ -961,14 +999,14 @@ bool TouchPanel::parsePages()
 
 		if (!cssFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+cssname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+cssname);
 			pgFile.close();
 			return false;
 		}
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		return false;
 	}
 
@@ -979,45 +1017,45 @@ bool TouchPanel::parsePages()
 
 	try
 	{
-		std::string maniName = Configuration->getHTTProot().toString()+"/manifest.json";
+		string maniName = Configuration->getHTTProot()+"/manifest.json";
 		jsFile.open(maniName, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!jsFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+maniName);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+maniName);
 			return false;
 		}
 
-		jsFile << "{" << std::endl << "\t\"short_name\": \"AMXPanel\"," << std::endl;
-		jsFile << "\t\"name\": \"AMX Panel\"," << std::endl;
-		jsFile << "\t\"icons\": [" << std::endl << "\t\t{" << std::endl;
-		jsFile << "\t\t\t\"src\": \"images/icon.png\"," << std::endl;
-		jsFile << "\t\t\t\"type\": \"image/png\"," << std::endl;
-		jsFile << "\t\t\t\"sizes\": \"256x256\"" << std::endl << "\t\t}" << std::endl;
-		jsFile << "\t]," << std::endl;
+		jsFile << "{" << endl << "\t\"short_name\": \"AMXPanel\"," << endl;
+		jsFile << "\t\"name\": \"AMX Panel\"," << endl;
+		jsFile << "\t\"icons\": [" << endl << "\t\t{" << endl;
+		jsFile << "\t\t\t\"src\": \"images/icon.png\"," << endl;
+		jsFile << "\t\t\t\"type\": \"image/png\"," << endl;
+		jsFile << "\t\t\t\"sizes\": \"256x256\"" << endl << "\t\t}" << endl;
+		jsFile << "\t]," << endl;
 
 		if (Configuration->getWSStatus())
 			jsFile << "\t\"start_url\": \"https://";
 		else
 			jsFile << "\t\"start_url\": \"http://";
 
-		jsFile << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation().toString() << "/index.html\"," << std::endl;
-		jsFile << "\t\"background_color\": \"#5a005a\"," << std::endl;
-		jsFile << "\t\"display\": \"standalone\"," << std::endl;
+		jsFile << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation() << "/index.html\"," << endl;
+		jsFile << "\t\"background_color\": \"#5a005a\"," << endl;
+		jsFile << "\t\"display\": \"standalone\"," << endl;
 
 		if (Configuration->getWSStatus())
 			jsFile << "\t\"scope\": \"https://";
 		else
 			jsFile << "\t\"scope\": \"http://";
 
-		jsFile << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation().toString() << "/\"," << std::endl;
-		jsFile << "\t\"theme_color\": \"#5a005a\"," << std::endl;
-		jsFile << "\t\"orientation\": \"landscape\"" << std::endl << "}" << std::endl;
+		jsFile << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation() << "/\"," << endl;
+		jsFile << "\t\"theme_color\": \"#5a005a\"," << endl;
+		jsFile << "\t\"orientation\": \"landscape\"" << endl << "}" << endl;
 		jsFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		return false;
 	}
 
@@ -1026,40 +1064,40 @@ bool TouchPanel::parsePages()
 	// Service worker code
 	try
 	{
-		std::string cacheName = Configuration->getHTTProot().toString()+"/scripts/sw.js";
+		string cacheName = Configuration->getHTTProot()+"/scripts/sw.js";
 		cacheFile.open(cacheName, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!cacheFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+cacheName);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+cacheName);
 			return false;
 		}
 
-		cacheFile << std::endl << "// This is the Service Worker needed to run as a stand allone app." << std::endl;
-		cacheFile << "if('serviceWorker' in navigator)\n{" << std::endl;
-		cacheFile << "\twindow.addEventListener('load', function() {" << std::endl;
-		cacheFile << "\t\tnavigator.serviceWorker.register('" << Configuration->getWebLocation() << "/scripts/sw.js').then(function(registration) {" << std::endl;
-		cacheFile << "\t\t\tdebug(\"Service Worker registration successful width scope: \"+registration.scope);" << std::endl;
-		cacheFile << "\t\t}, function(err) {\n\t\t\terrlog(\"Registration failed:\"+err);" << std::endl;
-		cacheFile << "\t\t})\n\t})\n}" << std::endl << std::endl;
-		cacheFile << "var cache_name = 'amxpanel-" << VERSION << "'" << std::endl << std::endl;
-		cacheFile << "var urls_to_cache = [" << std::endl;
-		cacheFile << "\t'" << Configuration->getWebLocation() << "'," << std::endl;
-		cacheFile << "\t'" << Configuration->getWebLocation() << "/scripts/'," << std::endl;
-		cacheFile << "\t'" << Configuration->getWebLocation() << "/images/'" << std::endl;
-		cacheFile << "]" << std::endl << std::endl;
-		cacheFile << "self.addEventListener('install', function(e) {" << std::endl;
-		cacheFile << "\te.waitUntil(caches.open(cache_name).then(function(cache) {" << std::endl;
-		cacheFile << "\t\treturn cache.addAll(urls_to_cache)\n\t}) )\n})" << std::endl << std::endl;
-		cacheFile << "self.addEventListener('fetch', function(e) {" << std::endl;
-		cacheFile << "\te.respondWith(caches.match(e.request).then(function(response) {" << std::endl;
-		cacheFile << "\t\tif(response)\n\t\t\treturn response\n\t\telse\n\t\t\treturn fetch(e.request)" << std::endl;
-		cacheFile << "\t}) )\n})" << std::endl << std::endl;
+		cacheFile << endl << "// This is the Service Worker needed to run as a stand allone app." << endl;
+		cacheFile << "if('serviceWorker' in navigator)\n{" << endl;
+		cacheFile << "\twindow.addEventListener('load', function() {" << endl;
+		cacheFile << "\t\tnavigator.serviceWorker.register('" << Configuration->getWebLocation() << "/scripts/sw.js').then(function(registration) {" << endl;
+		cacheFile << "\t\t\tdebug(\"Service Worker registration successful width scope: \"+registration.scope);" << endl;
+		cacheFile << "\t\t}, function(err) {\n\t\t\terrlog(\"Registration failed:\"+err);" << endl;
+		cacheFile << "\t\t})\n\t})\n}" << endl << endl;
+		cacheFile << "var cache_name = 'amxpanel-" << VERSION << "'" << endl << endl;
+		cacheFile << "var urls_to_cache = [" << endl;
+		cacheFile << "\t'" << Configuration->getWebLocation() << "'," << endl;
+		cacheFile << "\t'" << Configuration->getWebLocation() << "/scripts/'," << endl;
+		cacheFile << "\t'" << Configuration->getWebLocation() << "/images/'" << endl;
+		cacheFile << "]" << endl << endl;
+		cacheFile << "self.addEventListener('install', function(e) {" << endl;
+		cacheFile << "\te.waitUntil(caches.open(cache_name).then(function(cache) {" << endl;
+		cacheFile << "\t\treturn cache.addAll(urls_to_cache)\n\t}) )\n})" << endl << endl;
+		cacheFile << "self.addEventListener('fetch', function(e) {" << endl;
+		cacheFile << "\te.respondWith(caches.match(e.request).then(function(response) {" << endl;
+		cacheFile << "\t\tif(response)\n\t\t\treturn response\n\t\telse\n\t\t\treturn fetch(e.request)" << endl;
+		cacheFile << "\t}) )\n})" << endl << endl;
 		cacheFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		return false;
 	}
 
@@ -1068,25 +1106,22 @@ bool TouchPanel::parsePages()
 	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
 	pgFile << "<meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=0.7, minimum-scale=0.7, maximum-scale=1.0, user-scalable=yes\"/>\n";
-	pgFile << "<meta name=\"mobile-web-app-capable\" content=\"yes\" />" << std::endl;
+	pgFile << "<meta name=\"mobile-web-app-capable\" content=\"yes\" />" << endl;
 	pgFile << "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n";
-	pgFile << "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\" />" << std::endl;
-	pgFile << "<link rel=\"manifest\" href=\"manifest.json\">" << std::endl;
-	pgFile << "<link rel=\"icon\" sizes=\"256x256\" href=\"images/icon.png\">" << std::endl;
-	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">" << std::endl;
-//	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"scripts/keyboard/css/index.css\">" << std::endl;
+	pgFile << "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\" />" << endl;
+	pgFile << "<link rel=\"manifest\" href=\"manifest.json\">" << endl;
+	pgFile << "<link rel=\"icon\" sizes=\"256x256\" href=\"images/icon.png\">" << endl;
+	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">" << endl;
 	// Scripts
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/sw.js\"></script>" << std::endl;
-//	pgFile << "<script type=\"text/javascript\" src=\"scripts/imprint.min.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/store.modern.min.js\"></script>" << std::endl;
-	pgFile << "<script>" << std::endl;
-	pgFile << "\"use strict\";" << std::endl;
-//	pgFile << "var fingerprint = \"\";" << std::endl;
-	pgFile << "var pageName = \"\";" << std::endl;
-	pgFile << "var wsocket = null;" << std::endl;
-	pgFile << "var ws_online = 0;		// 0 = offline, 1 = online, 2 = connecting" << std::endl;
-	pgFile << "var wsStatus = 0;" << std::endl << std::endl;
-	pgFile << "var browserTests = [" << std::endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/sw.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/store.modern.min.js\"></script>" << endl;
+	pgFile << "<script>" << endl;
+	pgFile << "\"use strict\";" << endl;
+	pgFile << "var pageName = \"\";" << endl;
+	pgFile << "var wsocket = null;" << endl;
+	pgFile << "var ws_online = 0;		// 0 = offline, 1 = online, 2 = connecting" << endl;
+	pgFile << "var wsStatus = 0;" << endl << endl;
+	pgFile << "var browserTests = [" << endl;
 	pgFile << "\t\"audio\",\n\t\"availableScreenResolution\",\n\t\"canvas\",\n";
 	pgFile << "\t\"colorDepth\",\n\t\"cookies\",\n\t\"cpuClass\",\n\t\"deviceDpi\",\n";
 	pgFile << "\t\"doNotTrack\",\n\t\"indexedDb\",\n\t\"installedFonts\",\n";
@@ -1098,12 +1133,12 @@ bool TouchPanel::parsePages()
 
 	try
 	{
-		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/pages.js";
+		string jsname = Configuration->getHTTProot()+"/scripts/pages.js";
 		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!jsFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+jsname);
 			pgFile.close();
 			return false;
 		}
@@ -1112,9 +1147,9 @@ bool TouchPanel::parsePages()
 		writePages(jsFile);
 		jsFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
 //		cacheFile.close();
 		return false;
@@ -1122,12 +1157,12 @@ bool TouchPanel::parsePages()
 
 	try
 	{
-		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/popups.js";
+		string jsname = Configuration->getHTTProot()+"/scripts/popups.js";
 		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!jsFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+jsname);
 			pgFile.close();
 			return false;
 		}
@@ -1136,9 +1171,9 @@ bool TouchPanel::parsePages()
 		writePopups(jsFile);
 		jsFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
 //		cacheFile.close();
 		return false;
@@ -1146,12 +1181,12 @@ bool TouchPanel::parsePages()
 
 	try
 	{
-		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/groups.js";
+		string jsname = Configuration->getHTTProot()+"/scripts/groups.js";
 		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!jsFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+jsname);
 			pgFile.close();
 			return false;
 		}
@@ -1160,22 +1195,21 @@ bool TouchPanel::parsePages()
 		writeGroups(jsFile);
 		jsFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-//		cacheFile.close();
 		return false;
 	}
 
 	try
 	{
-		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/btarray.js";
+		string jsname = Configuration->getHTTProot()+"/scripts/btarray.js";
 		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!jsFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+jsname);
 			pgFile.close();
 			return false;
 		}
@@ -1184,22 +1218,21 @@ bool TouchPanel::parsePages()
 		writeBtArray(jsFile);
 		jsFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
-//		cacheFile.close();
 		return false;
 	}
 
 	try
 	{
-		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/icons.js";
+		string jsname = Configuration->getHTTProot()+"/scripts/icons.js";
 		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!jsFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+jsname);
 			pgFile.close();
 			return false;
 		}
@@ -1207,21 +1240,21 @@ bool TouchPanel::parsePages()
 		writeIconTable(jsFile);
 		jsFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
 		return false;
 	}
 
 	try
 	{
-		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/bargraphs.js";
+		string jsname = Configuration->getHTTProot()+"/scripts/bargraphs.js";
 		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!jsFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+jsname);
 			pgFile.close();
 			return false;
 		}
@@ -1229,21 +1262,21 @@ bool TouchPanel::parsePages()
 		writeBargraphs(jsFile);
 		jsFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
 		return false;
 	}
 
 	try
 	{
-		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/palette.js";
+		string jsname = Configuration->getHTTProot()+"/scripts/palette.js";
 		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!jsFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+jsname);
 			pgFile.close();
 			return false;
 		}
@@ -1251,131 +1284,125 @@ bool TouchPanel::parsePages()
 		jsFile << getPalettes()->getJson();
 		jsFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
 		return false;
 	}
 
 	try
 	{
-		std::string jsname = Configuration->getHTTProot().toString()+"/scripts/resource.js";
+		string jsname = Configuration->getHTTProot()+"/scripts/resource.js";
 		jsFile.open(jsname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!jsFile.is_open())
 		{
-			sysl->errlog(std::string("TouchPanel::parsePages: Error opening file ")+jsname);
+			sysl->errlog(string("TouchPanel::parsePages: Error opening file ")+jsname);
 			pgFile.close();
 			return false;
 		}
 
 		PROJECT_T prj = getProject();
-		std::vector<RESOURCE_LIST_T>& resList = prj.resourceLists;
-		jsFile << "var ressources = { \"ressources\":[" << std::endl;
+		vector<RESOURCE_LIST_T>& resList = prj.resourceLists;
+		jsFile << "var ressources = { \"ressources\":[" << endl;
 
 		for (size_t i = 0; i < resList.size(); i++)
 		{
 			if (i > 0)
-				jsFile << "," << std::endl;
+				jsFile << "," << endl;
 
-			std::vector<RESOURCE_T>& res = resList[i].ressource;
-			jsFile << "\t{\"type\":\"" << resList[i].type << "\",\"ressource\":[" << std::endl;
+			vector<RESOURCE_T>& res = resList[i].ressource;
+			jsFile << "\t{\"type\":\"" << resList[i].type << "\",\"ressource\":[" << endl;
 
 			for (size_t j = 0; j < res.size(); j++)
 			{
 				if (j > 0)
-					jsFile << "," << std::endl;
+					jsFile << "," << endl;
 
-				jsFile << "\t\t{\"name\":\"" << res[j].name << "\",\"protocol\":\"" << res[j].protocol << "\"," << std::endl;
-				jsFile << "\t\t \"user\":\"" << res[j].user << "\",\"password\":\"" << res[j].password << "\"," << std::endl;
-				jsFile << "\t\t \"encrypted\":" << ((res[j].encrypted)?"true":"false") << ",\"host\":\"" << res[j].host << "\"," << std::endl;
+				jsFile << "\t\t{\"name\":\"" << res[j].name << "\",\"protocol\":\"" << res[j].protocol << "\"," << endl;
+				jsFile << "\t\t \"user\":\"" << res[j].user << "\",\"password\":\"" << res[j].password << "\"," << endl;
+				jsFile << "\t\t \"encrypted\":" << ((res[j].encrypted)?"true":"false") << ",\"host\":\"" << res[j].host << "\"," << endl;
 				jsFile << "\t\t \"path\":\"" << res[j].path << "\",\"file\":\"" << res[j].file << "\",\"refresh\":" << res[j].refresh << "}";
 			}
 
-			jsFile << std::endl << "\t]}";
+			jsFile << endl << "\t]}";
 		}
 
-		jsFile << std::endl << "]};" << std::endl;
+		jsFile << endl << "]};" << endl;
 		jsFile.close();
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		pgFile.close();
 		return false;
 	}
 
-	pgFile << "</script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/browser.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/pages.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/popups.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/groups.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/btarray.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/icons.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/bargraphs.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/resource.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/movie.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/keyboard.js\"></script>" << std::endl << std::endl;
+	pgFile << "</script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/browser.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/pages.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/popups.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/groups.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/btarray.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/icons.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/bargraphs.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/palette.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/fonts.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/resource.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/movie.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/keyboard.js\"></script>" << endl << endl;
 
 	for (size_t i = 0; i < stPages.size(); i++)
 	{
-		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPages[i].ID << ".js\"></script>" << std::endl;
+		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPages[i].ID << ".js\"></script>" << endl;
 	}
 
-	pgFile << std::endl;
+	pgFile << endl;
 
 	for (size_t i = 0; i < stPopups.size(); i++)
 	{
-		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPopups[i].ID << ".js\"></script>" << std::endl;
+		pgFile << "<script type=\"text/javascript\" src=\"scripts/Page" << stPopups[i].ID << ".js\"></script>" << endl;
 	}
 
-	pgFile << std::endl << "<script type=\"text/javascript\" src=\"scripts/page.js\"></script>" << std::endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>" << std::endl;
+	pgFile << endl << "<script type=\"text/javascript\" src=\"scripts/page.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/amxpanel.js\"></script>" << endl;
 	// Add some special script functions
 	pgFile << "<script>\n";
-	pgFile << scrBuffer << std::endl;
+	pgFile << scrBuffer << endl;
 	// This is the WebSocket connection function
 	pgFile << "function connect()\n{\n";
-	pgFile << "\tif (wsocket !== null && (wsocket.readyState == WebSocket.OPEN || wsocket.readyState == WebSocket.CLOSING) && ws_online > 0)" << std::endl;
-	pgFile << "\t\treturn;" << std::endl << std::endl;
-	pgFile << "\ttry\n\t{\n\t\tws_online = 2;" << std::endl;
+	pgFile << "\tif (wsocket !== null && (wsocket.readyState == WebSocket.OPEN || wsocket.readyState == WebSocket.CLOSING) && ws_online > 0)" << endl;
+	pgFile << "\t\treturn;" << endl << endl;
+	pgFile << "\ttry\n\t{\n\t\tws_online = 2;" << endl;
 
 	if (Configuration->getWSStatus())
 		pgFile << "\t\twsocket = new WebSocket(\"wss://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
 	else
 		pgFile << "\t\twsocket = new WebSocket(\"ws://" << Configuration->getWebSocketServer() << ":" << Configuration->getSidePort() << "/\");\n";
 
-	pgFile << "\t\twsocket.onopen = function() {" << std::endl;
-    pgFile << "\t\t\tgetRegistrationID();\n\t\t\tws_online = 1;\t\t// online\n\t\t\tsetOnlineStatus(1);\n" << std::endl;
-	pgFile << "\t\t\tif (!regStatus)\n\t\t\t{" << std::endl;
+	pgFile << "\t\twsocket.onopen = function() {" << endl;
+    pgFile << "\t\t\tgetRegistrationID();\n\t\t\tws_online = 1;\t\t// online\n\t\t\tsetOnlineStatus(1);\n" << endl;
+	pgFile << "\t\t\tif (!regStatus)\n\t\t\t{" << endl;
 	pgFile << "\t\t\t\tif (typeof registrationID == \"string\" && registrationID.length > 0)\n";
 	pgFile << "\t\t\t\t\twsocket.send('REGISTER:'+registrationID+';');\n";
-	pgFile << "\t\t\t\telse\n\t\t\t\t\terrlog(\"connect: Missing registration ID!\");\n\t\t\t}\n\t\t}" << std::endl;
+	pgFile << "\t\t\t\telse\n\t\t\t\t\terrlog(\"connect: Missing registration ID!\");\n\t\t\t}\n\t\t}" << endl;
 	pgFile << "\t\twsocket.onerror = function(error) { errlog('WebSocket error: '+error); setOnlineStatus(9); }\n";
 	pgFile << "\t\twsocket.onmessage = function(e) { parseMessage(e.data); }\n";
-	pgFile << "\t\twsocket.onclose = function() {\n\t\t\tTRACE('WebSocket is closed!');" << std::endl;
+	pgFile << "\t\twsocket.onclose = function() {\n\t\t\tTRACE('WebSocket is closed!');" << endl;
 	pgFile << "\t\t\tws_online = 0;\t\t// offline\n\t\t\tregStatus = false;\n\t\t\tsetOnlineStatus(0);\n\t\t}\n\t}\n\tcatch (exception)\n";
 	pgFile << "\t{\n\t\tsetOnlineStatus(0);\n\t\tconsole.error(\"Error initializing: \"+exception);\n\t}\n}\n\n";
-	// Create a fingerprint
-/*	pgFile << "function makeFingerprint()\n{\n";
-	pgFile << "\tconsole.time('getImprint');\n";
-	pgFile << "\t\timprint.test(browserTests).then(function(result) {\n";
-	pgFile << "\t\t\tconsole.timeEnd('getImprint');\n\t\t\tfingerprint = result;\n";
-	pgFile << "\t\t\tgetRegistrationID();\n\t});\n}\n\n"; */
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
-	pgFile << "\tif (isIOS() || (isFirefox() && isAndroid()))\n\t{" << std::endl;
-	pgFile << "\t\tEVENT_DOWN = \"touchstart\";\n\t\tEVENT_UP = \"touchend\";\n\t\tEVENT_MOVE = \"touchmove\";" << std::endl;
-	pgFile << "\t\tTRACE(\"main: Events were set to TOUCH...\");\n\t}" << std::endl;
-	pgFile << "\telse if (isFirefox() || isSafari() || isMacOS())" << std::endl;
-	pgFile << "\t{\n\t\tEVENT_DOWN = \"mousedown\";\n\t\tEVENT_UP = \"mouseup\";\n\t\tEVENT_MOVE = \"mousemove\";" << std::endl;
-	pgFile << "\t\tTRACE(\"main: Events were set to MOUSE...\");\n\t}\n" << std::endl;
-	pgFile << "\thandleStandby();" << std::endl;
+	pgFile << "\tif (isIOS() || (isFirefox() && isAndroid()))\n\t{" << endl;
+	pgFile << "\t\tEVENT_DOWN = \"touchstart\";\n\t\tEVENT_UP = \"touchend\";\n\t\tEVENT_MOVE = \"touchmove\";" << endl;
+	pgFile << "\t\tTRACE(\"main: Events were set to TOUCH...\");\n\t}" << endl;
+	pgFile << "\telse if (isFirefox() || isSafari() || isMacOS())" << endl;
+	pgFile << "\t{\n\t\tEVENT_DOWN = \"mousedown\";\n\t\tEVENT_UP = \"mouseup\";\n\t\tEVENT_MOVE = \"mousemove\";" << endl;
+	pgFile << "\t\tTRACE(\"main: Events were set to MOUSE...\");\n\t}\n" << endl;
+	pgFile << "\thandleStandby();" << endl;
 	pgFile << "\tvar elem = document.documentElement;\n\n\tif (elem.requestFullscreen)\n";
     pgFile << "\t\telem.requestFullscreen();\n";
 	pgFile << "\telse if (elem.mozRequestFullScreen)\t/* Firefox */\n";
@@ -1383,43 +1410,43 @@ bool TouchPanel::parsePages()
 	pgFile << "\telse if (elem.webkitRequestFullscreen)\t/* Chrome, Safari and Opera */\n";
     pgFile << "\t\telem.webkitRequestFullscreen();\n\n";
 	pgFile << "\twindow.addEventListener('online',  onOnline);\n";
-	pgFile << "\twindow.addEventListener('offline', onlineStatus);\n";
+	pgFile << "\twindow.addEventListener('offline', onOffline);\n";
 	pgFile << "\tshowPage('"<< prg.panelSetup.powerUpPage << "');\n";
 
 	for (size_t i = 0; i < prg.panelSetup.powerUpPopup.size(); i++)
 		pgFile << "\tshowPopup('" << prg.panelSetup.powerUpPopup[i] << "');\n";
 
-	pgFile << String("\t")+scrStart+"\n";
+	pgFile << string("\t")+scrStart+"\n";
 	pgFile << "}\n";
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
-//	pgFile << "<body onload=\"makeFingerprint(); main(); connect(); onlineStatus();\">" << std::endl;
-	pgFile << "<body onload=\"main(); connect(); onlineStatus();\">" << std::endl;
-	pgFile << "   <div id=\"main\"></div>" << std::endl;
+//	pgFile << "<body onload=\"main(); connect(); onlineStatus();\">" << endl;
+	pgFile << "<body onload=\"main(); connect();\">" << endl;
+	pgFile << "   <div id=\"main\"></div>" << endl;
 	pgFile << "</body>\n</html>\n";
 	pgFile.close();
 	// Mark as parsed
 	try
 	{
-		std::string nm = Configuration->getHTTProot().toString()+"/.parsed";
+		string nm = Configuration->getHTTProot()+"/.parsed";
 		pgFile.open(nm, ios::in | ios::out | ios::trunc | ios::binary);
 		DateTime dt;
 		pgFile << dt.toString();
 		pgFile.close();
 	}
-	catch(const std::fstream::failure e)
+	catch(const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 		return false;
 	}
 
 	return true;
 }
 
-bool TouchPanel::isPresent(const std::vector<String>& vs, const String& str)
+bool TouchPanel::isPresent(const vector<string>& vs, const string& str)
 {
-	sysl->TRACE(String("TouchPanel::isPresent(const std::vector<String>& vs, const String& str)"));
+	DECL_TRACER(string("TouchPanel::isPresent(const vector<string>& vs, const string& str)"));
 
 	for (size_t i = 0; i < vs.size(); i++)
 	{
@@ -1432,8 +1459,8 @@ bool TouchPanel::isPresent(const std::vector<String>& vs, const String& str)
 
 void TouchPanel::writeGroups (fstream& pgFile)
 {
-	sysl->TRACE(std::string("TouchPanel::writeGroups (fstream& pgFile)"));
-	std::vector<strings::String> grName;
+	DECL_TRACER(string("TouchPanel::writeGroups (fstream& pgFile)"));
+	vector<string> grName;
 	pgFile << "var popupGroups = {";
 
 	// Find all unique group names
@@ -1483,9 +1510,9 @@ void TouchPanel::writeGroups (fstream& pgFile)
 	pgFile << "\n\t};\n\n";
 }
 
-void TouchPanel::writePages(std::fstream& pgFile)
+void TouchPanel::writePages(fstream& pgFile)
 {
-	sysl->TRACE(String("TouchPanel::writePages(std::fstream& pgFile)"));
+	DECL_TRACER(string("TouchPanel::writePages(fstream& pgFile)"));
 	bool first = true;
 	pgFile << "var Pages = {\"pages\":[";
 
@@ -1503,7 +1530,7 @@ void TouchPanel::writePages(std::fstream& pgFile)
 
 void TouchPanel::writePopups (fstream& pgFile)
 {
-	sysl->TRACE(std::string("TouchPanel::writePopups (fstream& pgFile)"));
+	DECL_TRACER(string("TouchPanel::writePopups (fstream& pgFile)"));
 	bool first = true;
 	pgFile << "var Popups = {\"pages\":[";
 
@@ -1521,14 +1548,14 @@ void TouchPanel::writePopups (fstream& pgFile)
 
 void TouchPanel::writeBtArray(fstream& pgFile)
 {
-	sysl->TRACE(std::string("TouchPanel::writeBtArray(fstream& pgFile)"));
+	DECL_TRACER(string("TouchPanel::writeBtArray(fstream& pgFile)"));
 
 	pgFile << "var buttonArray = {" << scBtArray << "\n\t};\n";
 }
 
-void TouchPanel::writeIconTable(std::fstream& pgFile)
+void TouchPanel::writeIconTable(fstream& pgFile)
 {
-    sysl->TRACE(std::string("TouchPanel::writeIconTable(std::fstream& pgFile)"));
+    DECL_TRACER(string("TouchPanel::writeIconTable(fstream& pgFile)"));
 
     Icon *ic = getIconClass();
     size_t ni = ic->numIcons();
@@ -1546,33 +1573,34 @@ void TouchPanel::writeIconTable(std::fstream& pgFile)
     pgFile << "\n\t]};\n\n";
 }
 
-void TouchPanel::writeBargraphs(std::fstream& pgFile)
+void TouchPanel::writeBargraphs(fstream& pgFile)
 {
-	sysl->TRACE(String("TouchPanel::writeBargraphs(std::fstream& pgFile)"));
+	DECL_TRACER(string("TouchPanel::writeBargraphs(fstream& pgFile)"));
 	pgFile << "var bargraphs = {\"bargraphs\":[\n" << sBargraphs << "\n]};\n";
 }
 
-bool amx::TouchPanel::isParsed()
+bool TouchPanel::isParsed()
 {
+	DECL_TRACER(string("TouchPanel::isParsed()"));
 	fstream pgFile;
 	// Did we've already parsed?
 	try
 	{
-		std::string nm = Configuration->getHTTProot().toString()+"/.parsed";
+		string nm = Configuration->getHTTProot()+"/.parsed";
 		pgFile.open(nm, ios::in);
 
 		if (pgFile.is_open())
 		{
-			sysl->log(Syslog::INFO, String("TouchPanel::parsePages: Pages are already parsed. Skipping!"));
+			sysl->log(Syslog::INFO, string("TouchPanel::parsePages: Pages are already parsed. Skipping!"));
 			pgFile.close();
 			return true;
 		}
 
 		pgFile.close();
 	}
-	catch(const std::fstream::failure e)
+	catch(const fstream::failure e)
 	{
-		sysl->errlog(std::string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
 	}
 
 	return false;
@@ -1580,7 +1608,8 @@ bool amx::TouchPanel::isParsed()
 
 void TouchPanel::setWebConnect(bool s, long pan)
 {
-	sysl->TRACE(String("TouchPanel::setWebConnect(bool s, websocketpp::connection_hdl hdl)"));
+	std::lock_guard<std::mutex> lock(mut);
+	DECL_TRACER("TouchPanel::setWebConnect(bool s, websocketpp::connection_hdl hdl)");
 
 	PANELS_T::iterator itr;
 	size_t i = 0;
@@ -1598,6 +1627,8 @@ void TouchPanel::setWebConnect(bool s, long pan)
 		if (i >= registration.size())
 			break;
 	}
+
+	cond.notify_one();
 }
 
 void TouchPanel::showContent(long pan)
@@ -1605,25 +1636,25 @@ void TouchPanel::showContent(long pan)
 	if (!Configuration->getDebug())
 		return;
 
-	sysl->TRACE(String("TouchPanel::showContent(long pan)"));
+	DECL_TRACER("TouchPanel::showContent(long pan)");
 
 	bool found = false;
 	PANELS_T::iterator itr;
 	size_t i = 0;
-	sysl->log_serial(Syslog::IDEBUG, std::string("  DBG"));
-	sysl->log_serial(Syslog::IDEBUG, String("  DBG     \"size\" : ")+registration.size());
+	sysl->log_serial(Syslog::IDEBUG, "  DBG");
+	sysl->log_serial(Syslog::IDEBUG, "  DBG     \"size\" : "+to_string(registration.size()));
 
 	for (itr = registration.begin(); itr != registration.end(); ++itr)
 	{
 		if (itr->second.pan == pan)
 		{
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     \"first\": ")+itr->first);
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     channel: ")+itr->second.channel);
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     pan    : ")+itr->second.pan);
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     regID  : ")+itr->second.regID);
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     status : ")+itr->second.status);
-			sysl->log_serial(Syslog::IDEBUG, String("  DBG     *amxnet: ")+((itr->second.amxnet == 0)?"NULL":"<pointer>"));
-			sysl->DebugMsg(std::string("Debug:  DBG"));
+			sysl->log_serial(Syslog::IDEBUG, "  DBG     \"first\": "+to_string(itr->first));
+			sysl->log_serial(Syslog::IDEBUG, "  DBG     channel: "+to_string(itr->second.channel));
+			sysl->log_serial(Syslog::IDEBUG, "  DBG     pan    : "+to_string(itr->second.pan));
+			sysl->log_serial(Syslog::IDEBUG, "  DBG     regID  : "+itr->second.regID);
+			sysl->log_serial(Syslog::IDEBUG, "  DBG     status : "+to_string(itr->second.status));
+			sysl->log_serial(Syslog::IDEBUG, "  DBG     *amxnet: "+((itr->second.amxnet == 0)?string("NULL"):string("<pointer>")));
+			sysl->DebugMsg("Debug:  DBG");
 			found = true;
 		}
 
@@ -1634,5 +1665,5 @@ void TouchPanel::showContent(long pan)
 	}
 
 	if (!found)
-		sysl->DebugMsg(std::string("TouchPanel::showContent: Content not found!"));
+		sysl->DebugMsg("TouchPanel::showContent: Content not found!");
 }

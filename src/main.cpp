@@ -33,7 +33,6 @@ Syslog *sysl;
 amx::TouchPanel *pTouchPanel;
 std::atomic<bool> killed;
 
-using namespace strings;
 using namespace std;
 
 int main(int /* argc */, const char **argv)
@@ -51,14 +50,14 @@ int main(int /* argc */, const char **argv)
 	Configuration = new Config();
 	sysl->setDebug(Configuration->getDebug());
 	sysl->setLogFile(Configuration->getLogFile());
-	sysl->TRACE(Syslog::ENTRY, std::string("main(int /* argc */, const char **argv)"));
+	sysl->TRACE(Syslog::ENTRY, "main(int /* argc */, const char **argv)");
 	sysl->log(Syslog::INFO, pName + " v" + VERSION);
-	sysl->log(Syslog::INFO, String("(C) Copyright by Andreas Theofilu <andreas@theosys.at>. All rights reserved!"));
-	sysl->log(Syslog::INFO, String("Daemon is starting ..."));
+	sysl->log(Syslog::INFO, "(C) Copyright by Andreas Theofilu <andreas@theosys.at>. All rights reserved!");
+	sysl->log(Syslog::INFO, "Daemon is starting ...");
 
 	Daemonize daemon;
 	daemon.daemon_start(true);
-	daemon.changeToUser(Configuration->getUser().toString(), Configuration->getGroup().toString());
+	daemon.changeToUser(Configuration->getUser(), Configuration->getGroup());
 	sysl->log(Syslog::INFO, pName + " v" + VERSION + ": Startup finished. All components should run now.");
 	// Create the panel
 	pTouchPanel = new amx::TouchPanel();
@@ -70,7 +69,7 @@ int main(int /* argc */, const char **argv)
 	}
 
 	// Upon the previous function exits, clean up end exit.
-	sysl->TRACE(Syslog::EXIT, std::string("main(int /* argc */, const char **argv)"));
+	sysl->TRACE(Syslog::EXIT, "main(int /* argc */, const char **argv)");
 	delete sysl;
 	delete Configuration;
 	return 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 by Andreas Theofilu <andreas@theosys.at>
+ * Copyright (C) 2019 by Andreas Theofilu <andreas@theosys.at>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,39 +16,29 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
-#ifndef __ICON_H__
-#define __ICON_H__
+#ifndef __TRACE_H__
+#define __TRACE_H__
 
-#include <vector>
+#include "syslog.h"
 
-namespace amx
+#define DECL_TRACER(msg)\
+	Trace _hidden_tracer(msg, __FILE__, __LINE__);
+
+#define TRACER(msg)\
+	sysl->TRACE(msg);
+
+class Trace
 {
-	typedef struct ICON
-	{
-		int index;
-		std::string file;
-        int width;
-        int height;
-	}ICON_T;
+	public:
+		Trace(const std::string& msg, const char *fname, const int line);
+		~Trace();
 
-	class Icon
-	{
-		public:
-			Icon(const std::string& file);
-			~Icon();
+	private:
+		char *getFName(char *buf, size_t len);
 
-			bool isOk() { return status; }
-			std::string getFileName(size_t idx);
-			int getID(size_t idx);
-			int getWidth(size_t idx);
-			int getHeight(size_t idx);
-			std::string getFileFromID(int id);
-			size_t numIcons() { return icons.size(); }
-
-		private:
-			std::vector<ICON_T> icons;
-			bool status;
-	};
-}
+		std::string message;
+		const char *mFileName;
+		int mLine;
+};
 
 #endif

@@ -20,19 +20,18 @@
 #define __FONTLIST_H__
 
 #include <vector>
-#include "strings.h"
 
 namespace amx
 {
 	typedef struct FONT
 	{
 		int number;
-		strings::String file;
+		std::string file;
 		int fileSize;
 		int faceIndex;
-		strings::String name;
-		strings::String subfamilyName;
-		strings::String fullName;
+		std::string name;
+		std::string subfamilyName;
+		std::string fullName;
 		int size;
 		int usageCount;
 	}FONT_T;
@@ -40,22 +39,22 @@ namespace amx
 	class FontList
 	{
 		public:
-			FontList(const strings::String& file);
+			FontList(const std::string& file);
 			~FontList();
 
-			strings::String getFontStyles();
+			std::string getFontStyles();
 			FONT_T& findFont(int idx);
 			bool isOk() { return status; }
-			strings::String getFontStyle(const strings::String& fs);
-			strings::String getFontWeight(const strings::String& fw);
+			std::string getFontStyle(const std::string& fs);
+			std::string getFontWeight(const std::string& fw);
 			bool serializeToJson();
 
 		private:
-			bool exist(const strings::String& ff);
+			bool exist(const std::string& ff);
             void fillSysFonts();
 
 			std::vector<FONT_T> fontList;
-			std::vector<strings::String> fontFaces;
+			std::vector<std::string> fontFaces;
 			FONT_T emptyFont;
 			bool status;
 	};

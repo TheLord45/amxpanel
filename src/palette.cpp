@@ -32,23 +32,24 @@
 #include "config.h"
 #include "syslog.h"
 #include "palette.h"
+#include "trace.h"
+#include "str.h"
 
 extern Syslog *sysl;
 extern Config *Configuration;
 
 using namespace std;
 using namespace amx;
-using namespace strings;
 
 Palette::Palette()
 {
-	sysl->TRACE(Syslog::ENTRY, String("Palette::Palette()"));
+	sysl->TRACE(Syslog::ENTRY, "Palette::Palette()");
 	status = false;
 }
 
-Palette::Palette(const strings::String& file)
+Palette::Palette(const string& file)
 {
-	sysl->TRACE(Syslog::ENTRY, String("Palette::Palette(const strings::String& file)"));
+	sysl->TRACE(Syslog::ENTRY, "Palette::Palette(const string& file)");
 	bool hasFile = false;
 
 	for (size_t i = 0; i < paletteFiles.size(); i++)
@@ -69,7 +70,7 @@ Palette::Palette(const strings::String& file)
 
 amx::Palette::Palette(const std::vector<PALETTE_T>& pal)
 {
-	sysl->TRACE(Syslog::ENTRY, String("Palette::Palette(const std::vector<PALETTE_T>& pal)"));
+	sysl->TRACE(Syslog::ENTRY, "Palette::Palette(const std::vector<PALETTE_T>& pal)");
 	paletteFiles.clear();
 
 	for (size_t i = 0; i < pal.size(); i++)
@@ -79,12 +80,12 @@ amx::Palette::Palette(const std::vector<PALETTE_T>& pal)
 	}
 }
 
-amx::Palette::Palette(const std::vector<PALETTE_T>& pal, const strings::String& main)
+Palette::Palette(const std::vector<PALETTE_T>& pal, const string& main)
 {
-	sysl->TRACE(Syslog::ENTRY, String("Palette::Palette(const std::vector<PALETTE_T>& pal, const strings::String& main)"));
+	sysl->TRACE(Syslog::ENTRY, "Palette::Palette(const std::vector<PALETTE_T>& pal, const string& main)");
 	paletteFiles.clear();
 
-	sysl->TRACE(String("Palette::Palette: Have ")+pal.size()+" palettes.");
+	sysl->TRACE("Palette::Palette: Have "+to_string(pal.size())+" palettes.");
 
 	for (size_t i = 0; i < pal.size(); i++)
 		paletteFiles.push_back(pal[i].file);
@@ -98,9 +99,9 @@ amx::Palette::Palette(const std::vector<PALETTE_T>& pal, const strings::String& 
 	}
 }
 
-void amx::Palette::setPaletteFile(const strings::String& f)
+void amx::Palette::setPaletteFile(const string& f)
 {
-	sysl->TRACE(String("Palette::setPaletteFile(const strings::String& f)"));
+	DECL_TRACER(std::string("Palette::setPaletteFile(const string& f)"));
 
 	bool hasFile = false;
 
@@ -119,7 +120,7 @@ void amx::Palette::setPaletteFile(const strings::String& f)
 
 bool amx::Palette::parsePalette()
 {
-	sysl->TRACE(String("Palette::parsePalette()"));
+	DECL_TRACER(std::string("Palette::parsePalette()"));
 
 	for (size_t i = 0; i < paletteFiles.size(); i++)
 	{
@@ -130,27 +131,27 @@ bool amx::Palette::parsePalette()
 	return true;
 }
 
-bool amx::Palette::parsePalette(const strings::String& f)
+bool amx::Palette::parsePalette(const string& f)
 {
-	sysl->TRACE(String("Palette::parsePalette(const strings::String& f)"));
-	String lastName, at_index, at_name, value;
+	DECL_TRACER(std::string("Palette::parsePalette(const string& f)"));
+	string lastName, at_index, at_name, value;
 	status = false;
-	String uri = "file://";
+	string uri = "file://";
 	uri.append(Configuration->getHTTProot());
 	uri.append("/");
 	uri.append(f);
-	sysl->TRACE(String("Palette file: ")+uri);
+	sysl->TRACE("Palette file: "+uri);
 
 	try
 	{
-		xmlpp::TextReader reader(uri.toString());
+		xmlpp::TextReader reader(uri);
 
 		while(reader.read())
 		{
-			String name = string(reader.get_name());
+			Str name(reader.get_name().raw());
 
-			if (name.at(0) == '#')
-				name = lastName;
+			if (name.get().at(0) == '#')
+				name.set(lastName);
 
 			if (reader.has_attributes())
 			{
@@ -160,23 +161,23 @@ bool amx::Palette::parsePalette(const strings::String& f)
 
 			if (reader.has_value())
 			{
-				value = reader.get_value();
-				value.trim();
+				string val = reader.get_value();
+				value = Str::trim(val);
 			}
 			else
 				value.clear();
 
 			if (name.caseCompare("color") == 0 && !value.empty() && !at_index.empty())
 			{
-				sysl->TRACE(String("Palette::parsePalette: Node: ")+name+", Value: "+reader.get_value()+", Attr[0].: "+at_name+", Attr[1].: "+at_index);
+				sysl->TRACE("Palette::parsePalette: Node: "+name+", Value: "+reader.get_value()+", Attr[0].: "+at_name+", Attr[1].: "+at_index);
 				PDATA_T color;
 				color.clear();
-				String sCol;
-				color.index = atoi(at_index.data());
+				string sCol;
+				color.index = atoi(at_index.c_str());
 				color.name = at_name;
 				sCol = reader.get_value();
-				sCol = String("0x")+sCol.substring(1);
-				color.color = strtoul(sCol.data(), 0, 16);
+				sCol = "0x"+sCol.substr(1);
+				color.color = strtoul(sCol.c_str(), 0, 16);
 				// Add only if we've not already in table
 				bool has = false;
 
@@ -215,19 +216,19 @@ bool amx::Palette::parsePalette(const strings::String& f)
 		return status;
 	}
 
-	sysl->TRACE(String("Palette::parsePalette: Found ")+palette.size()+" colors.");
+	sysl->TRACE("Palette::parsePalette: Found "+to_string(palette.size())+" colors.");
 	status = true;
 	return status;
 }
 
 Palette::~Palette()
 {
-    sysl->TRACE(Syslog::EXIT, String("Palette::Palette(...)"));
+    sysl->TRACE(Syslog::EXIT, "Palette::~Palette(...)");
 }
 
-unsigned long amx::Palette::getColor(size_t idx)
+unsigned long Palette::getColor(size_t idx)
 {
-    sysl->TRACE(Syslog::MESSAGE, std::string("Palette::getColor(size_t idx)"));
+    DECL_TRACER("Palette::getColor(size_t idx)");
 
     if (idx >= palette.size())
         return 0;
@@ -235,63 +236,63 @@ unsigned long amx::Palette::getColor(size_t idx)
     return palette.at(idx).color;
 }
 
-unsigned long amx::Palette::getColor(const strings::String& name)
+unsigned long Palette::getColor(const string& name)
 {
-    sysl->TRACE(Syslog::MESSAGE, std::string("Palette::getColor(const strings::String& name)"));
+    DECL_TRACER("Palette::getColor(const string& name)");
 
     if (name.at(0) == '#')
     {
-        String sCol = String("0x")+name.substring(1);
-        return strtoul(sCol.data(), 0, 16);
+        string sCol = "0x"+name.substr(1);
+        return strtoul(sCol.c_str(), 0, 16);
     }
 
     for (size_t i = 0; i < palette.size(); i++)
     {
-        if (palette[i].name.caseCompare(name) == 0)
+        if (Str::caseCompare(palette[i].name, name) == 0)
             return palette[i].color;
     }
 
     return 0;
 }
 
-String Palette::colorToString(unsigned long col)
+string Palette::colorToString(unsigned long col)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Palette::colorToString(unsigned long col)"));
+	DECL_TRACER("Palette::colorToString(unsigned long col)");
 
 	int red, green, blue;
 	double alpha;
 	char calpha[128];
-	String color = "rgba(";
+	string color = "rgba(";
 
 	red = (col >> 24) & 0x000000ff;
 	green = (col >> 16) & 0x000000ff;
 	blue = (col >> 8) & 0x000000ff;
 	alpha = 1.0 / 256.0 * (double)(col & 0x000000ff);
 	snprintf(calpha, sizeof(calpha), "%1.2f", alpha);
-	color += String(red)+", "+green+", "+blue+", "+calpha+")";
+	color += to_string(red)+", "+to_string(green)+", "+to_string(blue)+", "+calpha+")";
 	return color;
 }
 
-String Palette::colorToSArray(unsigned long col)
+string Palette::colorToSArray(unsigned long col)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Palette::colorToSArray(unsigned long col)"));
+	DECL_TRACER("Palette::colorToSArray(unsigned long col)");
 
 	int red, green, blue, alpha;
-	String color = "[";
+	string color = "[";
 
 	red = (col >> 24) & 0x000000ff;
 	green = (col >> 16) & 0x000000ff;
 	blue = (col >> 8) & 0x000000ff;
 	alpha = (col & 0x000000ff);
-	color += String(red)+","+green+","+blue+","+alpha+"]";
+	color += to_string(red)+","+to_string(green)+","+to_string(blue)+","+to_string(alpha)+"]";
 	return color;
 }
 
-String Palette::getJson()
+string Palette::getJson()
 {
-	sysl->TRACE(String("Palette::getJson()"));
+	DECL_TRACER("Palette::getJson()");
 
-	String json = "var palette = {\"colors\":[\n";
+	string json = "var palette = {\"colors\":[\n";
 
 	for (size_t i = 0; i < palette.size(); i++)
 	{
@@ -308,7 +309,7 @@ String Palette::getJson()
 		if (i > 0)
 			json += ",\n";
 
-		json += String("\t{\"name\":\"")+palette[i].name+"\",\"id\":"+palette[i].index+",\"red\":"+red+",\"green\":"+green+",\"blue\":"+blue+",\"alpha\":"+calpha+"}";
+		json += "\t{\"name\":\""+palette[i].name+"\",\"id\":"+to_string(palette[i].index)+",\"red\":"+to_string(red)+",\"green\":"+to_string(green)+",\"blue\":"+to_string(blue)+",\"alpha\":"+calpha+"}";
 	}
 
 	json += "\n]};\n";

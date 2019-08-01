@@ -23,7 +23,6 @@
 #include <string>
 #include <sstream>
 #include <syslog.h>
-#include "strings.h"
 
 class Syslog
 {
@@ -86,18 +85,17 @@ class Syslog
 		~Syslog();
 
 		void log(Level l, const std::string& str);
-		void log(Level l, const strings::String& str) { log(l, str.toString()); }
+		void log(Level l, const std::string& str) const;
+		void errlog(const std::string& str);
 		void errlog(const std::string& str) const;
-		void errlog(const strings::String& str) const { errlog(str.toString()); }
+		void warnlog(const std::string& str);
 		void warnlog(const std::string& str) const;
-		void warnlog(const strings::String& str) const { warnlog(str.toString()); }
 		void log_serial(Level l, const std::string& str);
-		void log_serial(Level l, const strings::String& str) { log_serial(l, str.toString()); }
+		void log_serial(Level l, const std::string& str) const;
 		void setPriority(Priority p);
 		void setOption(Option o);
 		void setDebug(bool d) { debug = d; }
 		void setLogFile(const std::string& lf) { LogFile = lf; }
-		void setLogFile(const strings::String& lf) { LogFile = lf.toString(); }
 
 		void DebugMsg(const std::string& msg)
 		{
@@ -105,18 +103,13 @@ class Syslog
 				log(IDEBUG, msg);
 		}
 
-		void DebugMsg(const strings::String& msg) { DebugMsg(msg.toString()); }
 		void TRACE(FUNCTION f, const std::string& msg);
-		void TRACE(FUNCTION f, const strings::String& msg) { TRACE(f, msg.toString()); }
-		void TRACE(const strings::String& msg) { TRACE(MESSAGE, msg.toString()); }
 		void TRACE(const std::string& msg) { TRACE(MESSAGE, msg); }
 
 	private:
 		void writeToFile(const std::string& str);
 		void appendToFile(Level l, const std::string& str);
-		void appendToFile(Level l, const std::string& str) const;
 		void close();
-		void cclose() const;
 
 		bool fflag;			// true = log is open
 		bool debug;

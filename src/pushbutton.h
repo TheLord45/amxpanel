@@ -20,7 +20,6 @@
 #define __PUSHBUTTON_H__
 
 #include "panelstruct.h"
-#include "strings.h"
 #include "palette.h"
 #include "fontlist.h"
 #include "icon.h"
@@ -54,26 +53,26 @@ namespace amx
 			void setIconClass(Icon *ic) { iconClass = ic; }
 			void setPageID(int id) { pageID = id; }
 			void setPalette(const std::vector<PDATA_T>& pal) { palette = pal; }
-			strings::String getStyle();
-			strings::String getWebCode();
-			strings::String getScriptCode();
+			std::string getStyle();
+			std::string getWebCode();
+			std::string getScriptCode();
 			bool haveScript() { return hScript; }
 			SCR_TYPE& getScriptType() { return scriptType; }
-			strings::String& getScriptCodeStart() { return scrStart; }
-			strings::String& getBargraphs() { return sBargraph; }
+			std::string& getScriptCodeStart() { return scrStart; }
+			std::string& getBargraphs() { return sBargraph; }
 			bool haveBargraph() { return !sBargraph.empty(); }
 
 			void setPageList(const std::vector<PAGE_T>& pl) { pageList = pl; }
-			static bool getImageDimensions(const strings::String fname, int *width, int *height);
+			static bool getImageDimensions(const std::string fname, int *width, int *height);
 
 		private:
 			BUTTON_T button;
 			FontList *fontClass;
 			Icon *iconClass;
 			int pageID;
-			strings::String btName;
-			strings::String scrStart;
-			strings::String sBargraph;
+			std::string btName;
+			std::string scrStart;
+			std::string sBargraph;
 			bool hScript;
 			SCR_TYPE scriptType;
 			std::vector<PAGE_T> pageList;

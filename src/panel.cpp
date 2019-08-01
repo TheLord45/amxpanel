@@ -30,8 +30,9 @@
 #include "datetime.h"
 #include "config.h"
 #include "syslog.h"
-#include "strings.h"
 #include "panel.h"
+#include "str.h"
+#include "trace.h"
 
 extern Config *Configuration;
 extern Syslog *sysl;
@@ -39,7 +40,6 @@ extern Syslog *sysl;
 using namespace std;
 using namespace xmlpp;
 using namespace amx;
-using namespace strings;
 
 amx::Panel::Panel()
 {
@@ -81,9 +81,9 @@ amx::Panel::~Panel()
 
 void amx::Panel::readProject()
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::readProject()"));
+	DECL_TRACER("Panel::readProject()");
 
-	String name, lastName, attr;
+	string name, lastName, attr;
 	int depth = 0;
 	bool endElement = false;		// end of XML element detected
 	status = true;
@@ -102,15 +102,15 @@ void amx::Panel::readProject()
 	};
 
 	PART Part;
-	String uri; // = "file://";
+	string uri; // = "file://";
 	uri.append(Configuration->getHTTProot());
 	uri.append("/prj.xma");
-	sysl->TRACE(String("Panel::readProject: Reading from file: ")+uri);
+	sysl->TRACE("Panel::readProject: Reading from file: "+uri);
 
 	try
 	{
-		TextReader reader(uri.toString());
-		sysl->TRACE(String("Panel::readProject: XML file was parsed ..."));
+		TextReader reader(uri);
+		sysl->TRACE("Panel::readProject: XML file was parsed ...");
 
 		while(reader.read())
 		{
@@ -120,12 +120,12 @@ void amx::Panel::readProject()
 				name = lastName;
 
 			endElement = (reader.get_depth() < depth);
-			sysl->TRACE(String("Panel::readProject: name=")+name+", endElement="+endElement+", Part="+Part+", depth="+reader.get_depth()+" ("+depth+")");
+			sysl->TRACE("Panel::readProject: name="+name+", endElement="+to_string(endElement)+", Part="+to_string(Part)+", depth="+to_string(reader.get_depth())+" ("+to_string(depth)+")");
 
 			if (reader.get_depth() <= 1 && depth > 1)
 				Part = eNone;
 
-			if (!endElement && name.caseCompare("pageList") == 0 && depth == 1)
+			if (!endElement && Str::caseCompare(name, "pageList") == 0 && depth == 1)
 			{
 				Part = ePageList;
 
@@ -140,10 +140,10 @@ void amx::Panel::readProject()
 					pageList.type = attr;
 					Project.pageLists.push_back(pageList);
 					attr.clear();
-					sysl->TRACE(String("Panel::readProject: Added a PAGE_LIST_T entry!"));
+					sysl->TRACE("Panel::readProject: Added a PAGE_LIST_T entry!");
 				}
 			}
-			else if (!endElement && Part == ePageList && name.caseCompare("pageEntry") == 0 && reader.get_depth() >= depth)
+			else if (!endElement && Part == ePageList && Str::caseCompare(name, "pageEntry") == 0 && reader.get_depth() >= depth)
 			{
 				if (Project.pageLists.size() > 0)
 				{
@@ -151,10 +151,10 @@ void amx::Panel::readProject()
 					PAGE_ENTRY_T pageEntry;
 					pageEntry.clear();
 					pageList.pageList.push_back(pageEntry);
-					sysl->TRACE(String("Panel::readProject: Added a PAGE_ENTRY_T entry to ")+pageList.type+"!");
+					sysl->TRACE("Panel::readProject: Added a PAGE_ENTRY_T entry to "+pageList.type+"!");
 				}
 			}
-			else if (!endElement && name.caseCompare("resourceList") == 0 && depth == 1)
+			else if (!endElement && Str::caseCompare(name, "resourceList") == 0 && depth == 1)
 			{
 				Part = eResourceList;
 
@@ -169,10 +169,10 @@ void amx::Panel::readProject()
 					rl.type = attr;
 					Project.resourceLists.push_back(rl);
 					attr.clear();
-					sysl->TRACE(String("Panel::readProject: Added a RESOURCE_LIST_T entry!"));
+					sysl->TRACE("Panel::readProject: Added a RESOURCE_LIST_T entry!");
 				}
 			}
-			else if (!endElement && Part == eResourceList && name.caseCompare("resource") == 0 && reader.get_depth() >= depth)
+			else if (!endElement && Part == eResourceList && Str::caseCompare(name, "resource") == 0 && reader.get_depth() >= depth)
 			{
 				if (Project.resourceLists.size() > 0)
 				{
@@ -180,41 +180,41 @@ void amx::Panel::readProject()
 					RESOURCE_T res;
 					res.clear();
 					rl.ressource.push_back(res);
-					sysl->TRACE(String("Panel::readProject: Added a RESOURCE_T entry to ")+rl.type+"!");
+					sysl->TRACE("Panel::readProject: Added a RESOURCE_T entry to "+rl.type+"!");
 				}
 			}
-			else if (!endElement && Part == eFwFeatureList && name.caseCompare("feature") == 0 && reader.get_depth() > depth)
+			else if (!endElement && Part == eFwFeatureList && Str::caseCompare(name, "feature") == 0 && reader.get_depth() > depth)
 			{
 				FEATURE_T fwl;
 				Project.fwFeatureList.push_back(fwl);
-				sysl->TRACE(String("Panel::readProject: Added a FEATURE_T entry!"));
+				sysl->TRACE("Panel::readProject: Added a FEATURE_T entry!");
 			}
-			else if (!endElement && Part == ePaletteList && name.caseCompare("palette") == 0 && reader.get_depth() >= depth)
+			else if (!endElement && Part == ePaletteList && Str::caseCompare(name, "palette") == 0 && reader.get_depth() >= depth)
 			{
 				PALETTE_T pal;
 				Project.paletteList.push_back(pal);
-				sysl->TRACE(String("Panel::readProject: Added a PALETTE_T entry!"));
+				sysl->TRACE("Panel::readProject: Added a PALETTE_T entry!");
 			}
 
 			depth = reader.get_depth();
 
 			if(!endElement && (reader.has_value() || reader.has_attributes()))
 			{
-				String value;
+				string value;
 
 				if (reader.has_value())
 				{
-					value = string(reader.get_value());
-					value.trim();
+					string val = reader.get_value();
+					value = Str::trim(val);
 				}
 
 				if (reader.has_attributes())
 				{
-					attr = reader.get_attribute(0);
-					attr.trim();
+					string att = reader.get_attribute(0);
+					attr = Str::trim(att);
 				}
 
-				sysl->TRACE(String("Panel::readProject: name=")+name+", value="+value+", attr="+attr+", Part="+Part+", endElement="+endElement);
+				sysl->TRACE("Panel::readProject: name="+name+", value="+value+", attr="+attr+", Part="+to_string(Part)+", endElement="+to_string(endElement));
 
 				if (!value.empty() || !attr.empty())
 				{
@@ -233,20 +233,20 @@ void amx::Panel::readProject()
 			}
 			else if (!endElement)
 			{
-				if (name.caseCompare("versionInfo") == 0)
+				if (Str::caseCompare(name, "versionInfo") == 0)
 					Part = eVersionInfo;
-				else if (name.caseCompare("projectInfo") == 0)
+				else if (Str::caseCompare(name, "projectInfo") == 0)
 					Part = eProjectInfo;
-				else if (name.caseCompare("supportFileList") == 0)
+				else if (Str::caseCompare(name, "supportFileList") == 0)
 					Part = eSupportFileList;
-				else if (name.caseCompare("panelSetup") == 0)
+				else if (Str::caseCompare(name, "panelSetup") == 0)
 					Part = ePanelSetup;
-				else if (name.caseCompare("fwFeatureList") == 0)
+				else if (Str::caseCompare(name, "fwFeatureList") == 0)
 					Part = eFwFeatureList;
-				else if (name.caseCompare("paletteList") == 0)
+				else if (Str::caseCompare(name, "paletteList") == 0)
 					Part = ePaletteList;
 
-				sysl->TRACE(String("Panel::readProject: *name=")+name+", Part="+Part+", endElement="+endElement);
+				sysl->TRACE("Panel::readProject: *name="+name+", Part="+to_string(Part)+", endElement="+to_string(endElement));
 			}
 
 			lastName = name;
@@ -262,43 +262,43 @@ void amx::Panel::readProject()
 
 	if (Configuration->getDebug())
 	{
-		sysl->TRACE(String("Panel::readProject: pageLists: ")+Project.pageLists.size());
+		sysl->TRACE("Panel::readProject: pageLists: "+to_string(Project.pageLists.size()));
 
 		for (size_t i = 0; i < Project.pageLists.size(); i++)
 		{
 			PAGE_LIST_T pl = Project.pageLists[i];
-			sysl->TRACE(String("Panel::readProject: pageList type: ")+pl.type+" has "+pl.pageList.size()+" entries.");
+			sysl->TRACE("Panel::readProject: pageList type: "+pl.type+" has "+to_string(pl.pageList.size())+" entries.");
 
 			for (size_t j = 0; j < pl.pageList.size(); j++)
 			{
 				PAGE_ENTRY_T pe = pl.pageList[j];
-				sysl->TRACE(String("Panel::readProject: name=")+pe.name+", ID="+pe.pageID);
+				sysl->TRACE("Panel::readProject: name="+pe.name+", ID="+to_string(pe.pageID));
 			}
 		}
 
-		sysl->TRACE(String("Panel::readProject: resourceLists: ")+Project.resourceLists.size());
+		sysl->TRACE("Panel::readProject: resourceLists: "+to_string(Project.resourceLists.size()));
 
 		for (size_t i = 0; i < Project.resourceLists.size(); i++)
 		{
 			RESOURCE_LIST_T rl = Project.resourceLists[i];
-			sysl->TRACE(String("Panel::readProject: resourceLists type: ")+rl.type+" has "+rl.ressource.size()+" entries.");
+			sysl->TRACE("Panel::readProject: resourceLists type: "+rl.type+" has "+to_string(rl.ressource.size())+" entries.");
 
 			for (size_t j = 0; j < rl.ressource.size(); j++)
 			{
 				RESOURCE_T res = rl.ressource[j];
-				sysl->TRACE(String("Panel::readProject: name=")+res.name+", File="+res.file);
+				sysl->TRACE("Panel::readProject: name="+res.name+", File="+res.file);
 			}
 		}
 
-		sysl->TRACE(String("Panel::readProject: fwFeatureList: ")+Project.fwFeatureList.size());
+		sysl->TRACE("Panel::readProject: fwFeatureList: "+to_string(Project.fwFeatureList.size()));
 
 		for (size_t i = 0; i < Project.fwFeatureList.size(); i++)
-			sysl->TRACE(String("Panel::readProject: ID=")+Project.fwFeatureList[i].featureID+", count="+Project.fwFeatureList[i].usageCount);
+			sysl->TRACE("Panel::readProject: ID="+Project.fwFeatureList[i].featureID+", count="+to_string(Project.fwFeatureList[i].usageCount));
 
-		sysl->TRACE(String("Panel::readProject: paletteList: ")+Project.paletteList.size());
+		sysl->TRACE("Panel::readProject: paletteList: "+to_string(Project.paletteList.size()));
 
 		for (size_t i = 0; i < Project.paletteList.size(); i++)
-			sysl->TRACE(String("Panel::readProject: ID=")+Project.paletteList[i].paletteID+", name="+Project.paletteList[i].name+", file="+Project.paletteList[i].file);
+			sysl->TRACE("Panel::readProject: ID="+to_string(Project.paletteList[i].paletteID)+", name="+Project.paletteList[i].name+", file="+Project.paletteList[i].file);
 	}
 
 	try
@@ -317,28 +317,28 @@ void amx::Panel::readProject()
 
 		if (!pPalettes->isOk() || !pIcons->isOk() || !pFontLists->isOk())
 		{
-			sysl->warnlog(String("Panel::readProject: Reading the project failed!"));
+			sysl->warnlog("Panel::readProject: Reading the project failed!");
 			status = false;
 		}
 	}
 	catch (std::exception& e)
 	{
-		sysl->errlog(String("Panel::readProject: Memory error: ")+e.what());
+		sysl->errlog(string("Panel::readProject: Memory error: ")+e.what());
 		status = false;
 	}
 }
 
-vector<String> Panel::getPageFileNames()
+vector<string> Panel::getPageFileNames()
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::getPageFileNames()"));
-	vector<String> pgFnLst;
+	DECL_TRACER("Panel::getPageFileNames()");
+	vector<string> pgFnLst;
 
-	sysl->TRACE(String("Panel::getPageFileNames: Number of pages: ")+Project.pageLists.size());
+	sysl->TRACE("Panel::getPageFileNames: Number of pages: "+to_string(Project.pageLists.size()));
 
 	for (size_t i = 0; i < Project.pageLists.size(); i++)
 	{
 		PAGE_LIST_T pl = Project.pageLists[i];
-		sysl->TRACE(String("Panel::getPageFileNames: Number of pages in pages: ")+pl.pageList.size());
+		sysl->TRACE("Panel::getPageFileNames: Number of pages in pages: "+to_string(pl.pageList.size()));
 
 		for (size_t j = 0; j < pl.pageList.size(); j++)
 		{
@@ -352,31 +352,31 @@ vector<String> Panel::getPageFileNames()
 	return pgFnLst;
 }
 
-void amx::Panel::setVersionInfo(const strings::String& name, const strings::String& value)
+void Panel::setVersionInfo(const string& name, const string& value)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setVersionInfo(const strings::String& name, const strings::String& value)"));
+	DECL_TRACER("Panel::setVersionInfo(const string& name, const string& value)");
 
-    if (name.caseCompare("formatVersion") == 0)
-        Project.version.formatVersion = atoi(value.data());
+    if (Str::caseCompare(name, "formatVersion") == 0)
+        Project.version.formatVersion = atoi(value.c_str());
 
-    if (name.caseCompare("graphicsVersion") == 0)
-        Project.version.graphicsVersion = atoi(value.data());
+    if (Str::caseCompare(name, "graphicsVersion") == 0)
+        Project.version.graphicsVersion = atoi(value.c_str());
 
-    if (name.caseCompare("fileVersion") == 0)
-        Project.version.fileVersion = atoi(value.data());
+    if (Str::caseCompare(name, "fileVersion") == 0)
+        Project.version.fileVersion = atoi(value.c_str());
 
-    if (name.caseCompare("designVersion") == 0)
-        Project.version.designVersion = atoi(value.data());
+    if (Str::caseCompare(name, "designVersion") == 0)
+        Project.version.designVersion = atoi(value.c_str());
 }
 
-void amx::Panel::setProjectInfo(const strings::String& name, const strings::String& value, const strings::String& attr)
+void Panel::setProjectInfo(const string& name, const string& value, const string& attr)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setProjectInfo(const strings::String& name, const strings::String& value, const strings::String& attr)"));
+	DECL_TRACER("Panel::setProjectInfo(const string& name, const string& value, const string& attr)");
 
-    if (name.caseCompare("protection") == 0)
+    if (Str::caseCompare(name, "protection") == 0)
         Project.projectInfo.protection = value;
 
-    if (name.caseCompare("password") == 0)
+    if (Str::caseCompare(name, "password") == 0)
     {
         if (attr.compare("1") == 0)
             Project.projectInfo.encrypted = true;
@@ -386,177 +386,177 @@ void amx::Panel::setProjectInfo(const strings::String& name, const strings::Stri
         Project.projectInfo.password = value;
     }
 
-    if (name.caseCompare("panelType") == 0)
+    if (Str::caseCompare(name, "panelType") == 0)
         Project.projectInfo.panelType = value;
 
-    if (name.caseCompare("fileRevision") == 0)
+    if (Str::caseCompare(name, "fileRevision") == 0)
         Project.projectInfo.fileRevision = value;
 
-    if (name.caseCompare("dealerId") == 0)
+    if (Str::caseCompare(name, "dealerId") == 0)
         Project.projectInfo.dealerID = value;
 
-    if (name.caseCompare("jobName") == 0)
+    if (Str::caseCompare(name, "jobName") == 0)
         Project.projectInfo.jobName = value;
 
-    if (name.caseCompare("salesOrder") == 0)
+    if (Str::caseCompare(name, "salesOrder") == 0)
         Project.projectInfo.salesOrder = value;
 
-    if (name.caseCompare("purchaseOrder") == 0)
+    if (Str::caseCompare(name, "purchaseOrder") == 0)
         Project.projectInfo.purchaseOrder = value;
 
-    if (name.caseCompare("jobComment") == 0)
+    if (Str::caseCompare(name, "jobComment") == 0)
         Project.projectInfo.jobComment = value;
 
-    if (name.caseCompare("designerId") == 0)
+    if (Str::caseCompare(name, "designerId") == 0)
         Project.projectInfo.designerID = value;
 
-    if (name.caseCompare("creationDate") == 0)
+    if (Str::caseCompare(name, "creationDate") == 0)
         Project.projectInfo.creationDate = getDate(value, Project.projectInfo.creationDate);
 
-    if (name.caseCompare("revisionDate") == 0)
+    if (Str::caseCompare(name, "revisionDate") == 0)
         Project.projectInfo.revisionDate = getDate(value, Project.projectInfo.revisionDate);
 
-    if (name.caseCompare("lastSaveDate") == 0)
+    if (Str::caseCompare(name, "lastSaveDate") == 0)
         Project.projectInfo.lastSaveDate = getDate(value, Project.projectInfo.lastSaveDate);
 
-    if (name.caseCompare("fileName") == 0)
+    if (Str::caseCompare(name, "fileName") == 0)
         Project.projectInfo.fileName = value;
 
-    if (name.caseCompare("colorChoice") == 0)
+    if (Str::caseCompare(name, "colorChoice") == 0)
         Project.projectInfo.colorChoice = value;
 
-    if (name.caseCompare("specifyPortCount") == 0)
-        Project.projectInfo.specifyPortCount = atoi(value.data());
+    if (Str::caseCompare(name, "specifyPortCount") == 0)
+        Project.projectInfo.specifyPortCount = atoi(value.c_str());
 
-    if (name.caseCompare("specifyChanCount") == 0)
-        Project.projectInfo.specifyChanCount = atoi(value.data());
+    if (Str::caseCompare(name, "specifyChanCount") == 0)
+        Project.projectInfo.specifyChanCount = atoi(value.c_str());
 }
 
-void amx::Panel::setSupportFileList(const strings::String& name, const strings::String& value)
+void Panel::setSupportFileList(const string& name, const string& value)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setSupportFileList(const strings::String& name, const strings::String& value)"));
+	DECL_TRACER("Panel::setSupportFileList(const string& name, const string& value)");
 
-    if (name.caseCompare("mapFile") == 0 && !value.empty())
+    if (Str::caseCompare(name, "mapFile") == 0 && !value.empty())
         Project.supportFileList.mapFile = value;
-	else if (name.caseCompare("colorFile") == 0 && !value.empty())
+	else if (Str::caseCompare(name, "colorFile") == 0 && !value.empty())
         Project.supportFileList.colorFile = value;
-	else if (name.caseCompare("fontFile") == 0 && !value.empty())
+	else if (Str::caseCompare(name, "fontFile") == 0 && !value.empty())
         Project.supportFileList.fontFile = value;
-	else if (name.caseCompare("themeFile") == 0 && !value.empty())
+	else if (Str::caseCompare(name, "themeFile") == 0 && !value.empty())
         Project.supportFileList.themeFile = value;
-	else if (name.caseCompare("iconFile") == 0 && !value.empty())
+	else if (Str::caseCompare(name, "iconFile") == 0 && !value.empty())
         Project.supportFileList.iconFile = value;
-	else if (name.caseCompare("externalButtonFile") == 0 && !value.empty())
+	else if (Str::caseCompare(name, "externalButtonFile") == 0 && !value.empty())
         Project.supportFileList.externalButtonFile = value;
 }
 
-void amx::Panel::setPanelSetup(const strings::String& name, const strings::String& value)
+void Panel::setPanelSetup(const string& name, const string& value)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setPanelSetup(const strings::String& name, const strings::String& value)"));
+	DECL_TRACER("Panel::setPanelSetup(const string& name, const string& value)");
 
-    if (name.caseCompare("portCount") == 0)
-        Project.panelSetup.portCount = atoi(value.data());
-    else if (name.caseCompare("setupPort") == 0)
-        Project.panelSetup.setupPort = atoi(value.data());
-    else if (name.caseCompare("addressCount") == 0)
-        Project.panelSetup.addressCount = atoi(value.data());
-    else if (name.caseCompare("channelCount") == 0)
-        Project.panelSetup.channelCount = atoi(value.data());
-    else if (name.caseCompare("levelCount") == 0)
-        Project.panelSetup.levelCount = atoi(value.data());
-    else if (name.caseCompare("powerUpPage") == 0)
+    if (Str::caseCompare(name, "portCount") == 0)
+        Project.panelSetup.portCount = atoi(value.c_str());
+    else if (Str::caseCompare(name, "setupPort") == 0)
+        Project.panelSetup.setupPort = atoi(value.c_str());
+    else if (Str::caseCompare(name, "addressCount") == 0)
+        Project.panelSetup.addressCount = atoi(value.c_str());
+    else if (Str::caseCompare(name, "channelCount") == 0)
+        Project.panelSetup.channelCount = atoi(value.c_str());
+    else if (Str::caseCompare(name, "levelCount") == 0)
+        Project.panelSetup.levelCount = atoi(value.c_str());
+    else if (Str::caseCompare(name, "powerUpPage") == 0)
         Project.panelSetup.powerUpPage = value;
-    else if (name.caseCompare("powerUpPopup") == 0)
+    else if (Str::caseCompare(name, "powerUpPopup") == 0)
         Project.panelSetup.powerUpPopup.push_back(value);
-    else if (name.caseCompare("feedbackBlinkRate") == 0)
-        Project.panelSetup.feedbackBlinkRate = atoi(value.data());
-    else if (name.caseCompare("startupString") == 0)
+    else if (Str::caseCompare(name, "feedbackBlinkRate") == 0)
+        Project.panelSetup.feedbackBlinkRate = atoi(value.c_str());
+    else if (Str::caseCompare(name, "startupString") == 0)
         Project.panelSetup.startupString = value;
-    else if (name.caseCompare("wakeupString") == 0)
+    else if (Str::caseCompare(name, "wakeupString") == 0)
         Project.panelSetup.wakeupString = value;
-    else if (name.caseCompare("sleepString") == 0)
+    else if (Str::caseCompare(name, "sleepString") == 0)
         Project.panelSetup.sleepString = value;
-    else if (name.caseCompare("standbyString") == 0)
+    else if (Str::caseCompare(name, "standbyString") == 0)
         Project.panelSetup.standbyString = value;
-    else if (name.caseCompare("shutdownString") == 0)
+    else if (Str::caseCompare(name, "shutdownString") == 0)
         Project.panelSetup.shutdownString = value;
-    else if (name.caseCompare("idlePage") == 0)
+    else if (Str::caseCompare(name, "idlePage") == 0)
         Project.panelSetup.idlePage = value;
-    else if (name.caseCompare("idleTimeout") == 0)
-        Project.panelSetup.idleTimeout = atoi(value.data());
-    else if (name.caseCompare("extButtonsKey") == 0)
-        Project.panelSetup.extButtonsKey = atoi(value.data());
-    else if (name.caseCompare("screenWidth") == 0)
-        Project.panelSetup.screenWidth = atoi(value.data());
-    else if (name.caseCompare("screenHeight") == 0)
-        Project.panelSetup.screenHeight = atoi(value.data());
-    else if (name.caseCompare("screenRefresh") == 0)
-        Project.panelSetup.screenRefresh = atoi(value.data());
-    else if (name.caseCompare("screenRotate") == 0)
-        Project.panelSetup.screenRotate = atoi(value.data());
-    else if (name.caseCompare("screenDescription") == 0)
+    else if (Str::caseCompare(name, "idleTimeout") == 0)
+        Project.panelSetup.idleTimeout = atoi(value.c_str());
+    else if (Str::caseCompare(name, "extButtonsKey") == 0)
+        Project.panelSetup.extButtonsKey = atoi(value.c_str());
+    else if (Str::caseCompare(name, "screenWidth") == 0)
+        Project.panelSetup.screenWidth = atoi(value.c_str());
+    else if (Str::caseCompare(name, "screenHeight") == 0)
+        Project.panelSetup.screenHeight = atoi(value.c_str());
+    else if (Str::caseCompare(name, "screenRefresh") == 0)
+        Project.panelSetup.screenRefresh = atoi(value.c_str());
+    else if (Str::caseCompare(name, "screenRotate") == 0)
+        Project.panelSetup.screenRotate = atoi(value.c_str());
+    else if (Str::caseCompare(name, "screenDescription") == 0)
         Project.panelSetup.screenDescription = value;
-    else if (name.caseCompare("pageTracking") == 0)
-        Project.panelSetup.pageTracking = atoi(value.data());
-    else if (name.caseCompare("brightness") == 0)
-        Project.panelSetup.brightness = atoi(value.data());
-    else if (name.caseCompare("lightSensorLevelPort") == 0)
-        Project.panelSetup.lightSensorLevelPort = atoi(value.data());
-    else if (name.caseCompare("lightSensorLevelCode") == 0)
-        Project.panelSetup.lightSensorLevelCode = atoi(value.data());
-    else if (name.caseCompare("lightSensorChannelPort") == 0)
-        Project.panelSetup.lightSensorChannelPort = atoi(value.data());
-    else if (name.caseCompare("lightSensorChannelCode") == 0)
-        Project.panelSetup.lightSensorChannelCode = atoi(value.data());
-    else if (name.caseCompare("motionSensorChannelPort") == 0)
-        Project.panelSetup.motionSensorChannelPort = atoi(value.data());
-    else if (name.caseCompare("motionSensorChannelCode") == 0)
-        Project.panelSetup.motionSensorChannelCode = atoi(value.data());
-    else if (name.caseCompare("batteryLevelPort") == 0)
-        Project.panelSetup.batteryLevelPort = atoi(value.data());
-    else if (name.caseCompare("batteryLevelCode") == 0)
-        Project.panelSetup.batteryLevelCode = atoi(value.data());
-    else if (name.caseCompare("irPortAMX38Emit") == 0)
-        Project.panelSetup.irPortAMX38Emit = atoi(value.data());
-    else if (name.caseCompare("irPortAMX455Emit") == 0)
-        Project.panelSetup.irPortAMX455Emit = atoi(value.data());
-    else if (name.caseCompare("irPortAMX38Recv") == 0)
-        Project.panelSetup.irPortAMX38Recv = atoi(value.data());
-    else if (name.caseCompare("irPortAMX455Recv") == 0)
-        Project.panelSetup.irPortAMX455Recv = atoi(value.data());
-    else if (name.caseCompare("irPortUser1") == 0)
-        Project.panelSetup.irPortUser1 = atoi(value.data());
-    else if (name.caseCompare("irPortUser2") == 0)
-        Project.panelSetup.irPortUser2 = atoi(value.data());
-    else if (name.caseCompare("cradleChannelPort") == 0)
-        Project.panelSetup.cradleChannelPort = atoi(value.data());
-    else if (name.caseCompare("cradleChannelCode") == 0)
-        Project.panelSetup.cradleChannelCode = atoi(value.data());
-    else if (name.caseCompare("uniqueID") == 0)
+    else if (Str::caseCompare(name, "pageTracking") == 0)
+        Project.panelSetup.pageTracking = atoi(value.c_str());
+    else if (Str::caseCompare(name, "brightness") == 0)
+        Project.panelSetup.brightness = atoi(value.c_str());
+    else if (Str::caseCompare(name, "lightSensorLevelPort") == 0)
+        Project.panelSetup.lightSensorLevelPort = atoi(value.c_str());
+    else if (Str::caseCompare(name, "lightSensorLevelCode") == 0)
+        Project.panelSetup.lightSensorLevelCode = atoi(value.c_str());
+    else if (Str::caseCompare(name, "lightSensorChannelPort") == 0)
+        Project.panelSetup.lightSensorChannelPort = atoi(value.c_str());
+    else if (Str::caseCompare(name, "lightSensorChannelCode") == 0)
+        Project.panelSetup.lightSensorChannelCode = atoi(value.c_str());
+    else if (Str::caseCompare(name, "motionSensorChannelPort") == 0)
+        Project.panelSetup.motionSensorChannelPort = atoi(value.c_str());
+    else if (Str::caseCompare(name, "motionSensorChannelCode") == 0)
+        Project.panelSetup.motionSensorChannelCode = atoi(value.c_str());
+    else if (Str::caseCompare(name, "batteryLevelPort") == 0)
+        Project.panelSetup.batteryLevelPort = atoi(value.c_str());
+    else if (Str::caseCompare(name, "batteryLevelCode") == 0)
+        Project.panelSetup.batteryLevelCode = atoi(value.c_str());
+    else if (Str::caseCompare(name, "irPortAMX38Emit") == 0)
+        Project.panelSetup.irPortAMX38Emit = atoi(value.c_str());
+    else if (Str::caseCompare(name, "irPortAMX455Emit") == 0)
+        Project.panelSetup.irPortAMX455Emit = atoi(value.c_str());
+    else if (Str::caseCompare(name, "irPortAMX38Recv") == 0)
+        Project.panelSetup.irPortAMX38Recv = atoi(value.c_str());
+    else if (Str::caseCompare(name, "irPortAMX455Recv") == 0)
+        Project.panelSetup.irPortAMX455Recv = atoi(value.c_str());
+    else if (Str::caseCompare(name, "irPortUser1") == 0)
+        Project.panelSetup.irPortUser1 = atoi(value.c_str());
+    else if (Str::caseCompare(name, "irPortUser2") == 0)
+        Project.panelSetup.irPortUser2 = atoi(value.c_str());
+    else if (Str::caseCompare(name, "cradleChannelPort") == 0)
+        Project.panelSetup.cradleChannelPort = atoi(value.c_str());
+    else if (Str::caseCompare(name, "cradleChannelCode") == 0)
+        Project.panelSetup.cradleChannelCode = atoi(value.c_str());
+    else if (Str::caseCompare(name, "uniqueID") == 0)
         Project.panelSetup.uniqueID = value;
-    else if (name.caseCompare("appCreated") == 0)
+    else if (Str::caseCompare(name, "appCreated") == 0)
         Project.panelSetup.appCreated = value;
-    else if (name.caseCompare("buildNumber") == 0)
-        Project.panelSetup.buildNumber = atoi(value.data());
-    else if (name.caseCompare("appModified") == 0)
+    else if (Str::caseCompare(name, "buildNumber") == 0)
+        Project.panelSetup.buildNumber = atoi(value.c_str());
+    else if (Str::caseCompare(name, "appModified") == 0)
         Project.panelSetup.appModified = value;
-    else if (name.caseCompare("buildNumberMod") == 0)
-        Project.panelSetup.buildNumberMod = atoi(value.data());
-    else if (name.caseCompare("buildStatusMod") == 0)
+    else if (Str::caseCompare(name, "buildNumberMod") == 0)
+        Project.panelSetup.buildNumberMod = atoi(value.c_str());
+    else if (Str::caseCompare(name, "buildStatusMod") == 0)
         Project.panelSetup.buildStatusMod = value;
-    else if (name.caseCompare("activePalette") == 0)
-        Project.panelSetup.activePalette = atoi(value.data());
-    else if (name.caseCompare("marqueeSpeed") == 0)
-        Project.panelSetup.marqueeSpeed = atoi(value.data());
-    else if (name.caseCompare("setupPagesProject") == 0)
-        Project.panelSetup.setupPagesProject = atoi(value.data());
-    else if (name.caseCompare("voipCommandPort") == 0)
-        Project.panelSetup.voipCommandPort = atoi(value.data());
+    else if (Str::caseCompare(name, "activePalette") == 0)
+        Project.panelSetup.activePalette = atoi(value.c_str());
+    else if (Str::caseCompare(name, "marqueeSpeed") == 0)
+        Project.panelSetup.marqueeSpeed = atoi(value.c_str());
+    else if (Str::caseCompare(name, "setupPagesProject") == 0)
+        Project.panelSetup.setupPagesProject = atoi(value.c_str());
+    else if (Str::caseCompare(name, "voipCommandPort") == 0)
+        Project.panelSetup.voipCommandPort = atoi(value.c_str());
 }
 
-void amx::Panel::setPageList(const strings::String& name, const strings::String& value)
+void Panel::setPageList(const string& name, const string& value)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setPageList(const strings::String& name, const strings::String& value)"));
+	DECL_TRACER("Panel::setPageList(const string& name, const string& value)");
 
 	if (Project.pageLists.size() == 0)
 		return;
@@ -568,23 +568,23 @@ void amx::Panel::setPageList(const strings::String& name, const strings::String&
 
 	PAGE_ENTRY_T& pe = pl.pageList.back();
 
-	if (name.caseCompare("name") == 0 && !value.empty())
+	if (Str::caseCompare(name, "name") == 0 && !value.empty())
 		pe.name = value;
-	else if (name.caseCompare("pageID") == 0 && !value.empty())
-		pe.pageID = atoi(value.data());
-	else if (name.caseCompare("file") == 0 && !value.empty())
+	else if (Str::caseCompare(name, "pageID") == 0 && !value.empty())
+		pe.pageID = atoi(value.c_str());
+	else if (Str::caseCompare(name, "file") == 0 && !value.empty())
 		pe.file = value;
-	else if (name.caseCompare("isValid") == 0 && !value.empty())
-		pe.isValid = atoi(value.data());
-	else if (name.caseCompare("group") == 0 && !value.empty())
+	else if (Str::caseCompare(name, "isValid") == 0 && !value.empty())
+		pe.isValid = atoi(value.c_str());
+	else if (Str::caseCompare(name, "group") == 0 && !value.empty())
 		pe.group = value;
-	else if (name.caseCompare("popupType") == 0 && !value.empty())
-		pe.popupType = atoi(value.data());
+	else if (Str::caseCompare(name, "popupType") == 0 && !value.empty())
+		pe.popupType = atoi(value.c_str());
 }
 
-void amx::Panel::setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr)
+void Panel::setResourceList(const string& name, const string& value, const string& attr)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr)"));
+	DECL_TRACER("Panel::setResourceList(const string& name, const string& value, const string& attr)");
 
 	if (Project.resourceLists.size() == 0)
 		return;
@@ -596,7 +596,7 @@ void amx::Panel::setResourceList(const strings::String& name, const strings::Str
 
 	bool hasValue = false, hasAttr = false;
 	RESOURCE_T& rs = rl.ressource.back();
-	sysl->TRACE(String("Panel::setResourceList: name=")+name+", value="+value+", attr="+attr);
+	sysl->TRACE("Panel::setResourceList: name="+name+", value="+value+", attr="+attr);
 
 	if (value.length() > 0)
 		hasValue = true;
@@ -604,115 +604,115 @@ void amx::Panel::setResourceList(const strings::String& name, const strings::Str
 	if (attr.length() > 0)
 		hasAttr = true;
 
-	if (name.caseCompare("name") == 0 && hasValue)
+	if (Str::caseCompare(name, "name") == 0 && hasValue)
 		rs.name = value;
-	else if (name.caseCompare("protocol") == 0 && hasValue)
+	else if (Str::caseCompare(name, "protocol") == 0 && hasValue)
 		rs.protocol = value;
-	else if (name.caseCompare("user") == 0 && hasValue)
+	else if (Str::caseCompare(name, "user") == 0 && hasValue)
 		rs.user = value;
-	else if (name.caseCompare("password") == 0)
+	else if (Str::caseCompare(name, "password") == 0)
 	{
 		if (hasValue)
 			rs.password = value;
 
-		if (hasAttr && attr.isNumeric())
-			rs.encrypted = atoi(attr.data());
+		if (hasAttr && Str::isNumeric(attr))
+			rs.encrypted = atoi(attr.c_str());
 	}
-	else if (name.caseCompare("host") == 0 && hasValue)
+	else if (Str::caseCompare(name, "host") == 0 && hasValue)
 		rs.host = value;
-	else if (name.caseCompare("path") == 0 && hasValue)
+	else if (Str::caseCompare(name, "path") == 0 && hasValue)
 		rs.path = value;
-	else if (name.caseCompare("file") == 0 && hasValue)
+	else if (Str::caseCompare(name, "file") == 0 && hasValue)
 		rs.file = value;
-	else if (name.caseCompare("refresh") == 0 && hasValue)
-		rs.refresh = atoi(value.data());
+	else if (Str::caseCompare(name, "refresh") == 0 && hasValue)
+		rs.refresh = atoi(value.c_str());
 }
 
-void amx::Panel::setFwFeatureList(const strings::String& name, const strings::String& value)
+void Panel::setFwFeatureList(const string& name, const string& value)
 {
-	sysl->TRACE(std::string("Panel::setFwFeatureList(const strings::String& name, const strings::String& value)"));
+	DECL_TRACER("Panel::setFwFeatureList(const string& name, const string& value)");
 
 	if (Project.fwFeatureList.size() == 0)
 		return;
 
 	FEATURE_T& fw = Project.fwFeatureList.back();
 
-	if (name.caseCompare("featureID") == 0)
+	if (Str::caseCompare(name, "featureID") == 0)
 		fw.featureID = value;
-	else if (name.caseCompare("usageCount") == 0)
-		fw.usageCount = atoi(value.data());
+	else if (Str::caseCompare(name, "usageCount") == 0)
+		fw.usageCount = atoi(value.c_str());
 }
 
-void amx::Panel::setPaletteList(const strings::String& name, const strings::String& value)
+void Panel::setPaletteList(const string& name, const string& value)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::setPaletteList(const strings::String& name, const strings::String& value)"));
+	DECL_TRACER("Panel::setPaletteList(const string& name, const string& value)");
 
 	if (Project.paletteList.size() == 0)
 		return;
 
     PALETTE_T& pa = Project.paletteList.back();
 
-    if (name.caseCompare("name") == 0)
+    if (Str::caseCompare(name, "name") == 0)
         pa.name = value;
-    else if (name.caseCompare("file") == 0)
+    else if (Str::caseCompare(name, "file") == 0)
         pa.file = value;
-    else if (name.caseCompare("paletteID") == 0)
-        pa.paletteID = atoi(value.data());
+    else if (Str::caseCompare(name, "paletteID") == 0)
+        pa.paletteID = atoi(value.c_str());
 }
 
 /*
  * Hier folgen einige private Hilfsfunktionen.
  */
-DateTime& amx::Panel::getDate(const strings::String& dat, DateTime& dt)
+DateTime& Panel::getDate(const string& dat, DateTime& dt)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Panel::getDate(const strings::String& dat, DateTime& dt)"));
+	DECL_TRACER("Panel::getDate(const string& dat, DateTime& dt)");
 
 	int day, month, year, hour, min, sec;
-	std::vector<String> teile = dat.split(' ');
+	std::vector<string> teile = Str::split(dat, ' ');
 
 	if (teile.size() < 5)
 		return dt;
 
-	if (teile[1].caseCompare("Jan") == 0)
+	if (Str::caseCompare(teile[1], "Jan") == 0)
 		month = 1;
-	else if (teile[1].caseCompare("Feb") == 0)
+	else if (Str::caseCompare(teile[1], "Feb") == 0)
 		month = 2;
-	else if (teile[1].caseCompare("Mar") == 0)
+	else if (Str::caseCompare(teile[1], "Mar") == 0)
 		month = 3;
-	else if (teile[1].caseCompare("Apr") == 0)
+	else if (Str::caseCompare(teile[1], "Apr") == 0)
 		month = 4;
-	else if (teile[1].caseCompare("Mai") == 0)
+	else if (Str::caseCompare(teile[1], "Mai") == 0)
 		month = 5;
-	else if (teile[1].caseCompare("Jun") == 0)
+	else if (Str::caseCompare(teile[1], "Jun") == 0)
 		month = 6;
-	else if (teile[1].caseCompare("Jul") == 0)
+	else if (Str::caseCompare(teile[1], "Jul") == 0)
 		month = 7;
-	else if (teile[1].caseCompare("Aug") == 0)
+	else if (Str::caseCompare(teile[1], "Aug") == 0)
 		month = 8;
-	else if (teile[1].caseCompare("Sep") == 0)
+	else if (Str::caseCompare(teile[1], "Sep") == 0)
 		month = 9;
-	else if (teile[1].caseCompare("Oct") == 0)
+	else if (Str::caseCompare(teile[1], "Oct") == 0)
 		month = 10;
-	else if (teile[1].caseCompare("Nov") == 0)
+	else if (Str::caseCompare(teile[1], "Nov") == 0)
 		month = 11;
 	else
 		month = 12;
 
-	day = atoi(teile[2].data());
-	std::vector<String> tim = teile[3].split(':');
+	day = atoi(teile[2].c_str());
+	std::vector<string> tim = Str::split(teile[3], ':');
 
 	if (tim.size() == 3)
 	{
-		hour = atoi(tim[0].data());
-		min = atoi(tim[1].data());
-		sec = atoi(tim[2].data());
+		hour = atoi(tim[0].c_str());
+		min = atoi(tim[1].c_str());
+		sec = atoi(tim[2].c_str());
 	}
 	else
 		hour = min = sec = 0;
 
-	year = atoi(teile[4].data());
+	year = atoi(teile[4].c_str());
 
 	dt.setTimestamp(year, month, day, hour, min, sec);
-	sysl->TRACE(String("Panel::getDate: ")+dt.toString());
+	sysl->TRACE("Panel::getDate: "+dt.toString());
 	return dt;
 }

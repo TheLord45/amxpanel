@@ -20,7 +20,7 @@
 #define __SYSTEMRESERVED_H__
 
 #include <vector>
-#include "strings.h"
+#include "str.h"
 
 namespace amx
 {
@@ -36,7 +36,7 @@ namespace amx
 				return false;
 			}
 
-			inline const strings::String& getFuncName(int ap)
+			inline const std::string& getFuncName(int ap)
 			{
 				for (size_t i = 0; i < sysReserved.size(); i++)
 					if (sysReserved[i].res == ap)
@@ -45,7 +45,7 @@ namespace amx
 				return none;
 			}
 
-			inline const strings::String& getButtonName(int ap)
+			inline const std::string& getButtonName(int ap)
 			{
 				for (size_t i = 0; i < sysReserved.size(); i++)
 					if (sysReserved[i].res == ap)
@@ -54,22 +54,22 @@ namespace amx
 					return none;
 			}
 
-			inline const strings::String getBorderStyle(const strings::String& name)
+			inline const std::string getBorderStyle(const std::string& name)
 			{
 				for (size_t i = 0; i < sysBorders.size(); i++)
 				{
-					if (sysBorders[i].name.caseCompare(name) == 0)
+					if (Str::caseCompare(sysBorders[i].name, name) == 0)
 					{
-						strings::String ret = strings::String("  ")+sysBorders[i].style1+"\n";
+						std::string ret = std::string("  ")+sysBorders[i].style1+"\n";
 
 						if (!sysBorders[i].style2.empty())
-							ret += strings::String("  ")+sysBorders[i].style2+"\n";
+							ret += std::string("  ")+sysBorders[i].style2+"\n";
 
 						if (!sysBorders[i].style3.empty())
-							ret += strings::String("  ")+sysBorders[i].style3+"\n";
+							ret += std::string("  ")+sysBorders[i].style3+"\n";
 
 						if (!sysBorders[i].style4.empty())
-							ret += strings::String("  ")+sysBorders[i].style4+"\n";
+							ret += std::string("  ")+sysBorders[i].style4+"\n";
 
 						return ret;
 					}
@@ -79,22 +79,22 @@ namespace amx
 			}
 
 		private:
-			const strings::String none;
+			const std::string none;
 
 			typedef struct
 			{
 				int res;				// system reserved ID
-				strings::String fname;	// function name
-				strings::String bname;	// button name
+				std::string fname;	// function name
+				std::string bname;	// button name
 			}SYS_RESERVED;
 
 			typedef struct
 			{
-				strings::String name;	// The name of the border
-				strings::String style1;	// The 1st style command
-				strings::String style2;	// The 2st style command
-				strings::String style3;	// The 3st style command
-				strings::String style4;	// The 4st style command
+				std::string name;	// The name of the border
+				std::string style1;	// The 1st style command
+				std::string style2;	// The 2st style command
+				std::string style3;	// The 3st style command
+				std::string style4;	// The 4st style command
 			}SYS_BORDERS;
 
 			const std::vector<SYS_RESERVED> sysReserved =

@@ -17,30 +17,33 @@
  */
 
 #include <string>
+#include <string.h>
 #include <ios>
 #include <iomanip>
 #include <iconv.h>
 #include "syslog.h"
 #include "nameformat.h"
+#include "trace.h"
+#include "str.h"
 
 extern Syslog *sysl;
 
-using namespace strings;
 using namespace std;
 
 NameFormat::NameFormat()
 {
-	sysl->TRACE(Syslog::ENTRY, String("NameFormat::NameFormat()"));
+	sysl->TRACE(Syslog::ENTRY, string("NameFormat::NameFormat()"));
 }
 
 NameFormat::~NameFormat()
 {
-	sysl->TRACE(Syslog::EXIT, String("NameFormat::NameFormat()"));
+	sysl->TRACE(Syslog::EXIT, string("NameFormat::NameFormat()"));
 }
 
-String NameFormat::toValidName(String& str)
+string NameFormat::toValidName(string& str)
 {
-	String ret;
+	DECL_TRACER("NameFormat::toValidName(string& str)");
+	string ret;
 
 	for (size_t i = 0; i < str.length(); i++)
 	{
@@ -49,15 +52,16 @@ String NameFormat::toValidName(String& str)
 		if (!(c >= '0' && c <= '9') && !(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z'))
 			c = '_';
 
-		ret.append(c);
+		ret.push_back(c);
 	}
 
 	return ret;
 }
 
-String NameFormat::cutNumbers(String& str)
+string NameFormat::cutNumbers(string& str)
 {
-	String ret;
+	DECL_TRACER("NameFormat::cutNumbers(String& str)");
+	string ret;
 
 	for (size_t i = 0; i < str.length(); i++)
 	{
@@ -66,15 +70,16 @@ String NameFormat::cutNumbers(String& str)
 		if (c < '0' || c > '9')
 			continue;
 
-		ret.append(c);
+		ret.push_back(c);
 	}
 
 	return ret;
 }
 
-String NameFormat::toShortName(String& str)
+string NameFormat::toShortName(string& str)
 {
-	String ret;
+	DECL_TRACER("NameFormat::toShortName(string& str)");
+	string ret;
 	bool ignore = false;
 
 	for (size_t i = 0; i < str.length(); i++)
@@ -88,15 +93,16 @@ String NameFormat::toShortName(String& str)
 			ignore = false;
 
 		if (!ignore)
-			ret.append(c);
+			ret.push_back(c);
 	}
 
 	return ret;
 }
 
-String NameFormat::transFontName(String& str)
+string NameFormat::transFontName(string& str)
 {
-	String ret;
+	DECL_TRACER("NameFormat::transFontName(string& str)");
+	string ret;
 
 	for (size_t i = 0; i < str.length(); i++)
 	{
@@ -105,16 +111,17 @@ String NameFormat::transFontName(String& str)
 		if (c == ' ' || c == '%')
 			c = '_';
 
-		ret.append(c);
+		ret.push_back(c);
 	}
 
-	ret.replace(".ttf", ".woff", strings::LAST);
+	Str::replace(ret, ".ttf", ".woff");
 	return ret;
 }
 
-String NameFormat::toURL(String& str)
+string NameFormat::toURL(string& str)
 {
-	String ret;
+	DECL_TRACER("NameFormat::toURL(string& str)");
+	string ret;
 
 	for (size_t i = 0; i < str.length(); i++)
 	{
@@ -130,26 +137,27 @@ String NameFormat::toURL(String& str)
 			ret.append(stream.str());
 		}
 		else
-			ret.append(c);
+			ret.push_back(c);
 	}
 
 	return ret;
 }
 
-char *NameFormat::EncodeTo(char* buf, size_t *len, const String& str, const String& from, const String& to)
+char *NameFormat::EncodeTo(char* buf, size_t *len, const string& str, const string& from, const string& to)
 {
+	DECL_TRACER("NameFormat::EncodeTo(char* buf, size_t *len, const string& str, const string& from, const string& to)");
 	if (!buf || str.empty())
 		return 0;
 
-	iconv_t cd = iconv_open(from.data(), to.data());
+	iconv_t cd = iconv_open(from.c_str(), to.c_str());
 
 	if (cd == (iconv_t) -1)
 	{
-		sysl->errlog(String("NameFormat::EncodeTo: iconv_open failed!"));
+		sysl->errlog("NameFormat::EncodeTo: iconv_open failed!");
 		return 0;
 	}
 
-	char *in_buf = (char *)str.data();
+	char *in_buf = (char *)str.c_str();
 	size_t in_left = str.length() - 1;
 
 	char *out_buf = buf;
@@ -160,7 +168,7 @@ char *NameFormat::EncodeTo(char* buf, size_t *len, const String& str, const Stri
 	{
 		if ((new_len = iconv(cd, &in_buf, &in_left, &out_buf, &out_left)) == (size_t) -1)
 		{
-			sysl->errlog(String("NameFormat::EncodeTo: iconv failed: ")+strerror(errno));
+			sysl->errlog(string("NameFormat::EncodeTo: iconv failed: ")+strerror(errno));
 			return 0;
 		}
 	}
@@ -172,9 +180,10 @@ char *NameFormat::EncodeTo(char* buf, size_t *len, const String& str, const Stri
 	return buf;
 }
 
-String NameFormat::textToWeb(const String& txt)
+string NameFormat::textToWeb(const string& txt)
 {
-	String out;
+	DECL_TRACER("NameFormat::textToWeb(const string& txt)");
+	string out;
 
 	if (txt.empty())
 		return out;
@@ -215,26 +224,27 @@ String NameFormat::textToWeb(const String& txt)
 		else if (c == ' ')
 			out += "&nbsp;";
 		else
-			out += (char)c;
+			out.push_back(c);
 	}
 
 	return out;
 }
 
-String NameFormat::toHex(int num, int width)
+string NameFormat::toHex(int num, int width)
 {
-	String ret;
+	string ret;
 	std::stringstream stream;
 	stream << std::setfill ('0') << std::setw(width) << std::hex << num;
 	ret = stream.str();
 	return ret;
 }
 
-String NameFormat::strToHex(String str, int width, bool format)
+string NameFormat::strToHex(string str, int width, bool format)
 {
+	DECL_TRACER("NameFormat::strToHex(string str, int width, bool format)");
 	int len = 0, pos = 0, old = 0;
 	int w = (format) ? 1 : width;
-	String out, left, right;
+	string out, left, right;
 
 	for (size_t i = 0; i < str.length(); i++)
 	{
@@ -258,9 +268,9 @@ String NameFormat::strToHex(String str, int width, bool format)
 		if (format)
 		{
 			if (std::isprint(c))
-				right.append(c);
+				right.push_back(c);
 			else
-				right.append('.');
+				right.push_back('.');
 		}
 
 		len++;
@@ -280,10 +290,10 @@ String NameFormat::strToHex(String str, int width, bool format)
 	return out;
 }
 
-String NameFormat::latin1ToUTF8(const String& str)
+string NameFormat::latin1ToUTF8(const string& str)
 {
-	sysl->TRACE(String("NameFormat::latin1ToUTF8(const String& str)"));
-	String out;
+	DECL_TRACER("NameFormat::latin1ToUTF8(const string& str)");
+	string out;
 
 	for (size_t i = 0; i < str.length(); i++)
 	{
@@ -291,23 +301,23 @@ String NameFormat::latin1ToUTF8(const String& str)
 
 		if (ch < 0x80)
 		{
-			out.append((char)ch);
+			out.push_back(ch);
 		}
 		else
 		{
-			out.append((char)(0xc0 | ch >> 6));
-			out.append((char)(0x80 | (ch & 0x3f)));
+			out.push_back(0xc0 | ch >> 6);
+			out.push_back(0x80 | (ch & 0x3f));
 		}
 	}
 
 	return out;
 }
 
-String NameFormat::cp1250ToUTF8(const String& str)
+string NameFormat::cp1250ToUTF8(const string& str)
 {
-	sysl->TRACE(String("NameFormat::cp1250ToUTF8(const String& str)"));
+	DECL_TRACER("NameFormat::cp1250ToUTF8(const string& str)");
 
-	String out;
+	string out;
 
 	for (size_t j = 0; j < str.length(); j++)
 	{
@@ -337,23 +347,24 @@ String NameFormat::cp1250ToUTF8(const String& str)
 
 		if (utf > 0x00ff)
 		{
-			out.append((char)((utf >> 8) & 0x00ff));
-			out.append((char)(utf & 0x00ff));
+			out.push_back((utf >> 8) & 0x00ff);
+			out.push_back(utf & 0x00ff);
 		}
 		else if (ch > 0x7f)
 		{
-			out.append((char)(0xc0 | ch >> 6));
-			out.append((char)(0x80 | (ch & 0x3f)));
+			out.push_back(0xc0 | ch >> 6);
+			out.push_back(0x80 | (ch & 0x3f));
 		}
 		else
-			out.append((char)ch);
+			out.push_back(ch);
 	}
 
 	return out;
 }
 
-strings::String NameFormat::UTF8ToCp1250(const strings::String& str)
+string NameFormat::UTF8ToCp1250(const string& str)
 {
+	DECL_TRACER("NameFormat::UTF8ToCp1250(const strings::String& str)");
 	char dst[1024];
 	size_t srclen = 0;
 	char* pIn, *pInSave;
@@ -364,13 +375,13 @@ strings::String NameFormat::UTF8ToCp1250(const strings::String& str)
 	try
 	{
 		pIn = new char[srclen + 1];
-		memcpy(pIn, str.data(), srclen);
+		memcpy(pIn, str.c_str(), srclen);
 		*(pIn+srclen) = 0;
 		pInSave = pIn;
 	}
 	catch(std::exception& e)
 	{
-		sysl->errlog(String("NameFormat::UTF8ToCp1250: ")+e.what());
+		sysl->errlog(string("NameFormat::UTF8ToCp1250: ")+e.what());
 		return "";
 	}
 
@@ -381,7 +392,7 @@ strings::String NameFormat::UTF8ToCp1250(const strings::String& str)
 
 	if (conv == (iconv_t)-1)
 	{
-		sysl->errlog(String("NameFormat::UTF8ToCp1250: Error opening iconv!"));
+		sysl->errlog("NameFormat::UTF8ToCp1250: Error opening iconv!");
 		delete[] pInSave;
 		return str;
 	}
@@ -392,9 +403,9 @@ strings::String NameFormat::UTF8ToCp1250(const strings::String& str)
 
 	if (ret == (size_t)-1)
 	{
-		sysl->errlog(String("NameFormat::UTF8ToCp1250: Error converting a string!"));
+		sysl->errlog("NameFormat::UTF8ToCp1250: Error converting a string!");
 		return str;
 	}
 
-	return String(dst);
+	return string(dst);
 }

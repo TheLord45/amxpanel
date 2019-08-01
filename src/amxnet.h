@@ -21,6 +21,7 @@
 
 #include <functional>
 #include <cstring>
+#include <atomic>
 
 #ifdef __APPLE__
 using namespace boost;
@@ -38,7 +39,7 @@ namespace amx
 		uint16_t level;			// level number (if any)
 		uint16_t channel;		// channel status
 		uint16_t value;			// level value
-		strings::String msg;	// message string
+		std::string msg;	// message string
 	}ANET_SEND;
 
 	typedef union
@@ -158,7 +159,7 @@ namespace amx
 		uint16_t deviceID;		// device ID
 		unsigned char serial[16]; // serial number
 		uint16_t fwid;			// firmware ID
-		unsigned char info[256];// several NULL terminated informations
+		unsigned char info[512];// several NULL terminated informations
 		int len;				// length of field info
 	}ANET_ADEVINFO;
 
@@ -166,7 +167,7 @@ namespace amx
 	{
 		uint16_t system;		// number of system
 		uint16_t status;		// Bit field
-		unsigned char str[256];	// Null terminated status string
+		unsigned char str[512];	// Null terminated status string
 	}ANET_ASTATUS;
 
 	typedef union
@@ -223,9 +224,29 @@ namespace amx
 			memset(&data, 0, sizeof(ANET_DATA));
 			checksum = 0;
 		}
+
+		ANET_COMMAND& operator= (const ANET_COMMAND& cmd)
+		{
+			ID = cmd.ID;
+			hlen = cmd.hlen;
+			sep1 = cmd.sep1;
+			type = cmd.type;
+			unk1 = cmd.unk1;
+			device1 = cmd.device1;
+			port1 = cmd.port1;
+			system = cmd.system;
+			device2 = cmd.device2;
+			port2 = cmd.port2;
+			unk6 = cmd.unk6;
+			count = cmd.count;
+			MC = cmd.MC;
+			memcpy(&data, &cmd.data, sizeof(ANET_DATA));
+			checksum = cmd.checksum;
+			return *this;
+		}
 	}ANET_COMMAND;
 
-	typedef struct DEVICE_INFO
+	typedef struct
 	{
 		unsigned char objectID;		// Unique 8-bit identifier that identifies this structure of information
 		unsigned char parentID;		// Refers to an existing object ID. If 0, has this object to any parent object (parent).
@@ -253,7 +274,6 @@ namespace amx
 			void stop();
 
 			void setCallback(std::function<void(const ANET_COMMAND&)> func) { callback = func; }
-			void setCallbackConn(std::function<bool(AMXNet *)> func) { cbWebConn = func; }
 			bool sendCommand(const ANET_SEND& s);
 			bool isConnected();
 			bool isStopped() { return stopped_; }
@@ -299,8 +319,9 @@ namespace amx
 			uint32_t makeDWord(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4);
 			unsigned char *makeBuffer(const ANET_COMMAND& s);
 			int msg97fill(ANET_COMMAND *com);
-			bool isCommand(const strings::String& cmd);
+			bool isCommand(const std::string& cmd);
 			bool isRunning() { return !(stopped_ || killed); }
+			void callCallback(const ANET_COMMAND& acmd);
 
 			asio::io_context io_context;
 			asio::steady_timer deadline_;
@@ -309,7 +330,7 @@ namespace amx
 			bool stopped_;
 			asio::ip::tcp::resolver::results_type endpoints_;
 			asio::ip::tcp::socket socket_;
-			strings::String input_buffer_;
+			std::string input_buffer_;
 			unsigned char buff_[2048];
 			std::function<void(const ANET_COMMAND&)> callback;
 			std::function<bool(AMXNet *)> cbWebConn;
@@ -323,8 +344,10 @@ namespace amx
 			bool ready;					// TRUE = ready for communication
 			bool write_busy;
 			std::vector<DEVICE_INFO> devInfo;
-			strings::String oldCmd;
+			std::string oldCmd;
 			int panelID;				// Panel ID of currently legalized panel.
+
+			std::atomic<bool> waitCallback;
 	};
 }
 

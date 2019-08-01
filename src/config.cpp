@@ -15,6 +15,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
+#include <string>
 #include <iostream>
 #include <cstdlib>
 #include <fstream>
@@ -24,16 +25,18 @@
 #include <unistd.h>
 #include "config.h"
 #include "syslog.h"
+#include "str.h"
+#include "trace.h"
 
-extern std::string pName;
+using namespace std;
+
+extern string pName;
 extern Syslog *sysl;
-std::runtime_error rConfig("Error opening a file");
-
-using namespace strings;
+runtime_error rConfig("Error opening a file");
 
 Config::Config()
 {
-	sysl->TRACE(Syslog::ENTRY, std::string("Config::Config()"));
+	sysl->TRACE(Syslog::ENTRY, string("Config::Config()"));
 	this->fflag = false;
 	initialized = false;
 	sFileName.clear();
@@ -48,19 +51,19 @@ Config::Config()
 	{
 		readConfig(sFileName);
 	}
-	catch (const std::exception e)
+	catch (const exception e)
 	{
-		sysl->errlog(String("Error reading config file ")+sFileName+": "+e.what());
+		sysl->errlog(string("Error reading config file ")+sFileName+": "+e.what());
 	}
 }
 
 void Config::init()
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Config::init()"));
+	DECL_TRACER("Config::init()");
 
-	if (!(HOME = std::getenv("HOME")))
+	if (!(HOME = getenv("HOME")))
 	{
-		sysl->errlog(String("Error getting environment variable HOME!"));
+		sysl->errlog(string("Error getting environment variable HOME!"));
 		HOME = 0;
 	}
 
@@ -85,7 +88,7 @@ void Config::init()
 
 		if (access(sFileName.data(), R_OK))
 		{
-			sysl->errlog(String("Error: Can't find any configuration file!"));
+			sysl->errlog(string("Error: Can't find any configuration file!"));
 			sFileName.clear();
 		}
 	}
@@ -122,9 +125,9 @@ void Config::init()
 	cidr_free(addr);
 }
 
-void Config::readConfig(const String &sFile)
+void Config::readConfig(const string &sFile)
 {
-	sysl->TRACE(Syslog::MESSAGE, std::string("Config::readConfig(const String &sFile)"));
+	DECL_TRACER("Config::readConfig(const string &sFile)");
 
 	if (this->fflag)
 	{
@@ -137,92 +140,90 @@ void Config::readConfig(const String &sFile)
 
 	try
 	{
-		fs.open(sFile.data(), std::fstream::in);
+		fs.open(sFile.c_str(), fstream::in);
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(String("Error on file ")+sFile+": "+e.what());
+		sysl->errlog(string("Error on file ")+sFile+": "+e.what());
 		throw rConfig;
 	}
 
-	sysl->log(Syslog::INFO,String("Config::readConfig: Reading from: ")+sFile);
+	sysl->log(Syslog::INFO, "Config::readConfig: Reading from: "+sFile);
 
-	for (std::string line; std::getline(fs, line);)
+	for (string line; getline(fs, line);)
 	{
-		String ln = line;
-		std::vector<String> parts = ln.split('=');
+		vector<string> parts = Str(line).split('=');
 
 		if (parts.size() == 2)
 		{
-			String left = parts[0];
-			String right = parts[1];
+			string left = parts[0];
+			string right = Str::trim(parts[1]);
 
-//			left.toUpper();
-			sysl->log(Syslog::INFO, String("Config::readConfig: ")+left+" : "+right);
+			sysl->log(Syslog::INFO, "Config::readConfig: "+left+" : "+right);
 
-			if (left.caseCompare("LISTEN") == 0 && !right.empty())
-				sListen = right.trim();
-			else if (left.caseCompare("PORT") == 0 && !right.empty())
-				nPort = std::stoi(right.data());
-			else if (left.caseCompare("HTTP_ROOT") == 0 && !right.empty())
-				sHTTProot = right.trim();
-			else if (left.caseCompare("PIDFILE") == 0 && !right.empty())
-				sPidFile = right.trim();
-			else if (left.caseCompare("USER") == 0 && !right.empty())
-				usr = right.trim();
-			else if (left.caseCompare("GROUP") == 0 && !right.empty())
-				grp = right.trim();
-			else if (left.caseCompare("LOGFILE") == 0 && !right.empty())
-				LogFile = right.trim();
-			else if (left.caseCompare("FONTPATH") == 0 && !right.empty())
-				FontPath = right.trim();
-			else if (left.caseCompare("WEBLOCATION") == 0 && !right.empty())
-				web_location = right.trim();
-			else if (left.caseCompare("AMXPanelType") == 0 && !right.empty())
-				AMXPanelType = right.trim();
-			else if (left.caseCompare("AMXController") == 0 && !right.empty())
-				AMXController = right.trim();
-			else if (left.caseCompare("AMXPort") == 0 && !right.empty())
-				AMXPort = std::stoi(right.data());
-			else if (left.caseCompare("AMXChannel") == 0 && !right.empty())
+			if (Str::caseCompare(left, "LISTEN") == 0 && !right.empty())
+				sListen = right;
+			else if (Str::caseCompare(left, "PORT") == 0 && !right.empty())
+				nPort = stoi(right.c_str());
+			else if (Str::caseCompare(left, "HTTP_ROOT") == 0 && !right.empty())
+				sHTTProot = right;
+			else if (Str::caseCompare(left, "PIDFILE") == 0 && !right.empty())
+				sPidFile = right;
+			else if (Str::caseCompare(left, "USER") == 0 && !right.empty())
+				usr = right;
+			else if (Str::caseCompare(left, "GROUP") == 0 && !right.empty())
+				grp = right;
+			else if (Str::caseCompare(left, "LOGFILE") == 0 && !right.empty())
+				LogFile = right;
+			else if (Str::caseCompare(left, "FONTPATH") == 0 && !right.empty())
+				FontPath = right;
+			else if (Str::caseCompare(left, "WEBLOCATION") == 0 && !right.empty())
+				web_location = right;
+			else if (Str::caseCompare(left, "AMXPanelType") == 0 && !right.empty())
+				AMXPanelType = right;
+			else if (Str::caseCompare(left, "AMXController") == 0 && !right.empty())
+				AMXController = right;
+			else if (Str::caseCompare(left, "AMXPort") == 0 && !right.empty())
+				AMXPort = stoi(right.c_str());
+			else if (Str::caseCompare(left, "AMXChannel") == 0 && !right.empty())
 			{
-				AMXChanel = std::stoi(right.data());
+				AMXChanel = stoi(right.c_str());
 
 				if (AMXChanel >= 10000 && AMXChanel < 11000)
 					AMXChanels.push_back(AMXChanel);
 			}
-			else if (left.caseCompare("AMXSystem") == 0 && !right.empty())
-				AMXSystem = std::stoi(right.data());
-			else if (left.caseCompare("SIDEPORT") == 0 && !right.empty())
-				sidePort = std::stoi(right.data());
-			else if (left.caseCompare("SSHSERVER") == 0 && !right.empty())
-				sshServerFile = right.trim();
-			else if (left.caseCompare("SSHDH") == 0 && !right.empty())
-				sshDHFile = right.trim();
-			else if (left.caseCompare("SSHPassword") == 0 && !right.empty())
-				sshPassword = right.trim();
-			else if (left.caseCompare("WEBSOCKETSERVER") == 0 && !right.empty())
-				webSocketServer = right.trim();
-			else if (left.caseCompare("HashTablePath") == 0 && !right.empty())
-				hashTablePath = right.trim();
-			else if (left.caseCompare("WSStatus") == 0 && !right.empty())
+			else if (Str::caseCompare(left, "AMXSystem") == 0 && !right.empty())
+				AMXSystem = stoi(right.c_str());
+			else if (Str::caseCompare(left, "SIDEPORT") == 0 && !right.empty())
+				sidePort = stoi(right.c_str());
+			else if (Str::caseCompare(left, "SSHSERVER") == 0 && !right.empty())
+				sshServerFile = right;
+			else if (Str::caseCompare(left, "SSHDH") == 0 && !right.empty())
+				sshDHFile = right;
+			else if (Str::caseCompare(left, "SSHPassword") == 0 && !right.empty())
+				sshPassword = right;
+			else if (Str::caseCompare(left, "WEBSOCKETSERVER") == 0 && !right.empty())
+				webSocketServer = right;
+			else if (Str::caseCompare(left, "HashTablePath") == 0 && !right.empty())
+				hashTablePath = right;
+			else if (Str::caseCompare(left, "WSStatus") == 0 && !right.empty())
 			{
-				String b = right.trim();
+				string b = right;
 
-				if (b.compare("0") == 0 || b.caseCompare("FALSE") == 0 ||
-					b.caseCompare("NO") == 0 || b.caseCompare("OFF") == 0)
+				if (b.compare("0") == 0 || Str::caseCompare(b, "FALSE") == 0 ||
+					Str::caseCompare(b, "NO") == 0 || Str::caseCompare(b, "OFF") == 0)
 					wsStatus = false;
 			}
-			else if (left.caseCompare("AllowedNets") == 0 && !right.empty())
+			else if (Str::caseCompare(left, "AllowedNets") == 0 && !right.empty())
 			{
 				parseNets(right);
 			}
-			else if (left.caseCompare("DEBUG") == 0 && !right.empty())
+			else if (Str::caseCompare(left, "DEBUG") == 0 && !right.empty())
 			{
-				String b = right.trim();
+				string b = right;
 
-				if (b.compare("1") == 0 || b.caseCompare("TRUE") == 0 ||
-					b.caseCompare("YES") == 0 || b.caseCompare("ON") == 0)
+				if (b.compare("1") == 0 || Str::caseCompare(b, "TRUE") == 0 ||
+					Str::caseCompare(b, "YES") == 0 || Str::caseCompare(b, "ON") == 0)
 					Debug = true;
 			}
 		}
@@ -233,26 +234,26 @@ void Config::readConfig(const String &sFile)
 	initialized = true;
 }
 
-std::vector<String>& Config::getHashTable(const String& path)
+vector<string>& Config::getHashTable(const string& path)
 {
-	sysl->TRACE(String("Config::getHashTable(const String& path)"));
+	DECL_TRACER("Config::getHashTable(const string& path)");
 
 	hashTable.clear();
-	std::ifstream fl;
+	ifstream fl;
 
 	try
 	{
-		fl.open(path.data(), std::fstream::in);
+		fl.open(path.c_str(), fstream::in);
 	}
-	catch (const std::fstream::failure e)
+	catch (const fstream::failure e)
 	{
-		sysl->errlog(String("Error on file ")+path+": "+e.what());
+		sysl->errlog("Error on file "+path+": "+e.what());
 		throw rConfig;
 	}
 
-	for (std::string line; std::getline(fl, line);)
+	for (string line; getline(fl, line);)
 	{
-		String ln = line;
+		string ln = line;
 		hashTable.push_back(ln);
 	}
 
@@ -260,15 +261,15 @@ std::vector<String>& Config::getHashTable(const String& path)
 	return hashTable;
 }
 
-void Config::parseNets(String& nets)
+void Config::parseNets(string& nets)
 {
-	sysl->TRACE(std::string("Config::parseNets(String& nets)"));
+	DECL_TRACER("Config::parseNets(string& nets)");
 
-	std::vector<String> parts = nets.split(',');
+	vector<string> parts = Str::split(nets, ',');
 
 	for (size_t i = 0; i < parts.size(); i++)
 	{
-		CIDR *addrs = cidr_from_str(parts[i].trim().data());
+		CIDR *addrs = cidr_from_str(Str::trim(parts[i]).c_str());
 
 		if (addrs == 0)
 			continue;
@@ -278,15 +279,15 @@ void Config::parseNets(String& nets)
 	}
 }
 
-bool Config::isAllowedNet(String& net)
+bool Config::isAllowedNet(string& net)
 {
-	sysl->TRACE(std::string("Config::isAllowedNet(String& net)"));
+	DECL_TRACER("Config::isAllowedNet(string& net)");
 
 	CIDR *addr = cidr_from_str(net.data());
 
 	if (addr == 0)
 	{
-		sysl->errlog(std::string("Config::isAllowedNet: No or invalid IP address was given!"));
+		sysl->errlog(string("Config::isAllowedNet: No or invalid IP address was given!"));
 		return false;
 	}
 
@@ -328,12 +329,12 @@ bool Config::isAllowedNet(String& net)
 			switch (errno)
 			{
 				case 0: break;
-				case EFAULT:	sysl->errlog(std::string("Config::isAllowedNet: A NULL parameter was passed to method!")); break;
-				case EINVAL:	sysl->errlog(std::string("Config::isAllowedNet: Invalid argument passed!")); break;
-				case ENOENT:	sysl->errlog(std::string("Config::isAllowedNet: Internal error!")); break;
-				case EPROTO:	sysl->errlog(std::string("Config::isAllowedNet: Protocolls don't match!")); break;
+				case EFAULT:	sysl->errlog(string("Config::isAllowedNet: A NULL parameter was passed to method!")); break;
+				case EINVAL:	sysl->errlog(string("Config::isAllowedNet: Invalid argument passed!")); break;
+				case ENOENT:	sysl->errlog(string("Config::isAllowedNet: Internal error!")); break;
+				case EPROTO:	sysl->errlog(string("Config::isAllowedNet: Protocolls don't match!")); break;
 				default:
-					sysl->errlog(std::string("Config::isAllowedNet: Unknown error!"));
+					sysl->errlog(string("Config::isAllowedNet: Unknown error!"));
 			}
 		}
 	}
@@ -344,7 +345,7 @@ bool Config::isAllowedNet(String& net)
 
 Config::~Config()
 {
-//	sysl->TRACE(Syslog::EXIT, std::string("Config::Config()"));
+//	sysl->TRACE(Syslog::EXIT, string("Config::Config()"));
 
 	if (this->fflag)
 	{

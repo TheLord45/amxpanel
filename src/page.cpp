@@ -34,13 +34,14 @@
 #include "palette.h"
 #include "nameformat.h"
 #include "page.h"
+#include "trace.h"
+#include "str.h"
 
 extern Syslog *sysl;
 extern Config *Configuration;
 
 using namespace std;
 using namespace amx;
-using namespace strings;
 
 Page::Page()
 {
@@ -56,9 +57,9 @@ Page::Page()
 	Project = 0;
 }
 
-amx::Page::Page(const strings::String& file)
+Page::Page(const string& file)
 {
-	sysl->TRACE(Syslog::ENTRY, std::string("Page::Page(const strings::String& file)"));
+	sysl->TRACE(Syslog::ENTRY, std::string("Page::Page(const string& file)"));
 	status = false;
 	pageFile = file;
 	paletteFile = "pal_001.xma";
@@ -73,32 +74,32 @@ amx::Page::Page(const strings::String& file)
 
 bool amx::Page::parsePage()
 {
-	sysl->TRACE(String("Page::parsePage()"));
+	DECL_TRACER(std::string("Page::parsePage()"));
 
 	if (status)
 		return true;
 
 	bool inButton = false;
-	String lastName;
+	string lastName;
 	int depth, oldDepth = -1;
 
 	if (paletteFile.empty())
 		paletteFile = "pal_001.xma";
 
 	clear();
-	String uri;
+	string uri;
 	uri.append(Configuration->getHTTProot());
 	uri.append("/");
 	uri.append(pageFile);
-	sysl->TRACE(String("Page::parsePage: Reading file: ")+uri);
+	sysl->TRACE("Page::parsePage: Reading file: "+uri);
 
 	try
 	{
-		ifstream xml(uri.data(), ifstream::binary);
+		ifstream xml(uri.c_str(), ifstream::binary);
 
 		if (!xml)
 		{
-			sysl->errlog(String("Page::parsePage: Error opening the file ")+uri);
+			sysl->errlog("Page::parsePage: Error opening the file "+uri);
 			return false;
 		}
 
@@ -115,22 +116,22 @@ bool amx::Page::parsePage()
 		}
 		catch (exception& e)
 		{
-			sysl->errlog(String("Page::parsePage: Error reading a file: ")+e.what());
+			sysl->errlog(string("Page::parsePage: Error reading a file: ")+e.what());
 			xml.close();
 			return false;
 		}
 
 		xml.close();
-		sysl->TRACE(String("Page::parsePage: length=")+buffer.length());
+		sysl->TRACE("Page::parsePage: length="+to_string(buffer.length()));
 		// Convert from CP1250 (Windblows) to UTF-8.
-		String cbuf = NameFormat::cp1250ToUTF8(buffer);
+		string cbuf = NameFormat::cp1250ToUTF8(buffer);
 		buffer.clear();
 
-		xmlpp::TextReader reader((const unsigned char *)cbuf.data(), cbuf.length());
+		xmlpp::TextReader reader((const unsigned char *)cbuf.c_str(), cbuf.length());
 
 		while (reader.read())
 		{
-			String name = string(reader.get_name());
+			Str name(reader.get_name().raw());
 			depth = reader.get_depth();
 
 			if (depth < oldDepth)
@@ -144,21 +145,21 @@ bool amx::Page::parsePage()
 			}
 
 			if (name.compare("#text") == 0)
-				name = lastName;
+				name.set(lastName);
 
 			if (reader.has_attributes())
 			{
 				for (int i = 0; i < reader.get_attribute_count(); i++)
-					sysl->TRACE(String("Page::parsePage: name=")+name+", depth="+reader.get_depth()+", attr="+reader.get_attribute(i));
+					sysl->TRACE("Page::parsePage: name="+name.get()+", depth="+to_string(reader.get_depth())+", attr="+reader.get_attribute(i));
 			}
 			else if (reader.has_value())
-				sysl->TRACE(String("Page::parsePage: name=")+name+", depth="+reader.get_depth()+", value="+reader.get_value());
+				sysl->TRACE("Page::parsePage: name="+name.get()+", depth="+to_string(reader.get_depth())+", value="+reader.get_value());
 			else
-				sysl->TRACE(String("Page::parsePage: name=")+name+", depth="+reader.get_depth());
+				sysl->TRACE("Page::parsePage: name="+name.get()+", depth="+to_string(reader.get_depth()));
 
 			if (name.caseCompare("page") == 0 && reader.has_attributes())
 			{
-				String attr = string(reader.get_attribute(0));
+				Str attr(reader.get_attribute(0));
 
 				if (attr.caseCompare("page") == 0)
 					page.type = PAGE;
@@ -167,7 +168,7 @@ bool amx::Page::parsePage()
 				else
 					page.type = PNONE;
 
-				sysl->TRACE(String("Page::parsePage: page:")+page.type);
+				sysl->TRACE("Page::parsePage: page:"+to_string(page.type));
 			}
 			else if (name.caseCompare("pageID") == 0 && reader.has_value())
 				page.pageID = atoi(reader.get_value().c_str());
@@ -195,7 +196,7 @@ bool amx::Page::parsePage()
 			{
 				BUTTON_T button;
 				button.clear();
-				String attr = string(reader.get_attribute(0));
+				Str attr(reader.get_attribute(0));
 
 				if (attr.caseCompare("general") == 0)
 					button.type = GENERAL;
@@ -219,7 +220,7 @@ bool amx::Page::parsePage()
 				button.fb = FB_NONE;
 				page.buttons.push_back(button);
 				inButton = true;
-				sysl->TRACE(String("Page::parsePage: Added for page ")+page.name+" button of type "+button.type);
+				sysl->TRACE("Page::parsePage: Added for page "+page.name+" button of type "+to_string(button.type));
 			}
 			else if (name.caseCompare("button") == 0)
 				inButton = false;
@@ -246,8 +247,8 @@ bool amx::Page::parsePage()
 					page.buttons.back().bs = reader.get_value();
 				else if (name.caseCompare("fb") == 0 && reader.has_value())
 				{
-					String value(reader.get_value());
-					value.trim();
+					Str value(reader.get_value());
+					value = Str::trim(value);
 
 					if (value.caseCompare("channel") == 0)
 						page.buttons.back().fb = FB_CHANNEL;
@@ -303,7 +304,7 @@ bool amx::Page::parsePage()
 				else if (name.caseCompare("pf") == 0 && reader.has_value())
 				{
 					page.buttons.back().pushFunc.back().pfName = reader.get_value().c_str();
-					sysl->TRACE(String("Page::parsePage: found push page: ")+page.buttons.back().pushFunc.back().pfType+": "+page.buttons.back().pushFunc.back().pfName);
+					sysl->TRACE("Page::parsePage: found push page: "+page.buttons.back().pushFunc.back().pfType+": "+page.buttons.back().pushFunc.back().pfName);
 				}
 			}
 			else if (inButton && reader.get_depth() == 3)	// Attributes
@@ -313,7 +314,7 @@ bool amx::Page::parsePage()
 					PUSH_FUNC_T pf;
 					pf.pfType = reader.get_attribute(0).c_str();	// FIXME: Find all commands and make an enum.
 					page.buttons.back().pushFunc.push_back(pf);
-					sysl->TRACE(String("Page::parsePage: found push command: ")+pf.pfType);
+					sysl->TRACE("Page::parsePage: found push command: "+pf.pfType);
 					// Known commands:
 					// sShow      show popup
 					// sHide      hide popup
@@ -327,7 +328,7 @@ bool amx::Page::parsePage()
 				sr.clear();
 				sr.number = atoi(reader.get_attribute(0).c_str());
 				page.buttons.back().sr.push_back(sr);
-				sysl->TRACE(String("Page::Page: Added for button ")+page.buttons.back().na+" sr with ID "+sr.number);
+				sysl->TRACE("Page::Page: Added for button "+page.buttons.back().na+" sr with ID "+to_string(sr.number));
 			}
 
 			if (reader.get_depth() == 5 && inButton)
@@ -338,7 +339,7 @@ bool amx::Page::parsePage()
 					page.buttons.back().sr.back().bs = reader.get_value();
 				else if (name.caseCompare("mi") == 0 && reader.has_value())
 				{
-					String mi = reader.get_value().c_str();
+					string mi = reader.get_value();
 					page.buttons.back().sr.back().mi = mi;
 
 					if (!mi.empty())
@@ -372,7 +373,7 @@ bool amx::Page::parsePage()
 					page.buttons.back().sr.back().ec = reader.get_value();
 				else if (name.caseCompare("bm") == 0 && reader.has_value())
 				{
-					String bm = reader.get_value().c_str();
+					string bm = reader.get_value();
 					page.buttons.back().sr.back().bm = bm;
 
 					if (reader.has_attributes())
@@ -439,7 +440,7 @@ bool amx::Page::parsePage()
 				SR_T sr;
 				sr.number = atoi(reader.get_attribute(0).c_str());
 				page.sr.push_back(sr);
-				sysl->TRACE(String("Page::Page: Added for page ")+page.name+" sr with ID "+sr.number);
+				sysl->TRACE("Page::Page: Added for page "+page.name+" sr with ID "+to_string(sr.number));
 			}
 
 			if (reader.get_depth() == 4 && !inButton)
@@ -456,7 +457,7 @@ bool amx::Page::parsePage()
 					page.sr.back().ec = reader.get_value();
 				else if (name.caseCompare("mi") == 0 && reader.has_value())
                 {
-					String mi = reader.get_value().c_str();
+					string mi = reader.get_value();
 					page.sr.back().mi = mi;
 
 					if (!mi.empty())
@@ -482,7 +483,7 @@ bool amx::Page::parsePage()
                 }
 				else if (name.caseCompare("bm") == 0 && reader.has_value())
 				{
-					String bm = reader.get_value().c_str();
+					string bm = reader.get_value();
 					page.sr.back().bm = bm;
 
 					if (reader.has_attributes())
@@ -565,24 +566,24 @@ amx::Page::~Page()
 
 void Page::serializeToFile()
 {
-	sysl->TRACE(String("Page::serializeToFile()"));
+	DECL_TRACER(std::string("Page::serializeToFile()"));
 
 	fstream pgFile;
-	String fname = Configuration->getHTTProot()+"/scripts/Page"+page.pageID+".js";
+	string fname = Configuration->getHTTProot()+"/scripts/Page"+to_string(page.pageID)+".js";
 
 	try
 	{
-		pgFile.open(fname.toString(), ios::in | ios::out | ios::trunc | ios::binary);
+		pgFile.open(fname, ios::in | ios::out | ios::trunc | ios::binary);
 
 		if (!pgFile.is_open())
 		{
-			sysl->errlog(String("Page::serializeToFile: Error opening file ")+fname);
+			sysl->errlog("Page::serializeToFile: Error opening file "+fname);
 			return;
 		}
 	}
 	catch (const std::fstream::failure e)
 	{
-		sysl->errlog(std::string("Page::serializeToFile: I/O Error: ")+e.what());
+		sysl->errlog(string("Page::serializeToFile: I/O Error: ")+e.what());
 		return;
 	}
 
@@ -681,19 +682,19 @@ void Page::serializeToFile()
 
 void amx::Page::generateButtons()
 {
-	sysl->TRACE(String("Page::generateButtons()"));
+	DECL_TRACER(std::string("Page::generateButtons()"));
 
 	if (buttonsDone)
 		return;
 
-	sysl->TRACE(String("Page::generateButtons: for page: ")+page.name);
+	sysl->TRACE("Page::generateButtons: for page: "+page.name);
 
 	try
 	{
 		if (!paletteClass)
 		{
 			buttonsDone = false;
-			sysl->errlog(String("Page::generateButtons: Missing palette initialization!"));
+			sysl->errlog("Page::generateButtons: Missing palette initialization!");
 			return;
 		}
 
@@ -714,11 +715,11 @@ void amx::Page::generateButtons()
 				else
 					on = 1;
 
-				btArray += String("\n\t\t{\"pnum\":")+page.pageID+",\"bi\":"+page.buttons[i].bi+",";
-				btArray += String("\"instances\":")+page.buttons[i].sr.size()+",";
-				btArray += String("\"ap\":")+page.buttons[i].ap+",\"ac\":"+page.buttons[i].ad;
-				btArray += String(",\"cp\":")+page.buttons[i].cp+",\"ch\":"+page.buttons[i].ch;
-				btArray += String(",\"ion\":")+on+",\"visible\":1,\"enabled\":1}";
+				btArray += "\n\t\t{\"pnum\":"+to_string(page.pageID)+",\"bi\":"+to_string(page.buttons[i].bi)+",";
+				btArray += "\"instances\":"+to_string(page.buttons[i].sr.size())+",";
+				btArray += "\"ap\":"+to_string(page.buttons[i].ap)+",\"ac\":"+to_string(page.buttons[i].ad);
+				btArray += ",\"cp\":"+to_string(page.buttons[i].cp)+",\"ch\":"+to_string(page.buttons[i].ch);
+				btArray += ",\"ion\":"+to_string(on)+",\"visible\":1,\"enabled\":1}";
 			}
 
 			PushButton pbt(page.buttons[i], paletteClass->getPalette());
@@ -727,7 +728,7 @@ void amx::Page::generateButtons()
 			pbt.setIconClass(iconClass);
 			pbt.setPageID(page.pageID);
 			styleBuffer += pbt.getStyle();
-			String buf = pbt.getWebCode();
+			string buf = pbt.getWebCode();
 			btWebBuffer.push_back(buf);
 			scriptCode += pbt.getScriptCode();
 			scrStart += pbt.getScriptCodeStart();
@@ -741,35 +742,35 @@ void amx::Page::generateButtons()
 	}
 	catch (exception& e)
 	{
-		sysl->errlog(String("Page::generateButtons: Error: ")+e.what());
+		sysl->errlog(string("Page::generateButtons: Error: ")+e.what());
 	}
 
 	buttonsDone = true;
 }
 
-String& amx::Page::getStyleCode()
+string& Page::getStyleCode()
 {
-	sysl->TRACE(String("Page::getStyleCode()"));
+	DECL_TRACER("Page::getStyleCode()");
 
 	if (!status || styleDone || !paletteClass)
 		return styleBuffer;
 
-	String pgName = String("Page_")+page.pageID;
-	styleBuffer = String(".")+pgName+" {\n";
-	styleBuffer += String("  left: ")+String(page.left)+"px;\n";
-	styleBuffer += String("  top: ")+String(page.top)+"px;\n";
-	styleBuffer += String("  width: ")+String(page.width)+"px;\n";
-	styleBuffer += String("  height: ")+String(page.height)+"px;\n";
+	string pgName = "Page_"+to_string(page.pageID);
+	styleBuffer = "."+pgName+" {\n";
+	styleBuffer += "  left: "+to_string(page.left)+"px;\n";
+	styleBuffer += "  top: "+to_string(page.top)+"px;\n";
+	styleBuffer += "  width: "+to_string(page.width)+"px;\n";
+	styleBuffer += "  height: "+to_string(page.height)+"px;\n";
 
 	bool hasChameleon = (!page.sr[0].mi.empty() && !page.sr[0].bm.empty() && page.sr[0].bs.empty());
-	sysl->TRACE(String("Page::getStyleCode: hasChameleon=")+hasChameleon+", mi="+page.sr[0].mi+", bm="+page.sr[0].bm+", bs="+page.sr[0].bs);
+	sysl->TRACE("Page::getStyleCode: hasChameleon="+to_string(hasChameleon)+", mi="+page.sr[0].mi+", bm="+page.sr[0].bm+", bs="+page.sr[0].bs);
 
 	if (page.sr.size() > 0 && page.sr[0].bm.length() > 0)
 	{
 		if (!hasChameleon)
 		{
-			styleBuffer += String("  background-color: ")+paletteClass->colorToString(paletteClass->getColor(page.sr[0].cf))+";\n";
-			styleBuffer += String("  background-image: url(images/")+page.sr[0].bm+");\n";
+			styleBuffer += "  background-color: "+paletteClass->colorToString(paletteClass->getColor(page.sr[0].cf))+";\n";
+			styleBuffer += "  background-image: url(images/"+page.sr[0].bm+");\n";
 		}
 /*		else
 		{
@@ -785,7 +786,7 @@ String& amx::Page::getStyleCode()
 			}
 		}
 */
-		styleBuffer += String("  color: ")+paletteClass->colorToString(paletteClass->getColor(page.sr[0].ct))+";\n";
+		styleBuffer += "  color: "+paletteClass->colorToString(paletteClass->getColor(page.sr[0].ct))+";\n";
 		styleBuffer += "  background-repeat: no-repeat;\n";
 	}
 
@@ -816,36 +817,36 @@ String& amx::Page::getStyleCode()
 
 		if (page.showEffect && page.showTime)
 		{
-			styleBuffer += String("  animation-name: ani_")+pgName+";\n";
-			styleBuffer += String("  animation-duration: ")+String((double)page.showTime / 10.0)+"s;\n";
+			styleBuffer += "  animation-name: ani_"+pgName+";\n";
+			styleBuffer += "  animation-duration: "+to_string((double)page.showTime / 10.0)+"s;\n";
 			styleBuffer += "}\n";
-			styleBuffer += String("@keyframes ani_")+pgName+" {\n";
+			styleBuffer += "@keyframes ani_"+pgName+" {\n";
 
 			switch (page.showEffect)
 			{
 				case SE_SLIDE_TOP:			// top
 				case SE_SLIDE_TOP_FADE:
-					styleBuffer += String("  from { top: -")+String(page.top)+"px; opacity: 0; }\n";
-					styleBuffer += String("  to { top: 0; opacity: 1; }\n");
+					styleBuffer += "  from { top: -"+to_string(page.top)+"px; opacity: 0; }\n";
+					styleBuffer += "  to { top: 0; opacity: 1; }\n";
 				break;
 				case SE_SLIDE_LEFT:			// left
 				case SE_SLIDE_LEFT_FADE:
-					styleBuffer += String("  from { left: -")+String(page.left)+"px; opacity: 0; }\n";
-					styleBuffer += String("  to { left: 0; opacity: 1; }\n");
+					styleBuffer += "  from { left: -"+to_string(page.left)+"px; opacity: 0; }\n";
+					styleBuffer += "  to { left: 0; opacity: 1; }\n";
 				break;
 				case SE_SLIDE_RIGHT:		// rght
 				case SE_SLIDE_RIGHT_FADE:
-					styleBuffer += String("  from { right: -")+String(page.left+page.width)+"px; opacity: 0; }\n";
-					styleBuffer += String("  to { right: 0; opacity: 1; }\n");
+					styleBuffer += "  from { right: -"+to_string(page.left+page.width)+"px; opacity: 0; }\n";
+					styleBuffer += "  to { right: 0; opacity: 1; }\n";
 				break;
 				case SE_SLIDE_BOTTOM:		// bottom
 				case SE_SLIDE_BOTTOM_FADE:
-					styleBuffer += String("  from { top: ")+String(totalHeight)+"px; opacity: 0; }\n";
-					styleBuffer += String("  to { top: ")+String(totalHeight-page.height)+"; opacity: 1; }\n";
+					styleBuffer += "  from { top: "+to_string(totalHeight)+"px; opacity: 0; }\n";
+					styleBuffer += "  to { top: "+to_string(totalHeight-page.height)+"; opacity: 1; }\n";
 				break;
 				case SE_FADE:
-					styleBuffer += String("  from { bottom: ")+String(totalHeight)+"px; opacity: 0; }\n";
-					styleBuffer += String("  to { bottom: ")+String(totalHeight-page.height)+"; opacity: 1; }\n";
+					styleBuffer += "  from { bottom: "+to_string(totalHeight)+"px; opacity: 0; }\n";
+					styleBuffer += "  to { bottom: "+to_string(totalHeight-page.height)+"; opacity: 1; }\n";
 				break;
 			}
 		}
@@ -874,9 +875,9 @@ String& amx::Page::getStyleCode()
 	return styleBuffer;
 }
 
-String& amx::Page::getWebCode()
+string& Page::getWebCode()
 {
-	sysl->TRACE(std::string("Page::getWebCode()"));
+	DECL_TRACER(std::string("Page::getWebCode()"));
 
 	if (!status || webDone)
 		return webBuffer;
@@ -886,8 +887,8 @@ String& amx::Page::getWebCode()
 	// First we scan for all buttons and create them.
 	generateButtons();
 
-	String pgName = String("Page_")+page.pageID;
-	webBuffer += String("<div id=\"")+pgName+"\" class=\""+pgName+"\">\n";
+	string pgName = "Page_"+to_string(page.pageID);
+	webBuffer += "<div id=\""+pgName+"\" class=\""+pgName+"\">\n";
 
 	for (size_t i = 0; i < btWebBuffer.size(); i++)
 		webBuffer += btWebBuffer[i];
@@ -901,7 +902,7 @@ String& amx::Page::getWebCode()
 
 void amx::Page::clear()
 {
-	sysl->TRACE(String("Page::clear()"));
+	sysl->TRACE("Page::clear()");
 
 	page.buttons.clear();
 	page.group.clear();

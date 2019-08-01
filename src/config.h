@@ -23,7 +23,8 @@
 extern "C" {
 #include <libcidr.h>
 }
-#include "strings.h"
+#include <string>
+#include <vector>
 
 class Config
 {
@@ -31,72 +32,72 @@ class Config
 		Config();
 		~Config();
 
-		strings::String getListen() { return sListen; }
+		std::string getListen() { return sListen; }
 		int getPort() { return nPort; }
-		strings::String getHTTProot() { return sHTTProot; }
-		strings::String getPidFile() { return sPidFile; }
-		strings::String getUser() { return usr; }
-		strings::String getGroup() { return grp; }
+		std::string getHTTProot() { return sHTTProot; }
+		std::string getPidFile() { return sPidFile; }
+		std::string getUser() { return usr; }
+		std::string getGroup() { return grp; }
 		bool getDebug() { return Debug; }
-		strings::String getLogFile() { return LogFile; }
-		strings::String getFontPath() { return FontPath; }
-		strings::String getWebLocation() { return web_location; }
-		strings::String getAMXPanelType() { return AMXPanelType; }
-		strings::String getAMXController() { return AMXController; }
+		std::string getLogFile() { return LogFile; }
+		std::string getFontPath() { return FontPath; }
+		std::string getWebLocation() { return web_location; }
+		std::string getAMXPanelType() { return AMXPanelType; }
+		std::string getAMXController() { return AMXController; }
 		int getAMXPort() { return AMXPort; }
 		int getAMXChannel() { return AMXChanel; }
 		std::vector<int>& getAMXChannels() { return AMXChanels; }
 		int getAMXSystem() { return AMXSystem; }
 		int getSidePort() { return sidePort; }
-		strings::String getSSHServerFile() { return sshServerFile; }
-		strings::String getSSHDHFile() { return sshDHFile; }
-		strings::String getSSHPassword() { return sshPassword; }
-		strings::String getWebSocketServer() { return webSocketServer; }
-		strings::String getHashTablePath() { return hashTablePath; }
-		std::vector<strings::String>& getHashTable(const strings::String& path);
-		bool isAllowedNet(strings::String& net);
+		std::string getSSHServerFile() { return sshServerFile; }
+		std::string getSSHDHFile() { return sshDHFile; }
+		std::string getSSHPassword() { return sshPassword; }
+		std::string getWebSocketServer() { return webSocketServer; }
+		std::string getHashTablePath() { return hashTablePath; }
+		std::vector<std::string>& getHashTable(const std::string& path);
+		bool isAllowedNet(std::string& net);
 		bool getWSStatus() { return wsStatus; }
 
-		void setHOME(const strings::String& hm) { HOME = hm.data(); }
+		void setHOME(const std::string& hm) { HOME = hm.data(); }
 
 		void Initialize() { readConfig(sFileName); }
 		bool isInitialized() { return initialized; }
 
 	protected:
 		void init();
-		void readConfig(const strings::String &file);
+		void readConfig(const std::string &file);
 
 	private:
-		void parseNets(strings::String& nets);
+		void parseNets(std::string& nets);
 
-		strings::String sListen;
+		std::string sListen;
 		int nPort;
-		strings::String sHTTProot;
+		std::string sHTTProot;
 		bool Debug;
-		strings::String LogFile;
-		strings::String FontPath;
-		strings::String web_location;
-		strings::String AMXPanelType;
-		strings::String AMXController;
+		std::string LogFile;
+		std::string FontPath;
+		std::string web_location;
+		std::string AMXPanelType;
+		std::string AMXController;
 		int AMXPort;
 		int AMXChanel;
 		std::vector<int> AMXChanels;
 		int AMXSystem;
 		int sidePort;
-		strings::String sshServerFile;
-		strings::String sshDHFile;
-		strings::String sshPassword;
-		strings::String webSocketServer;
-		strings::String hashTablePath;
-		std::vector<strings::String> hashTable;
+		std::string sshServerFile;
+		std::string sshDHFile;
+		std::string sshPassword;
+		std::string webSocketServer;
+		std::string hashTablePath;
+		std::vector<std::string> hashTable;
 		std::vector<CIDR> allowedNet;
 
 		std::ifstream fs;
-		strings::String sFileName;
+		std::string sFileName;
 		bool fflag;
-		strings::String sPidFile;
-		strings::String grp;
-		strings::String usr;
+		std::string sPidFile;
+		std::string grp;
+		std::string usr;
 		const char *HOME;
 		bool initialized;
 		bool wsStatus;

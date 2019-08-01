@@ -13,9 +13,9 @@ add_executable(amxpanel main.cpp
             nameformat.cpp
             datetime.cpp
             sunset.cpp
-            strings.cpp
-            regexp.cpp
-            syslog.cpp)
+            str.cpp
+            syslog.cpp
+            trace.cpp)
 
 add_definitions(-D_REENTRANT)
 add_definitions(-D_GNU_SOURCE)

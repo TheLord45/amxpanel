@@ -21,7 +21,7 @@
 
 #include <websocketpp/config/asio.hpp>
 #include <websocketpp/server.hpp>
-#include "strings.h"
+#include <atomic>
 
 typedef websocketpp::server<websocketpp::config::asio_tls> server;
 typedef websocketpp::server<websocketpp::config::asio> server_ws;
@@ -59,11 +59,11 @@ namespace amx
 			void regCallbackConnected(std::function<void(bool, long)> func);
 			void regCallbackRegister(std::function<void(long, int)> func);
 			void run();
-			bool send(strings::String& msg, long pan);
+			bool send(std::string& msg, long pan);
 			server& getServer() { return sock_server; }
 			server_ws& getServer_ws() { return sock_server_ws; }
 			void setConStatus(bool s, long pan);
-			strings::String getIP(int pan);
+			std::string getIP(int pan);
 
 			enum tls_mode
 			{
@@ -83,7 +83,12 @@ namespace amx
 			void tcp_post_init(websocketpp::connection_hdl hdl);
 			std::string getPassword();
 			long getPanelID(websocketpp::connection_hdl hdl);
-			strings::String cutIpAddress(strings::String& addr);
+			std::string cutIpAddress(std::string& addr);
+
+			void callCallback(std::string& msg, long pan);
+			void callCallbackStop();
+			void callCallbackConnected(bool s, long pan);
+			void callCallbackRegister(long pan, int id);
 
 			server sock_server;
 			server_ws sock_server_ws;
@@ -100,6 +105,10 @@ namespace amx
 			std::function<void(long, int)> fcallRegister;
 			REG_DATA_T __regs;
 
+			std::atomic<bool> busyCallback;
+			std::atomic<bool> busyCallbackStop;
+			std::atomic<bool> busyCallbackConnected;
+			std::atomic<bool> busyCallbackRegister;
 	};
 }
 

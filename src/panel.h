@@ -34,7 +34,7 @@ namespace amx
 			~Panel();
 
 			bool isOk() { return status; }
-			std::vector<strings::String> getPageFileNames();
+			std::vector<std::string> getPageFileNames();
 
 		protected:
 			PROJECT_T& getProject() { return Project; }
@@ -44,15 +44,15 @@ namespace amx
 
 		private:
 			void readProject();
-			void setVersionInfo(const strings::String& name, const strings::String& value);
-			void setProjectInfo(const strings::String& name, const strings::String& value, const strings::String& attr);
-			void setSupportFileList(const strings::String& name, const strings::String& value);
-			void setPanelSetup(const strings::String& name, const strings::String& value);
-			void setPageList(const strings::String& name, const strings::String& value);
-			void setResourceList(const strings::String& name, const strings::String& value, const strings::String& attr);
-			void setFwFeatureList(const strings::String& name, const strings::String& value);
-			void setPaletteList(const strings::String& name, const strings::String& value);
-			DateTime& getDate(const strings::String& dat, DateTime& dt);
+			void setVersionInfo(const std::string& name, const std::string& value);
+			void setProjectInfo(const std::string& name, const std::string& value, const std::string& attr);
+			void setSupportFileList(const std::string& name, const std::string& value);
+			void setPanelSetup(const std::string& name, const std::string& value);
+			void setPageList(const std::string& name, const std::string& value);
+			void setResourceList(const std::string& name, const std::string& value, const std::string& attr);
+			void setFwFeatureList(const std::string& name, const std::string& value);
+			void setPaletteList(const std::string& name, const std::string& value);
+			DateTime& getDate(const std::string& dat, DateTime& dt);
 
 			PROJECT_T Project;
 			Palette *pPalettes;

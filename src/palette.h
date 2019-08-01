@@ -20,7 +20,6 @@
 #define __PALETTE_H__
 
 #include <vector>
-#include "strings.h"
 #include "panelstruct.h"
 
 namespace amx
@@ -28,7 +27,7 @@ namespace amx
 	typedef struct PDATA
 	{
 		int index;
-		strings::String name;
+		std::string name;
 		unsigned long color;
 
 		void clear()
@@ -43,26 +42,26 @@ namespace amx
 	{
 		public:
 			Palette();
-			Palette(const strings::String& file);
+			Palette(const std::string& file);
 			Palette(const std::vector<PALETTE_T>& pal);
-			Palette(const std::vector<PALETTE_T>& pal, const strings::String& main);
+			Palette(const std::vector<PALETTE_T>& pal, const std::string& main);
 			~Palette();
 
-			void setPaletteFile(const strings::String& f);
+			void setPaletteFile(const std::string& f);
 			bool parsePalette();
-			bool parsePalette(const strings::String& f);
+			bool parsePalette(const std::string& f);
 			bool isOk() { return status; }
 			unsigned long getColor(size_t idx);
-			unsigned long getColor(const strings::String& name);
-			strings::String colorToString(unsigned long col);
-			strings::String colorToSArray(unsigned long col);
+			unsigned long getColor(const std::string& name);
+			std::string colorToString(unsigned long col);
+			std::string colorToSArray(unsigned long col);
 			std::vector<PDATA_T>& getPalette() { return palette; }
 			void setPalette(const std::vector<PDATA_T>& pd) { palette = pd; status = true; }
-			strings::String getJson();
+			std::string getJson();
 
 		private:
 			std::vector<PDATA_T> palette;
-			std::vector<strings::String> paletteFiles;
+			std::vector<std::string> paletteFiles;
 			bool status;
 	};
 }
