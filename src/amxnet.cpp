@@ -97,9 +97,16 @@ AMXNet::AMXNet()
 	  socket_(io_context)
 {
 	sysl->TRACE(Syslog::ENTRY, "AMXNet::AMXNet()");
-	waitCallback = false;
-	callback = 0;
-	stopped_ = false;
+	init();
+}
+
+AMXNet::AMXNet(const string& sn)
+	: deadline_(io_context),
+	  heartbeat_timer_(io_context),
+	  socket_(io_context),
+	  serNum(sn)
+{
+	sysl->TRACE(Syslog::ENTRY, "AMXNet::AMXNet(const string& sn)");
 	init();
 }
 
@@ -115,11 +122,13 @@ AMXNet::~AMXNet()
 
 void AMXNet::init()
 {
+	callback = 0;
+	stopped_ = false;
 	sendCounter = 0;
 	initSend = false;
 	ready = false;
 	write_busy = false;
-	string version = "v1.00.00";
+	string version = "v1.01.00";
 	// Initialize the devive info structure
 	DEVICE_INFO di;
 	// Answer to MC = 0x0017 --> MC = 0x0097
@@ -128,12 +137,15 @@ void AMXNet::init()
 	di.manufacturerID = 1;
 	di.deviceID = 0x0149;
 	memset(di.serialNum, 0x20, sizeof(di.serialNum));
-	memcpy(di.serialNum, "201903XTHE74201", 15);
+
+	if (!serNum.empty())
+		memcpy(di.serialNum, serNum.c_str(), serNum.length());
+
 	di.firmwareID = 0x0310;
 	memset(di.versionInfo, 0, sizeof(di.versionInfo));
-	strncpy(di.versionInfo, version.data(), version.length());
+	strncpy(di.versionInfo, version.c_str(), version.length());
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
-	strncpy(di.deviceInfo, Configuration->getAMXPanelType().data(), ((Configuration->getAMXPanelType().length() < sizeof(di.deviceInfo))?Configuration->getAMXPanelType().length():(sizeof(di.deviceInfo)-1)));
+	strncpy(di.deviceInfo, Configuration->getAMXPanelType().c_str(), ((Configuration->getAMXPanelType().length() < sizeof(di.deviceInfo))?Configuration->getAMXPanelType().length():(sizeof(di.deviceInfo)-1)));
 	memset(di.manufacturerInfo, 0, sizeof(di.manufacturerInfo));
 	strncpy(di.manufacturerInfo, "TheoSys", 7);
 	di.format = 2;
@@ -157,7 +169,7 @@ void AMXNet::init()
 #endif
 	devInfo.push_back(di);
 	memset(di.versionInfo, 0, sizeof(di.versionInfo));
-	strncpy(di.versionInfo, version.data(), version.length());
+	strncpy(di.versionInfo, version.c_str(), version.length());
 	// Root file system
 	di.objectID = 3;
 	di.firmwareID = 0x0312;
@@ -542,7 +554,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						if (comm.MC < 0x0020)
 						{
 							if (callback)
-								callCallback(comm);
+								callback(comm);
 						}
 						else
 							sendCommand(s);
@@ -579,7 +591,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						}
 
 						if (callback)
-							callCallback(comm);
+							callback(comm);
 					break;
 
 					case 0x000b:	// string value change
@@ -622,7 +634,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						}
 
 						if (callback)
-							callCallback(comm);
+							callback(comm);
 					break;
 
 					case 0x000e:	// request level value
@@ -633,7 +645,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.checksum = buff_[8];
 
 						if (callback)
-							callCallback(comm);
+							callback(comm);
 					break;
 
 					case 0x000f:	// request output channel status
@@ -644,7 +656,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.checksum = buff_[8];
 
 						if (callback)
-							callCallback(comm);
+							callback(comm);
 					break;
 
 					case 0x0010:	// request port count
@@ -727,7 +739,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.sendStatusCode.system = makeWord(buff_[4], buff_[5]);
 
 						if (callback)
-							callCallback(comm);
+							callback(comm);
 					break;
 
 					case 0x0097:	// receive device info
@@ -898,7 +910,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 				len = s.msg.length();
 
 			com.data.message_string.length = len;
-			strncpy((char *)&com.data.message_string.content[0], s.msg.data(), len);
+			strncpy((char *)&com.data.message_string.content[0], s.msg.c_str(), len);
 			com.hlen = 0x0016 - 3 + 9 + len;
 			comStack.push_back(com);
 			status = true;
@@ -909,7 +921,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.sendPortNumber.device = com.device2;
 			com.data.sendPortNumber.system = com.system;
 			com.data.sendPortNumber.pcount = s.value;
-			com.hlen = 0x0016 - 3 + sizeof(ANET_APCOUNT);
+			com.hlen = 0x0016 - 3 + 6;
 			comStack.push_back(com);
 			status = true;
 		break;
@@ -920,7 +932,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.sendOutpChannels.port = s.port;
 			com.data.sendOutpChannels.system = com.system;
 			com.data.sendOutpChannels.count = s.value;
-			com.hlen = 0x0016 - 3 + sizeof(ANET_AOUTCHAN);
+			com.hlen = 0x0016 - 3 + 8;
 			comStack.push_back(com);
 			status = true;
 		break;
@@ -932,7 +944,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.data.sendSize.system = com.system;
 			com.data.sendSize.type = 0x01;
 			com.data.sendSize.length = s.value;
-			com.hlen = 0x0016 - 3 + sizeof(ANET_ASIZE);
+			com.hlen = 0x0016 - 3 + 9;
 			comStack.push_back(com);
 			status = true;
 		break;
@@ -998,7 +1010,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 				vector<string> parts = Str::split(addr, '.');
 
 				for (size_t i = 0; i < parts.size(); i++)
-					com.data.srDeviceInfo.info[i+2] = (unsigned char)atoi(parts[i].data());
+					com.data.srDeviceInfo.info[i+2] = (unsigned char)atoi(parts[i].c_str());
 			}
 
 			com.hlen = 0x0016 - 3 + 14;
@@ -1060,6 +1072,8 @@ int AMXNet::msg97fill(ANET_COMMAND *com)
 		memcpy(com->data.srDeviceInfo.info, buf, pos);
 		com->hlen = 0x0016 - 3 + 31 + pos - 1;
 		comStack.push_back(*com);
+		sendCounter++;
+		com->count = sendCounter;
 	}
 
 	return pos;
@@ -1489,26 +1503,13 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 	return buf;
 }
 
-/*
- * This method is necessary because we're calling a callback method out of a
- * thread. This means, that we may call the same methode 2 times. But the method
- * is not reentrand! So we must make sure, the method is called one by one.
- * This is done with the atomic variable "waitCallback". As long as it is true,
- * we've to wait. At the moment it is false, we can end the wait loop and call
- * the callback method.
- */
-void AMXNet::callCallback(const ANET_COMMAND& acmd)
+void AMXNet::setSerialNum(const string& sn)
 {
-	DECL_TRACER("AMXNet::callCallback(const ANET_COMMAND& acmd)");
+	DECL_TRACER("AMXNet::setSerialNum(const string& sn)");
 
-	if (callback == 0)
-		return;
+	serNum = sn;
+	size_t len = (sn.length() > 15) ? 15 : sn.length();
 
-	while (waitCallback)
-		this_thread::sleep_for(chrono::milliseconds(50));
-
-	waitCallback = true;
-	callback(acmd);
-	waitCallback = false;
+	for (size_t i = 0; i < devInfo.size(); i++)
+		memcpy(devInfo[i].serialNum, sn.c_str(), len);
 }
-

@@ -53,6 +53,7 @@ TouchPanel::TouchPanel()
 {
 	sysl->TRACE(Syslog::ENTRY, "TouchPanel::TouchPanel()");
 	busy = false;
+	serNum = 74201;
 	regCallback(bind(&TouchPanel::webMsg, this, placeholders::_1, placeholders::_2));
 	regCallbackStop(bind(&TouchPanel::stopClient, this));
 	regCallbackConnected(bind(&TouchPanel::setWebConnect, this, placeholders::_1, placeholders::_2));
@@ -430,7 +431,7 @@ bool TouchPanel::newConnection(int id)
 
 	try
 	{
-		AMXNet *pANet = new AMXNet();
+		AMXNet *pANet = new AMXNet(getSerialNum());
 		pANet->setPanelID(id);
 		pANet->setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
 
@@ -496,7 +497,7 @@ bool TouchPanel::send(int id, string& msg)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -1666,4 +1667,15 @@ void TouchPanel::showContent(long pan)
 
 	if (!found)
 		sysl->DebugMsg("TouchPanel::showContent: Content not found!");
+}
+
+string TouchPanel::getSerialNum()
+{
+	DECL_TRACER("TouchPanel::getSerialNum()");
+
+	char hv[32];
+	snprintf(hv, sizeof(hv), "201903XTHE%ld", serNum);
+	string sn(hv);
+	serNum++;
+	return sn;
 }

@@ -79,7 +79,7 @@ namespace amx
 		uint16_t device;		// device number
 		uint16_t port;			// port number
 		uint16_t system;		// system number
-		unsigned char type;		// Definnes the type of content (0x01 = 8 bit chars, 0x02 = 16 bit chars --> wide chars)
+		unsigned char type;		// Defines the type of content (0x01 = 8 bit chars, 0x02 = 16 bit chars --> wide chars)
 		uint16_t length;		// length of following content
 	}ANET_ASIZE;
 
@@ -267,6 +267,7 @@ namespace amx
 	{
 		public:
 			AMXNet();
+			AMXNet(const std::string& sn);
 			~AMXNet();
 
 			void Run();
@@ -278,6 +279,7 @@ namespace amx
 			bool isConnected();
 			bool isStopped() { return stopped_; }
 			void setPanelID(int id) { panelID = id; }
+			void setSerialNum(const std::string& sn);
 			asio::ip::tcp::socket& getSocket() { return socket_; }
 
 		private:
@@ -321,7 +323,6 @@ namespace amx
 			int msg97fill(ANET_COMMAND *com);
 			bool isCommand(const std::string& cmd);
 			bool isRunning() { return !(stopped_ || killed); }
-			void callCallback(const ANET_COMMAND& acmd);
 
 			asio::io_context io_context;
 			asio::steady_timer deadline_;
@@ -346,8 +347,7 @@ namespace amx
 			std::vector<DEVICE_INFO> devInfo;
 			std::string oldCmd;
 			int panelID;				// Panel ID of currently legalized panel.
-
-			std::atomic<bool> waitCallback;
+			std::string serNum;
 	};
 }
 

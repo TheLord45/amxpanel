@@ -126,6 +126,8 @@ namespace amx
 			void setAMXBuffer(int id, const std::string& buf);
 			bool send(int id, std::string& msg);
 			bool replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg);
+			std::string getSerialNum();
+
 
 			void showContent(long pan);
 
@@ -140,10 +142,11 @@ namespace amx
 			std::vector<PAGE_T> pageList;
 			std::atomic<bool> busy;
 			std::string none;
+			long serNum;
 
 			AtomicVector<ANET_COMMAND> commands;		// Commands from controller
-            std::mutex mut;
-            std::condition_variable cond;
+			std::mutex mut;
+			std::condition_variable cond;
 	};
 }
 

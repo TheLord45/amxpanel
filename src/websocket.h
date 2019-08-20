@@ -85,11 +85,6 @@ namespace amx
 			long getPanelID(websocketpp::connection_hdl hdl);
 			std::string cutIpAddress(std::string& addr);
 
-			void callCallback(std::string& msg, long pan);
-			void callCallbackStop();
-			void callCallbackConnected(bool s, long pan);
-			void callCallbackRegister(long pan, int id);
-
 			server sock_server;
 			server_ws sock_server_ws;
 			websocketpp::connection_hdl server_hdl;
@@ -104,11 +99,6 @@ namespace amx
 			std::function<void(bool, long)> fcallConn;
 			std::function<void(long, int)> fcallRegister;
 			REG_DATA_T __regs;
-
-			std::atomic<bool> busyCallback;
-			std::atomic<bool> busyCallbackStop;
-			std::atomic<bool> busyCallbackConnected;
-			std::atomic<bool> busyCallbackRegister;
 	};
 }
 

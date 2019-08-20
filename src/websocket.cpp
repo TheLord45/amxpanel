@@ -41,10 +41,6 @@ WebSocket::WebSocket()
 	cbInitStop = false;
 	cbInitCon = false;
 	cbInitRegister = false;
-	busyCallback = false;
-	busyCallbackStop = false;
-	busyCallbackConnected = false;
-	busyCallbackRegister = false;
 	websocketsLock = PTHREAD_RWLOCK_INITIALIZER;
 }
 
@@ -81,7 +77,7 @@ void WebSocket::setConStatus(bool s, long pan)
 	DECL_TRACER(string("WebSocket::setConStatus(bool s, long pan) [")+((s)?"TRUE":"FALSE")+"]");
 
 	if (cbInitCon)
-		callCallbackConnected(s, pan);
+		fcallConn(s, pan);
 	else
 		sysl->warnlog("WebSocket::setConStatus: Callback function to indicate connection status was not set!");
 }
@@ -143,37 +139,32 @@ void WebSocket::run()
 	catch (websocketpp::exception const & e)
 	{
 		sysl->errlog(string("WebSocket::run: WEBSocketPP exception:")+e.what());
-//		setConStatus(false, getPanelID(server_hdl));
 		stopped = true;
 
 		if (cbInitStop)
-			callCallbackStop();
+			fcallStop();
 	}
 	catch (const exception & e)
 	{
 		sysl->errlog(string("WebSocket::run: ")+e.what());
-//		setConStatus(false, getPanelID(server_hdl));
 		stopped = true;
 
 		if (cbInitStop)
-			callCallbackStop();
+			fcallStop();
 	}
 	catch (...)
 	{
 		sysl->errlog("WebSocket::run: Other exception!");
-//		setConStatus(false, getPanelID(server_hdl));
 		stopped = true;
 
 		if (cbInitStop)
-			callCallbackStop();
+			fcallStop();
 	}
 
 	if (!stopped)
 	{
-//		setConStatus(false, getPanelID(server_hdl));
-
 		if (cbInitStop)
-			callCallbackStop();
+			fcallStop();
 	}
 }
 
@@ -293,7 +284,7 @@ void WebSocket::tcp_post_init(connection_hdl hdl)
 
 	__regs.insert(pair<websocketpp::connection_hdl, PAN_ID_T>(hdl, pid));
 	sysl->DebugMsg("WebSocket::tcp_post_init: Registering pan "+to_string(pid.ID)+" for remote "+pid.ip);
-	callCallbackRegister(pid.ID, 0);
+	fcallRegister(pid.ID, 0);
 }
 
 void WebSocket::on_http(server* s, connection_hdl hdl)
@@ -378,7 +369,7 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 		reg.ID = random();
 		__regs.insert(pair<connection_hdl, PAN_ID_T>(hdl, reg));
 		sysl->DebugMsg("WebSocket::on_message: Registering id "+to_string(id)+" for pan "+to_string(reg.ID));
-		callCallbackRegister(reg.ID, id);
+		fcallRegister(reg.ID, id);
 		pan = reg.ID;
 	}
 	else if (validKey && id >= 10000 && id <= 11000 && key->second.channel == 0)
@@ -393,7 +384,7 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 	if (send.find("PANEL:") != string::npos)
 		return;
 
-	callCallback(send, pan);
+	fcall(send, pan);
 }
 
 void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
@@ -446,7 +437,7 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 		reg.ID = random();
 		__regs.insert(pair<connection_hdl, PAN_ID_T>(hdl, reg));
 		sysl->DebugMsg("WebSocket::on_message_ws: Registering id "+to_string(id)+" for pan "+to_string(reg.ID));
-		callCallbackRegister(reg.ID, id);
+		fcallRegister(reg.ID, id);
 		pan = reg.ID;
 	}
 	else if (validKey && id >= 10000 && id <= 11000 && key->second.channel == 0)
@@ -461,7 +452,7 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 	if (send.find("PANEL:") != string::npos)
 		return;
 
-	callCallback(send, pan);
+	fcall(send, pan);
 }
 
 void WebSocket::on_fail(server* s, connection_hdl hdl)
@@ -472,7 +463,7 @@ void WebSocket::on_fail(server* s, connection_hdl hdl)
 	sysl->errlog(string("WebSocket::on_fail: Fail handler: ")+con->get_ec().message());
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
-	callCallbackRegister(pan, -1);
+	fcallRegister(pan, -1);
 	REG_DATA_T::iterator key = __regs.find(hdl);
 
 	if (key != __regs.end())
@@ -496,7 +487,7 @@ void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
 	sysl->errlog(string("WebSocket::on_fail_ws: Fail handler: ")+con->get_ec().message());
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
-	callCallbackRegister(pan, -1);
+	fcallRegister(pan, -1);
 	REG_DATA_T::iterator key = __regs.find(hdl);
 
 	if (key != __regs.end())
@@ -518,7 +509,7 @@ void WebSocket::on_close(connection_hdl hdl)
 	server_hdl = hdl;
 	long pan = getPanelID(hdl);
 	setConStatus(false, pan);
-	callCallbackRegister(pan, -1);
+	fcallRegister(pan, -1);
 	REG_DATA_T::iterator key = __regs.find(hdl);
 
 	if (key != __regs.end())
@@ -657,42 +648,3 @@ string WebSocket::cutIpAddress(string& addr)
 	return ip;
 }
 
-void WebSocket::callCallback(string& msg, long pan)
-{
-	while (busyCallback)
-		this_thread::sleep_for(chrono::milliseconds(50));
-
-	busyCallback = true;
-	fcall(msg, pan);
-	busyCallback = false;
-}
-
-void WebSocket::callCallbackStop()
-{
-	while (busyCallbackStop)
-		this_thread::sleep_for(chrono::milliseconds(50));
-
-	busyCallbackStop = true;
-	fcallStop();
-	busyCallbackStop = false;
-}
-
-void WebSocket::callCallbackConnected(bool s, long pan)
-{
-	while (busyCallbackConnected)
-		this_thread::sleep_for(chrono::milliseconds(50));
-
-	busyCallbackConnected = true;
-	fcallConn(s, pan);
-	busyCallbackConnected = false;
-}
-
-void WebSocket::callCallbackRegister(long pan, int id)
-{
-	while (busyCallbackRegister)
-		this_thread::sleep_for(chrono::milliseconds(50));
-
-	busyCallbackRegister = true;
-	fcallRegister(pan, id);
-	busyCallbackRegister = false;
-}
