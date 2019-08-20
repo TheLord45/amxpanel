@@ -497,7 +497,7 @@ bool TouchPanel::send(int id, string& msg)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse übergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -927,6 +927,7 @@ void TouchPanel::readPages()
 				pop.styles = p.getStyleCode();
 				pop.webcode = p.getWebCode();
 				pop.active = false;
+				pop.modal = p.getModal();
 				scrBuffer += p.getScriptCode();
 				scrStart += p.getScriptStart();
 
@@ -1540,7 +1541,7 @@ void TouchPanel::writePopups (fstream& pgFile)
 		if (!first)
 			pgFile << ",";
 
-		pgFile << "\n\t\t{\"name\":\"" << stPopups[i].name << "\",\"ID\":" << stPopups[i].ID << ",\"group\":\"" << stPopups[i].group << "\",\"active\":false,\"lnpage\":\"\"}";
+		pgFile << "\n\t\t{\"name\":\"" << stPopups[i].name << "\",\"ID\":" << stPopups[i].ID << ",\"group\":\"" << stPopups[i].group << "\",\"active\":false,\"lnpage\":\"\",\"modality\":" << ((stPopups[i].modal) ? "true" : "false") << "}";
 		first = false;
 	}
 

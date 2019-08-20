@@ -56,13 +56,14 @@ namespace amx
 	typedef struct ST_POPUP
 	{
 		int ID;						// ID of popup
-		std::string name;		// Name of page
-		std::string file;		// File name of page
+		std::string name;			// Name of page
+		std::string file;			// File name of page
 		bool active;				// true = visible
-		std::string group;		// Group name
+		bool modal;					// true = popup is modal
+		std::string group;			// Group name
 		std::vector<int> onPages;	// Linked to page ID
-		std::string styles;		// The needed styles
-		std::string webcode;	// The webcode
+		std::string styles;			// The needed styles
+		std::string webcode;		// The webcode
 	}ST_POPUP;
 
 	typedef struct REGISTRATION_T

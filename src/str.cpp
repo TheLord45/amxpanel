@@ -97,11 +97,11 @@ int Str::caseCompare(const string& str)
 {
 	size_t i = 0;
 
+	if (str.length() != mStr.length())
+		return ((mStr.length() < str.length()) ? -1 : 1);
+
 	for (const_iterator it = mStr.begin(); it != mStr.end(); ++it)
 	{
-		if (i >= str.size())
-			return -1;
-
 		if (tolower(*it) != tolower(str.at(i)))
 			return (int)(*it - str.at(i));
 

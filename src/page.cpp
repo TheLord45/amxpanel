@@ -144,22 +144,22 @@ bool amx::Page::parsePage()
 				continue;
 			}
 
-			if (name.compare("#text") == 0)
+			if (name.get().compare("#text") == 0)
 				name.set(lastName);
 
 			if (reader.has_attributes())
 			{
 				for (int i = 0; i < reader.get_attribute_count(); i++)
-					sysl->TRACE("Page::parsePage: name="+name.get()+", depth="+to_string(reader.get_depth())+", attr="+reader.get_attribute(i));
+					sysl->TRACE("Page::parsePage: name="+name.get()+", depth="+to_string(reader.get_depth())+", attr="+reader.get_attribute(i).raw());
 			}
 			else if (reader.has_value())
-				sysl->TRACE("Page::parsePage: name="+name.get()+", depth="+to_string(reader.get_depth())+", value="+reader.get_value());
+				sysl->TRACE("Page::parsePage: name="+name.get()+", depth="+to_string(reader.get_depth())+", value="+reader.get_value().raw());
 			else
 				sysl->TRACE("Page::parsePage: name="+name.get()+", depth="+to_string(reader.get_depth()));
 
 			if (name.caseCompare("page") == 0 && reader.has_attributes())
 			{
-				Str attr(reader.get_attribute(0));
+				Str attr(reader.get_attribute(0).raw());
 
 				if (attr.caseCompare("page") == 0)
 					page.type = PAGE;
@@ -173,7 +173,7 @@ bool amx::Page::parsePage()
 			else if (name.caseCompare("pageID") == 0 && reader.has_value())
 				page.pageID = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("name") == 0 && reader.has_value())
-				page.name = reader.get_value();
+				page.name = reader.get_value().raw();
 			else if (name.caseCompare("left") == 0 && reader.has_value())
 				page.left = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("top") == 0 && reader.has_value())
@@ -183,7 +183,9 @@ bool amx::Page::parsePage()
 			else if (name.caseCompare("height") == 0 && reader.has_value())
 				page.height = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("group") == 0 && reader.has_value())
-				page.group = reader.get_value();
+				page.group = reader.get_value().raw();
+			else if (name.caseCompare("modal") == 0 && reader.has_value())
+				page.modal = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("showEffect") == 0 && reader.has_value())
 				page.showEffect = (SHOWEFFECT)atoi(reader.get_value().c_str());
 			else if (name.caseCompare("showTime") == 0 && reader.has_value())
@@ -196,7 +198,7 @@ bool amx::Page::parsePage()
 			{
 				BUTTON_T button;
 				button.clear();
-				Str attr(reader.get_attribute(0));
+				Str attr(reader.get_attribute(0).raw());
 
 				if (attr.caseCompare("general") == 0)
 					button.type = GENERAL;
@@ -230,7 +232,7 @@ bool amx::Page::parsePage()
 				if (name.caseCompare("bi") == 0 && reader.has_value())
 					page.buttons.back().bi = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("na") == 0 && reader.has_value())
-					page.buttons.back().na = reader.get_value();
+					page.buttons.back().na = reader.get_value().raw();
 				else if (name.caseCompare("lt") == 0 && reader.has_value())
 					page.buttons.back().lt = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("tp") == 0 && reader.has_value())
@@ -242,13 +244,13 @@ bool amx::Page::parsePage()
 				else if (name.caseCompare("zo") == 0 && reader.has_value())
 					page.buttons.back().zo = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("hs") == 0 && reader.has_value())
-					page.buttons.back().hs = reader.get_value();
+					page.buttons.back().hs = reader.get_value().raw();
 				else if (name.caseCompare("bs") == 0 && reader.has_value())
-					page.buttons.back().bs = reader.get_value();
+					page.buttons.back().bs = reader.get_value().raw();
 				else if (name.caseCompare("fb") == 0 && reader.has_value())
 				{
-					Str value(reader.get_value());
-					value = Str::trim(value);
+					Str value(reader.get_value().raw());
+					value.trim();
 
 					if (value.caseCompare("channel") == 0)
 						page.buttons.back().fb = FB_CHANNEL;
@@ -296,7 +298,7 @@ bool amx::Page::parsePage()
 				else if (name.caseCompare("rh") == 0 && reader.has_value())
 					page.buttons.back().rh = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("op") == 0 && reader.has_value())
-					page.buttons.back().op = reader.get_value();
+					page.buttons.back().op = reader.get_value().raw();
 				else if (name.caseCompare("stateCount") == 0 && reader.has_value())
 					page.buttons.back().stateCount = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("dr") == 0 && reader.has_value())
@@ -334,12 +336,12 @@ bool amx::Page::parsePage()
 			if (reader.get_depth() == 5 && inButton)
 			{
 				if (name.caseCompare("do") == 0 && reader.has_value())
-					page.buttons.back().sr.back()._do = reader.get_value();
+					page.buttons.back().sr.back()._do = reader.get_value().raw();
 				else if (name.caseCompare("bs") == 0 && reader.has_value())
-					page.buttons.back().sr.back().bs = reader.get_value();
+					page.buttons.back().sr.back().bs = reader.get_value().raw();
 				else if (name.caseCompare("mi") == 0 && reader.has_value())
 				{
-					string mi = reader.get_value();
+					string mi = reader.get_value().raw();
 					page.buttons.back().sr.back().mi = mi;
 
 					if (!mi.empty())
@@ -364,16 +366,16 @@ bool amx::Page::parsePage()
 					}
 				}
 				else if (name.caseCompare("cb") == 0 && reader.has_value())
-					page.buttons.back().sr.back().cb = reader.get_value();
+					page.buttons.back().sr.back().cb = reader.get_value().raw();
 				else if (name.caseCompare("cf") == 0 && reader.has_value())
-					page.buttons.back().sr.back().cf = reader.get_value();
+					page.buttons.back().sr.back().cf = reader.get_value().raw();
 				else if (name.caseCompare("ct") == 0 && reader.has_value())
-					page.buttons.back().sr.back().ct = reader.get_value();
+					page.buttons.back().sr.back().ct = reader.get_value().raw();
 				else if (name.caseCompare("ec") == 0 && reader.has_value())
-					page.buttons.back().sr.back().ec = reader.get_value();
+					page.buttons.back().sr.back().ec = reader.get_value().raw();
 				else if (name.caseCompare("bm") == 0 && reader.has_value())
 				{
-					string bm = reader.get_value();
+					string bm = reader.get_value().raw();
 					page.buttons.back().sr.back().bm = bm;
 
 					if (reader.has_attributes())
@@ -426,7 +428,7 @@ bool amx::Page::parsePage()
 				else if (name.caseCompare("fi") == 0 && reader.has_value())
 					page.buttons.back().sr.back().fi = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("te") == 0 && reader.has_value())
-					page.buttons.back().sr.back().te = reader.get_value();
+					page.buttons.back().sr.back().te = reader.get_value().raw();
 				else if (name.caseCompare("et") == 0 && reader.has_value())
 					page.buttons.back().sr.back().et = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("ww") == 0 && reader.has_value())
@@ -446,18 +448,18 @@ bool amx::Page::parsePage()
 			if (reader.get_depth() == 4 && !inButton)
 			{
 				if (name.caseCompare("bs") == 0 && reader.has_value())
-					page.sr.back().bs = reader.get_value();
+					page.sr.back().bs = reader.get_value().raw();
 				else if (name.caseCompare("cb") == 0 && reader.has_value())
-					page.sr.back().cb = reader.get_value();
+					page.sr.back().cb = reader.get_value().raw();
 				else if (name.caseCompare("cf") == 0 && reader.has_value())
-					page.sr.back().cf = reader.get_value();
+					page.sr.back().cf = reader.get_value().raw();
 				else if (name.caseCompare("ct") == 0 && reader.has_value())
-					page.sr.back().ct = reader.get_value();
+					page.sr.back().ct = reader.get_value().raw();
 				else if (name.caseCompare("ec") == 0 && reader.has_value())
-					page.sr.back().ec = reader.get_value();
+					page.sr.back().ec = reader.get_value().raw();
 				else if (name.caseCompare("mi") == 0 && reader.has_value())
                 {
-					string mi = reader.get_value();
+					string mi = reader.get_value().raw();
 					page.sr.back().mi = mi;
 
 					if (!mi.empty())
@@ -483,7 +485,7 @@ bool amx::Page::parsePage()
                 }
 				else if (name.caseCompare("bm") == 0 && reader.has_value())
 				{
-					string bm = reader.get_value();
+					string bm = reader.get_value().raw();
 					page.sr.back().bm = bm;
 
 					if (reader.has_attributes())
@@ -533,7 +535,7 @@ bool amx::Page::parsePage()
 					page.sr.back().fi = atoi(reader.get_value().c_str());
 			}
 
-			lastName = name;
+			lastName = name.get();
 			oldDepth = depth;
 		}
 
@@ -590,7 +592,7 @@ void Page::serializeToFile()
 	pgFile << "var structPage" << page.pageID << " = {" << std::endl;
 	pgFile << "\t\"name\":\"" << page.name << "\",\"ID\":" << page.pageID << ",\"type\":" << page.type << "," << std::endl;
 	pgFile << "\t\"left\":" << page.left << ",\"top\":" << page.top << ",\"width\":" << page.width << ",\"height\":" << page.height << "," << std::endl;
-	pgFile << "\t\"group\":\"" << page.group << "\",\"showEffect\":" << page.showEffect << ",\"showTime\":" << page.showTime << "," << std::endl;
+	pgFile << "\t\"group\":\"" << page.group << "\",\"modal\":" << page.modal << ",\"showEffect\":" << page.showEffect << ",\"showTime\":" << page.showTime << "," << std::endl;
 	pgFile << "\t\"hideEffect\":" << page.hideEffect << ",\"hideTime\":" << page.hideTime << ",\"buttons\":[";
 
 	for (size_t i = 0; i < page.buttons.size(); i++)
@@ -918,6 +920,7 @@ void amx::Page::clear()
 	page.top = 0;
 	page.type = PNONE;
 	page.width = 0;
+	page.modal = 0;
 	status = false;
 }
 

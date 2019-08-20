@@ -234,32 +234,32 @@ namespace amx
 	typedef struct SR
 	{
 		int number;
-		std::string _do;	// Order on how to show a multistate bargraph (010203...)
-		std::string bs;     // Frame type (circle, ...)
-		std::string mi;     // Chameleon image
-		int mi_width;           // Width of image
-		int mi_height;          // Height of image
-		std::string cb;     // Border color
-		std::string cf;     // Fill color
-		std::string ct;     // Text Color
-		std::string ec;     // Text effect color
-		std::string bm;     // bitmap file name
-		int bm_width;           // Width of image
-		int bm_height;          // Height of image
+		std::string _do;		// Order on how to show a multistate bargraph (010203...)
+		std::string bs;			// Frame type (circle, ...)
+		std::string mi;			// Chameleon image
+		int mi_width;			// Width of image
+		int mi_height;			// Height of image
+		std::string cb;			// Border color
+		std::string cf;			// Fill color
+		std::string ct;			// Text Color
+		std::string ec;			// Text effect color
+		std::string bm;			// bitmap file name
+		int bm_width;			// Width of image
+		int bm_height;			// Height of image
 		bool dynamic;			// TRUE = moving image
 		int sb;					// Index to external graphics download
 		int ii;					// Icon index number
 		int ji;					// Icon style / position like "jt"
 		int jb;
-		int ix;                 // bitmap X position
-		int iy;                 // bitmap Y position
-		int fi;                 // Font index?
-		std::string te;     // Text
+		int ix;					// bitmap X position
+		int iy;					// bitmap Y position
+		int fi;					// Font index?
+		std::string te;			// Text
 		TEXT_ORIENTATION jt;	// Text orientation
-		int tx;                 // Text X position
-		int ty;                 // Text Y position
-		int ww;                 // line break when 1
-		int et;
+		int tx;					// Text X position
+		int ty;					// Text Y position
+		int ww;					// line break when 1
+		int et;					// Text effect (^TEF)
 		int oo;					// Over all opacity
 
 		void clear()
@@ -411,23 +411,24 @@ namespace amx
 		SE_SLIDE_BOTTOM_FADE
 	};
 
-    typedef struct PAGE
-    {
-        PAGETYPE type;
-        int pageID;
-        std::string name;
-        int left;
-        int top;
-        int width;
-        int height;
-        std::string group;
-        SHOWEFFECT showEffect;
-        int showTime;
-        SHOWEFFECT hideEffect;
-        int hideTime;
-        std::vector<BUTTON_T> buttons;
-        std::vector<SR_T> sr;
-    }PAGE_T;
+	typedef struct PAGE
+	{
+		PAGETYPE type;
+		int pageID;
+		std::string name;
+		int left;
+		int top;
+		int width;
+		int height;
+		int modal;							// 0 = Popup/Page = non modal
+		std::string group;
+		SHOWEFFECT showEffect;
+		int showTime;
+		SHOWEFFECT hideEffect;
+		int hideTime;
+		std::vector<BUTTON_T> buttons;
+		std::vector<SR_T> sr;
+	}PAGE_T;
 
     typedef struct MAP
     {

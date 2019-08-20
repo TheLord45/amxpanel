@@ -43,6 +43,7 @@ namespace amx
 			std::string& getPageName() { return page.name; }
 			PAGETYPE getType() { return page.type; }
 			std::string& getGroupName() { return page.group; }
+			bool getModal() { return (page.modal == 0) ? false : true; }
 			std::string& getScriptCode() { return scriptCode; }
 			std::string& getScriptStart() { return scrStart; }
 			std::string& getBtArray() { return btArray; }

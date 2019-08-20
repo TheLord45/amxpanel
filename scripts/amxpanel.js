@@ -39,44 +39,44 @@ var cmdArray = {
         { "cmd": "@WLD-", "call": unsupported },
         { "cmd": "@AFP-", "call": doAFP },
         { "cmd": "@GCE-", "call": unsupported },
-        { "cmd": "@APG-", "call": doAPG }, // Add a popup to a popup group
-        { "cmd": "@CPG-", "call": doCPG }, // Clear all popups from a group
-        { "cmd": "@DPG-", "call": doDPG }, // Delete a specific popup page from specified popup group if it exists.
-        { "cmd": "@PDR-", "call": unsupported },
-        { "cmd": "@PHE-", "call": unsupported },
-        { "cmd": "@PHP-", "call": unsupported },
-        { "cmd": "@PHT-", "call": unsupported },
-        { "cmd": "@PPA-", "call": unsupported },
-        { "cmd": "@PPF-", "call": doPPF }, // Popup off
-        { "cmd": "@PPG-", "call": doPPG }, // Toggle a popup
-        { "cmd": "@PPK-", "call": doPPK }, // Close popup on all pages
-        { "cmd": "@PPM-", "call": unsupported },
-        { "cmd": "@PPN-", "call": doPPN }, // Popup on
+        { "cmd": "@APG-", "call": doAPG },	// Add a popup to a popup group
+        { "cmd": "@CPG-", "call": doCPG },	// Clear all popups from a group
+        { "cmd": "@DPG-", "call": doDPG },	// Delete a specific popup page from specified popup group if it exists.
+        { "cmd": "@PDR-", "call": unsupported },	// Set the popup location reset flag
+        { "cmd": "@PHE-", "call": unsupported },	// Set the hide effect for the specified popup page to the named hide effect.
+        { "cmd": "@PHP-", "call": unsupported },	// Set the hide effect position.
+        { "cmd": "@PHT-", "call": unsupported },	// Set the hide effect time for the specified popup page.
+        { "cmd": "@PPA-", "call": doPPA },	// Close all popups on a specified page.
+        { "cmd": "@PPF-", "call": doPPF },	// Popup off
+        { "cmd": "@PPG-", "call": doPPG }, 	// Toggle a popup
+        { "cmd": "@PPK-", "call": doPPK },	// Close popup on all pages
+        { "cmd": "@PPM-", "call": unsupported },	// Set the modality of a specific popup page to Modal or NonModal.
+        { "cmd": "@PPN-", "call": doPPN },	// Popup on
         { "cmd": "@PPT-", "call": unsupported },
-        { "cmd": "@PPX", "call": doPPX }, // close all popups on all pages
+        { "cmd": "@PPX", "call": doPPX },	// close all popups on all pages
         { "cmd": "@PSE-", "call": unsupported },
         { "cmd": "@PSP-", "call": unsupported },
         { "cmd": "@PST-", "call": unsupported },
-        { "cmd": "PAGE-", "call": doPAGE }, // Flip to page
-        { "cmd": "PPOF-", "call": doPPF }, // Popup off
+        { "cmd": "PAGE-", "call": doPAGE },	// Flip to page
+        { "cmd": "PPOF-", "call": doPPF },	// Popup off
         { "cmd": "PPOG-", "call": unsupported },
-        { "cmd": "PPON-", "call": doPPN }, // Popup on
-        { "cmd": "^ANI-", "call": doANI }, // Run a button animation
-        { "cmd": "^APF-", "call": doAPF }, // Add page flip action to button
-        { "cmd": "^BAT-", "call": doBAT }, // Append non-unicode text.
-        { "cmd": "^BAU-", "call": doBAU }, // Append unicode text
-        { "cmd": "^BCB-", "call": doBCB }, // Set the border color to the specified color.
-        { "cmd": "^BCF-", "call": doBCF }, // Set the fill color to the specified color.
-        { "cmd": "^BCT-", "call": doBCT }, // Set the text color to the specified color.
-        { "cmd": "^BDO-", "call": unsupported }, // Set the button draw order.
-        { "cmd": "^BFB-", "call": doBFB }, // Set the feedback type of the button.
-        { "cmd": "^BIM-", "call": unsupported }, // Set the input mask for the specified address.
-        { "cmd": "^BLN-", "call": unsupported }, // Set the number of lines removed equally from the top and bottom of a composite video signal. --> will never be implemented!
-        { "cmd": "^BMC-", "call": unsupported }, // Button copy command.
-        { "cmd": "^BMF-", "call": doBMF }, // Set any/all button parameters by sending embedded codes and data.
-        { "cmd": "^BMI-", "call": doBMI }, // Set the button mask image.
-        { "cmd": "^BML-", "call": unsupported }, // Set the maximum length of the text area button.
-        { "cmd": "^BMP-", "call": doBMP }, // Assign a picture to those buttons with a defined addressrange.
+        { "cmd": "PPON-", "call": doPPN },	// Popup on
+        { "cmd": "^ANI-", "call": doANI },	// Run a button animation
+        { "cmd": "^APF-", "call": doAPF },	// Add page flip action to button
+        { "cmd": "^BAT-", "call": doBAT },	// Append non-unicode text.
+        { "cmd": "^BAU-", "call": doBAU },	// Append unicode text
+        { "cmd": "^BCB-", "call": doBCB },	// Set the border color to the specified color.
+        { "cmd": "^BCF-", "call": doBCF },	// Set the fill color to the specified color.
+        { "cmd": "^BCT-", "call": doBCT },	// Set the text color to the specified color.
+        { "cmd": "^BDO-", "call": unsupported },	// Set the button draw order.
+        { "cmd": "^BFB-", "call": doBFB },	// Set the feedback type of the button.
+        { "cmd": "^BIM-", "call": unsupported },	// Set the input mask for the specified address.
+        { "cmd": "^BLN-", "call": unsupported },	// Set the number of lines removed equally from the top and bottom of a composite video signal. --> will never be implemented!
+        { "cmd": "^BMC-", "call": unsupported },	// Button copy command.
+        { "cmd": "^BMF-", "call": doBMF },	// Set any/all button parameters by sending embedded codes and data.
+        { "cmd": "^BMI-", "call": doBMI },	// Set the button mask image.
+        { "cmd": "^BML-", "call": unsupported },	// Set the maximum length of the text area button.
+        { "cmd": "^BMP-", "call": doBMP },	// Assign a picture to those buttons with a defined addressrange.
         { "cmd": "^BNC-", "call": unsupported },
         { "cmd": "^BNN-", "call": unsupported },
         { "cmd": "^BNT-", "call": unsupported },
@@ -1042,16 +1042,12 @@ function hidePopupOnPage(name, pg)
 
 function hidePopup(name)
 {
-    var pname;
-    var pID;
-    var idx;
-
-    pID = findPopupNumber(name);
-    pname = "Page_" + pID;
+    var pID = findPopupNumber(name);
+    var pname = "Page_" + pID;
 
     try
     {
-        idx = getPopupIndex(name);
+        var idx = getPopupIndex(name);
 
         if (idx >= 0)
         {
@@ -1771,6 +1767,22 @@ function doAPF(msg)
             // FIXME: There are more commands!
         }
     }
+}
+
+/*
+ * Close all popups on a specified page.
+ */
+function doPPA(msg)
+{
+	var pname = getField(msg, 0, ',');
+
+	for (var i in Popup.pages)
+	{
+		var pop = Popup.pages[i];
+
+		if (pop.active == true && pop.lnpage == pname)
+			hidePopup(pop.name);
+	}
 }
 /*
  * Delete a specific popup page from specified popup group if it exists.

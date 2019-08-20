@@ -114,7 +114,7 @@ void amx::Panel::readProject()
 
 		while(reader.read())
 		{
-			name = reader.get_name();
+			name = reader.get_name().raw();
 
 			if (name.compare("#text") == 0)
 				name = lastName;
@@ -130,7 +130,7 @@ void amx::Panel::readProject()
 				Part = ePageList;
 
 				if (reader.has_attributes())
-					attr = reader.get_attribute(0);
+					attr = reader.get_attribute(0).raw();
 				else
 					attr.clear();
 
@@ -159,7 +159,7 @@ void amx::Panel::readProject()
 				Part = eResourceList;
 
 				if (reader.has_attributes())
-					attr = reader.get_attribute(0);
+					attr = reader.get_attribute(0).raw();
 				else
 					attr.clear();
 
@@ -204,13 +204,13 @@ void amx::Panel::readProject()
 
 				if (reader.has_value())
 				{
-					string val = reader.get_value();
+					string val = reader.get_value().raw();
 					value = Str::trim(val);
 				}
 
 				if (reader.has_attributes())
 				{
-					string att = reader.get_attribute(0);
+					string att = reader.get_attribute(0).raw();
 					attr = Str::trim(att);
 				}
 
