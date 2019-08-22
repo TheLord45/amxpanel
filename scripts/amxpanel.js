@@ -43,23 +43,23 @@ var cmdArray = {
         { "cmd": "@CPG-", "call": doCPG },	// Clear all popups from a group
         { "cmd": "@DPG-", "call": doDPG },	// Delete a specific popup page from specified popup group if it exists.
         { "cmd": "@PDR-", "call": unsupported },	// Set the popup location reset flag
-        { "cmd": "@PHE-", "call": unsupported },	// Set the hide effect for the specified popup page to the named hide effect.
+        { "cmd": "@PHE-", "call": doPHE },	// Set the hide effect for the specified popup page to the named hide effect.
         { "cmd": "@PHP-", "call": unsupported },	// Set the hide effect position.
-        { "cmd": "@PHT-", "call": unsupported },	// Set the hide effect time for the specified popup page.
+        { "cmd": "@PHT-", "call": doPHT },	// Set the hide effect time for the specified popup page.
         { "cmd": "@PPA-", "call": doPPA },	// Close all popups on a specified page.
         { "cmd": "@PPF-", "call": doPPF },	// Popup off
         { "cmd": "@PPG-", "call": doPPG }, 	// Toggle a popup
         { "cmd": "@PPK-", "call": doPPK },	// Close popup on all pages
-        { "cmd": "@PPM-", "call": unsupported },	// Set the modality of a specific popup page to Modal or NonModal.
+        { "cmd": "@PPM-", "call": doPPM },	// Set the modality of a specific popup page to Modal or NonModal.
         { "cmd": "@PPN-", "call": doPPN },	// Popup on
-        { "cmd": "@PPT-", "call": unsupported },
-        { "cmd": "@PPX", "call": doPPX },	// close all popups on all pages
-        { "cmd": "@PSE-", "call": unsupported },
-        { "cmd": "@PSP-", "call": unsupported },
-        { "cmd": "@PST-", "call": unsupported },
+        { "cmd": "@PPT-", "call": doPPT },	// Set a specific popup page to timeout within a specified time.
+        { "cmd": "@PPX",  "call": doPPX },	// close all popups on all pages
+        { "cmd": "@PSE-", "call": doPSE },	// Set the show effect for the specified popup page to the named show effect.
+        { "cmd": "@PSP-", "call": unsupported },	// Set the show effect position.
+        { "cmd": "@PST-", "call": doPST },	// Set the show effect time for the specified popup page.
         { "cmd": "PAGE-", "call": doPAGE },	// Flip to page
         { "cmd": "PPOF-", "call": doPPF },	// Popup off
-        { "cmd": "PPOG-", "call": unsupported },
+        { "cmd": "PPOG-", "call": unsupported },	// Toggle a specific popup page on either a specified page or the current page.
         { "cmd": "PPON-", "call": doPPN },	// Popup on
         { "cmd": "^ANI-", "call": doANI },	// Run a button animation
         { "cmd": "^APF-", "call": doAPF },	// Add page flip action to button
@@ -1619,15 +1619,12 @@ function doPPF(msg)
  */
 function doPPG(msg)
 {
-    var pos;
-    var name;
-
-    pos = msg.indexOf(";"); // Do we have a page name?
+    var pos = msg.indexOf(";"); // Do we have a page name?
     // FIXME: Page names are not supported currently!
     if (pos < 0)
         pos = msg.length;
 
-    name = msg.substr(5, pos); // Extract the popup name
+    var name = msg.substr(5, pos); // Extract the popup name
 
     if (getPopupStatus(name)) // Is popup visible?
         hidePopup(name);
@@ -1639,16 +1636,65 @@ function doPPG(msg)
  */
 function doPPK(msg)
 {
-    var name;
-    var group;
-
-    name = msg.substr(5); // Extract the popup name
-    group = findPageGroup(name);
+    var name = msg.substr(5); // Extract the popup name
+    var group = findPageGroup(name);
 
     if (group.length > 0)
         hideGroup(group);
     else
         hidePopup(name);
+}
+/*
+ * Set the modality of a specific popup page to Modal or NonModal.
+ */
+function doPPM(msg)
+{
+	var pname = getField(msg, 0, ';');
+	var mode = getField(msg, 1, ';');
+
+	for (var i in Popups.pages)
+	{
+		var pop = Popups.pages[i];
+
+		if (pop.name == pname)
+		{
+			if (mode == 0)
+				pop.modality = false;
+			else
+				pop.modality = true;
+
+			break;
+		}
+	}
+}
+/*
+ * Set a specific popup page to timeout within a specified time.
+ */
+function doPPT(msg)
+{
+	var pname = getField(msg, 0, ';');
+	var tm = getField(msg, 1, ';');
+
+	var pnum = findPopupNumber(pname);
+
+	if (pnum == -1)
+		return;
+
+	var name = "Page_"+pnum;
+
+	try
+	{
+		document.getElementById(name);		// Make sure, the popup is visible
+		window.setTimeout(tmPPT.bind(null, pname), tm * 100);
+	}
+	catch (e)
+	{
+		errlog("doPPT: Error: "+e);
+	}
+}
+function tmPPT(name)
+{
+	hidePopup(name);
 }
 /*
  * Close all popups on all pages.
@@ -1661,13 +1707,61 @@ function doPPX(msg)
     }
 }
 /*
+ * Set the show effect for the specified popup page to the named show effect.
+ */
+function doPSE(msg)
+{
+	var pname = getField(msg, 0, ';');
+	var hname = getField(msg, 1, ';');
+
+	var pnum = findPopupNumber(pname);
+
+	if (pnum == -1)
+		return;
+
+	var pgKey = getPage(pnum);
+
+	if (hname.toLowerCase() == "fade")
+		pgKey.showEffect = 1;
+	else if (hname.toLowerCase() == "slide from left")
+		pgKey.showEffect = 2;
+	else if (hname.toLowerCase() == "slide from right")
+		pgKey.showEffect = 3;
+	else if (hname.toLowerCase() == "slide from top")
+		pgKey.showEffect = 4;
+	else if (hname.toLowerCase() == "slide from bottom")
+		pgKey.showEffect = 5;
+	else if (hname.toLowerCase() == "slide from left fade")
+		pgKey.showEffect = 6;
+	else if (hname.toLowerCase() == "slide from right fade")
+		pgKey.showEffect = 7;
+	else if (hname.toLowerCase() == "slide from top fade")
+		pgKey.showEffect = 8;
+	else if (hname.toLowerCase() == "slide from bottom fade")
+		pgKey.showEffect = 9;
+}
+/*
+ * Set the show effect time for the specified popup page.
+ */
+function doPST(msg)
+{
+	var pname = getField(msg, 0, ';');
+	var htime = getField(msg, 1, ';');
+
+	var pnum = findPopupNumber(pname);
+
+	if (pnum == -1)
+		return;
+
+	var pgKey = getPage(pnum);
+	pgKey.showTime = htime;
+}
+/*
  * Flip to a specified page.
  */
 function doPAGE(msg)
 {
-    var name;
-
-    name = msg.substr(5);
+    var name = msg.substr(5);
     showPage(name);
 }
 /*
@@ -1821,6 +1915,56 @@ function doDPG(msg)
         }
     }
 
+}
+/*
+ * Set the hide effect for the specified popup page to the named hide effect.
+ */
+function doPHE(msg)
+{
+	var pname = getField(msg, 0, ';');
+	var hname = getField(msg, 1, ';');
+
+	var pnum = findPopupNumber(pname);
+
+	if (pnum == -1)
+		return;
+
+	var pgKey = getPage(pnum);
+
+	if (hname.toLowerCase() == "fade")
+		pgKey.hideEffect = 1;
+	else if (hname.toLowerCase() == "slide to left")
+		pgKey.hideEffect = 2;
+	else if (hname.toLowerCase() == "slide to right")
+		pgKey.hideEffect = 3;
+	else if (hname.toLowerCase() == "slide to top")
+		pgKey.hideEffect = 4;
+	else if (hname.toLowerCase() == "slide to bottom")
+		pgKey.hideEffect = 5;
+	else if (hname.toLowerCase() == "slide to left fade")
+		pgKey.hideEffect = 6;
+	else if (hname.toLowerCase() == "slide to right fade")
+		pgKey.hideEffect = 7;
+	else if (hname.toLowerCase() == "slide to top fade")
+		pgKey.hideEffect = 8;
+	else if (hname.toLowerCase() == "slide to bottom fade")
+		pgKey.hideEffect = 9;
+}
+/*
+ * Set the hide effect time for the specified popup page.
+ */
+function doPHT(msg)
+{
+	var pname = getField(msg, 0, ';');
+	var htime = getField(msg, 1, ';');
+
+	var pnum = findPopupNumber(pname);
+
+	if (pnum == -1)
+		return;
+
+	var pgKey = getPage(pnum);
+	pgKey.hideTime = htime;
 }
 /*
  * Append non-unicodetext.

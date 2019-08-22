@@ -272,6 +272,25 @@ function setCSSclass(name, content)
 	style.innerHTML = "."+name+" {"+content+"}";
 	document.getElementsByTagName('head')[0].appendChild(style);
 }
+function setCSSanim(name, content)
+{
+	try
+	{
+		var element = document.querySelector('ani_'+name);
+
+		if (element !== null)
+			return;
+
+		var style = document.createElement('style');;
+		style.type = 'text/css';
+		style.innerHTML = "@keyframes ani_"+name+" {"+content+"}";
+		document.getElementsByTagName('head')[0].appendChild(style);
+	}
+	catch (e)
+	{
+		errlog("setCSSanim: Error: "+e);
+	}
+}
 function changePageText(num, port, channel, text)
 {
 	try
@@ -299,6 +318,10 @@ function changePageText(num, port, channel, text)
 	{
 		errlog("changePageText: Error: "+e);
 	}
+}
+function getPage(pnum)
+{
+    return eval("structPage" + pnum);
 }
 function allElementsFromPoint(x, y)
 {
@@ -374,6 +397,10 @@ function hasGraphic(button, inst=0)
 
 	return false;
 }
+/*
+ * Set the connection status bargraph. This is a system bargraph
+ * and consists of several states. Here only 3 of them are used.
+ */
 function onlineStatus()
 {
 	if (navigator.online)
@@ -465,15 +492,11 @@ function activeTouch(event, name, object)
 	if (objs === null)
 		return;
 
-//	debug("activeTouch: Number objects: "+objs.length);
-
 	for (i in objs)
 	{
 		if (objs[i].id.indexOf(name) == 0 && objs[i].id != name &&
 			(objs[i].localName == "canvas" || objs[i].localName == "img" || objs[i].localName == "div" || objs[i].localName == "span"))
 		{
-//			debug("activeTouch: Selected["+i+"]: name="+name+", id="+objs[i].id+", localName="+objs[i].localName);
-
 			var ctx = document.createElement("canvas").getContext("2d");
 			var w = objs[i].width,
 				h = objs[i].height,
@@ -520,7 +543,6 @@ function activeTouch(event, name, object)
 			}
 			else
 			{
-//				debug("activeTouch: No graphics: "+objs[i].id);
 				var col = getAMXColor(button.sr[0].cf);
 
 				if (col.length == 4)
@@ -530,8 +552,6 @@ function activeTouch(event, name, object)
 
 				var idx = parseInt(i) + 1;
 				// If we've reached the last layer with no graphics, it is selected.
-//				debug("activeTouch: idx="+idx+", objs.length="+objs.length);
-
 				if (idx == objs.length)
 					alpha = 255;
 			}
@@ -592,6 +612,30 @@ function getPageSize()
 	var width = pgKey.width;
 	var height = pgKey.height;
 	return [width, height];
+}
+function isModal(name)
+{
+	for (var i in Popups.pages)
+	{
+		var pop = Popups.pages[i];
+
+		if (pop.name == name)
+			return pop.modality;
+	}
+
+	return false;
+}
+function stopEvent(event)
+{
+	if (event.target.style.zIndex >= z_index ||
+			event.target.style.zIndex < 0 ||
+			event.target.style.zIndex === null ||
+			typeof event.target.style.zIndex != "numeric")
+		return true;
+
+	event.stopPropagation();
+	debug("stopEvent: Event \""+event.type+"\" was stopped. z_index: "+event.target.style.zIndex+", max: "+z_index);
+	return false;
 }
 function drawPage(name)
 {
@@ -654,6 +698,27 @@ function doDraw(pgKey, pageID, what)
 		if (what == PAGETYPE.SUBPAGE)
 		{
 			var div = document.getElementById('main');
+
+			if (isModal(pgKey.name))
+			{
+				var modal = document.createElement('div');
+				var pgSize = getPageSize();
+				modal.id = "Page_"+pageID+"_modal";
+				modal.style.zIndex = newZIndex();
+				modal.style.display = "inline-block";
+				modal.style.position = "absolute";
+				modal.style.left = 0+"px";
+				modal.style.top = 0+"px";
+				modal.style.width = pgSize[0]+"px";
+				modal.style.height = pgSize[1]+"px";
+				modal.style.backgroundColor = rgba(0, 0, 0, 0);
+				modal.addEventListener("click", stopEvent, { capture: true });
+				modal.addEventListener(EVENT_DOWN, stopEvent, { capture: true });
+				modal.addEventListener(EVENT_UP, stopEvent, { capture: true });
+				div.appendChild(modal);
+				div = modal;
+			}
+
 			page = document.createElement('div');
 			page.style.display = "inline-block"
 			div.appendChild(page);
@@ -675,12 +740,64 @@ function doDraw(pgKey, pageID, what)
 	if (what == PAGETYPE.SUBPAGE)
 		page.id = "Page_"+pageID;
 
+	if (pgKey.timeout > 0)
+		window.setTimeout(tmPPT.bind(null, pgKey.name), pgKey.timeout * 100);
+
 	page.style.position = "absolute";
 	page.style.left = pgKey.left+"px";
 	page.style.top = pgKey.top+"px";
 	page.style.width = pgKey.width+"px";
 	page.style.height = pgKey.height+"px";
 
+	if (pgKey.showEffect > 0)
+	{
+		var pdim = getPageSize();
+		var totalHeight = pdim[1];
+
+		var style = "";
+
+		switch(pgKey.showEffect)
+		{
+			case 1: 	// Fade
+				style = "from { bottom: "+totalHeight+"px; opacity: 0; }";
+				style += "to { bottom: "+(totalHeight-pgKey.height)+"px; opacity: 1; }"
+			break;
+
+			case 2:		// Slide left
+			case 6:		// Slide left fade
+				style = "from { left: -"+pgKey.left+"px; opacity: 0; }";
+				style += "to { left: 0px; opacity: 1; }"
+			break;
+
+			case 3:		// Slide right
+			case 7:		// Slide right fade
+				style = "from { right: -"+(pgKey.left+pgKey.width)+"px; opacity: 0; }";
+				style += "to { right: 0px; opacity: 1; }";
+			break;
+
+			case 4:		// Slide top
+			case 8:		// Slide top fade
+				style = "from { top: -"+pgKey.top+"px; opacity: 0; }";
+				style += "to { top: 0px; opacity: 1; }";
+			break;
+
+			case 5:		// Slide bottom
+			case 9:		// Slide bottom fade
+				style = "from { top: "+totalHeight+"px; opacity: 0; }";
+				style += "to { top: "+(totalHeight-pgKey.height)+"px; opacity: 1; }";
+			break;
+		}
+
+		setCSSanim(pgKey.name, style);
+		page.style.animationName = "ani_"+pgKey.name;
+		page.style.animationDuration = (pgKey.showTime / 10.0) + "s";
+	}
+
+/*	if (pgKey.hideEffect > 0)
+	{
+
+	}
+*/
 	for (i in pgKey.sr)        // Page background and color
 	{
 		var sr = pgKey.sr[i];
@@ -1256,14 +1373,15 @@ function dropPage()
 }
 function dropPopup(name)
 {
-	var i;
 	var pageID = 0;
+	var pname = "";
 
-	for (i in Popups.pages)
+	for (var i in Popups.pages)
 	{
 		if (Popups.pages[i].name == name)
 		{
 			pageID = Popups.pages[i].ID;
+			pname = Popups.pages[i].name;
 			break;
 		}
 	}
@@ -1276,12 +1394,22 @@ function dropPopup(name)
 
 	try
 	{
-		var div = document.getElementById('Page_'+pageID);
+		var divname = "";
+
+		if (isModal(pname))
+			divname = 'Page_'+pageID+"_modal";
+		else
+			divname = 'Page_'+pageID;
+
+		var div = document.getElementById(divname);
 
 		while (div.hasChildNodes())
 			div.removeChild(div.firstChild);
 
 		div.parentNode.removeChild(div);
+
+		if (isModal(pname))
+			freeZIndex();
 	}
 	catch(e)
 	{

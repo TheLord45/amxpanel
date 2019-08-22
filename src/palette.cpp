@@ -101,7 +101,7 @@ Palette::Palette(const std::vector<PALETTE_T>& pal, const string& main)
 
 void amx::Palette::setPaletteFile(const string& f)
 {
-	DECL_TRACER(std::string("Palette::setPaletteFile(const string& f)"));
+	DECL_TRACER("Palette::setPaletteFile(const string& f)");
 
 	bool hasFile = false;
 
@@ -120,7 +120,7 @@ void amx::Palette::setPaletteFile(const string& f)
 
 bool amx::Palette::parsePalette()
 {
-	DECL_TRACER(std::string("Palette::parsePalette()"));
+	DECL_TRACER("Palette::parsePalette()");
 
 	for (size_t i = 0; i < paletteFiles.size(); i++)
 	{
@@ -133,7 +133,7 @@ bool amx::Palette::parsePalette()
 
 bool amx::Palette::parsePalette(const string& f)
 {
-	DECL_TRACER(std::string("Palette::parsePalette(const string& f)"));
+	DECL_TRACER("Palette::parsePalette(const string& f)");
 	string lastName, at_index, at_name, value;
 	status = false;
 	string uri = "file://";
@@ -155,13 +155,13 @@ bool amx::Palette::parsePalette(const string& f)
 
 			if (reader.has_attributes())
 			{
-				at_index = reader.get_attribute("index");
-				at_name = reader.get_attribute("name");
+				at_index = reader.get_attribute("index").raw();
+				at_name = reader.get_attribute("name").raw();
 			}
 
 			if (reader.has_value())
 			{
-				string val = reader.get_value();
+				string val = reader.get_value().raw();
 				value = Str::trim(val);
 			}
 			else
@@ -198,7 +198,7 @@ bool amx::Palette::parsePalette(const string& f)
 				at_name.clear();
 			}
 
-			lastName = name;
+			lastName = name.get();
 		}
 
 		reader.close();

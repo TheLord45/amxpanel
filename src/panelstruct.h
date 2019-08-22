@@ -413,21 +413,22 @@ namespace amx
 
 	typedef struct PAGE
 	{
-		PAGETYPE type;
-		int pageID;
-		std::string name;
-		int left;
-		int top;
-		int width;
-		int height;
+		PAGETYPE type;						// Type: PAGE | SUBPAGE
+		int pageID;							// Unique ID of popup/page
+		std::string name;					// The name of the popup/page
+		int left;							// Left position of popup
+		int top;							// Top position of popup
+		int width;							// Width of popup
+		int height;							// Height of popup
 		int modal;							// 0 = Popup/Page = non modal
-		std::string group;
-		SHOWEFFECT showEffect;
-		int showTime;
-		SHOWEFFECT hideEffect;
-		int hideTime;
-		std::vector<BUTTON_T> buttons;
-		std::vector<SR_T> sr;
+		std::string group;					// Name of the group the popup belongs
+		int timeout;						// Time after the popup hides in 1/10 seconds
+		SHOWEFFECT showEffect;				// The effect when the popup is shown
+		int showTime;						// The time reserved for the show effect
+		SHOWEFFECT hideEffect;				// The effect when the popup hides
+		int hideTime;						// The time reserved for the hide effect
+		std::vector<BUTTON_T> buttons;		// Array of elements
+		std::vector<SR_T> sr;				// Page/Popup description
 	}PAGE_T;
 
     typedef struct MAP

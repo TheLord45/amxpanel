@@ -186,6 +186,8 @@ bool amx::Page::parsePage()
 				page.group = reader.get_value().raw();
 			else if (name.caseCompare("modal") == 0 && reader.has_value())
 				page.modal = atoi(reader.get_value().c_str());
+			else if (name.caseCompare("timeout") == 0 && reader.has_value())
+				page.timeout = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("showEffect") == 0 && reader.has_value())
 				page.showEffect = (SHOWEFFECT)atoi(reader.get_value().c_str());
 			else if (name.caseCompare("showTime") == 0 && reader.has_value())
@@ -593,7 +595,7 @@ void Page::serializeToFile()
 	pgFile << "\t\"name\":\"" << page.name << "\",\"ID\":" << page.pageID << ",\"type\":" << page.type << "," << std::endl;
 	pgFile << "\t\"left\":" << page.left << ",\"top\":" << page.top << ",\"width\":" << page.width << ",\"height\":" << page.height << "," << std::endl;
 	pgFile << "\t\"group\":\"" << page.group << "\",\"modal\":" << page.modal << ",\"showEffect\":" << page.showEffect << ",\"showTime\":" << page.showTime << "," << std::endl;
-	pgFile << "\t\"hideEffect\":" << page.hideEffect << ",\"hideTime\":" << page.hideTime << ",\"buttons\":[";
+	pgFile << "\t\"hideEffect\":" << page.hideEffect << ",\"hideTime\":" << page.hideTime << ",\"timeout\":" << page.timeout << ",\"buttons\":[";
 
 	for (size_t i = 0; i < page.buttons.size(); i++)
 	{
@@ -921,6 +923,7 @@ void amx::Page::clear()
 	page.type = PNONE;
 	page.width = 0;
 	page.modal = 0;
+	page.timeout = 0;
 	status = false;
 }
 

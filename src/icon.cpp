@@ -43,13 +43,14 @@ using namespace amx;
 
 Icon::Icon(const string& file)
 {
-	sysl->TRACE(Syslog::ENTRY, "Icon::Icon(const strings::string& file)");
+	sysl->TRACE(Syslog::ENTRY, "Icon::Icon(const string& file)");
 	int index = 0;
 	string lastName;
 	string uri = "file://";
 	uri.append(Configuration->getHTTProot());
 	uri.append("/");
 	uri.append(file);
+	sysl->TRACE("Icon::Icon: Parsing file "+uri);
 
 	try
 	{
@@ -68,7 +69,7 @@ Icon::Icon(const string& file)
 			{
 				ICON_T ico;
 				ico.index = index;
-				ico.file = reader.get_value();
+				ico.file = reader.get_value().raw();
 				int width, height;
 
 				if (PushButton::getImageDimensions(Configuration->getHTTProot()+"/images/"+ico.file, &width, &height))
@@ -87,7 +88,7 @@ Icon::Icon(const string& file)
 				sysl->TRACE("Icon::Icon: index="+to_string(ico.index)+", file="+ico.file);
 			}
 
-			lastName = name;
+			lastName = name.get();
 		}
 
 		reader.close();
@@ -104,7 +105,7 @@ Icon::Icon(const string& file)
 
 Icon::~Icon()
 {
-    sysl->TRACE(Syslog::EXIT, std::string("Icon::Icon(const string& file)"));
+    sysl->TRACE(Syslog::EXIT, "Icon::~Icon(const string& file)");
 }
 
 string Icon::getFileName(size_t idx)

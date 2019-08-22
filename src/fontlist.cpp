@@ -58,6 +58,7 @@ amx::FontList::FontList(const string& file)
 	uri.append(Configuration->getHTTProot());
 	uri.append("/");
 	uri.append(file);
+	sysl->TRACE("FontList::FontList: Parsing file "+uri);
 
 	try
 	{
@@ -88,17 +89,17 @@ amx::FontList::FontList(const string& file)
 				sysl->TRACE("FontList::FontList: Added font number: "+to_string(font.number));
 			}
 			else if (name.caseCompare("file") == 0 && reader.has_value())
-				fontList.back().file = reader.get_value();
+				fontList.back().file = reader.get_value().raw();
 			else if (name.caseCompare("fileSize") == 0 && reader.has_value())
 				fontList.back().fileSize = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("faceIndex") == 0 && reader.has_value())
 				fontList.back().faceIndex = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("name") == 0 && reader.has_value())
-				fontList.back().name = reader.get_value();
+				fontList.back().name = reader.get_value().raw();
 			else if (name.caseCompare("subfamilyName") == 0 && reader.has_value())
-				fontList.back().subfamilyName = reader.get_value();
+				fontList.back().subfamilyName = reader.get_value().raw();
 			else if (name.caseCompare("fullName") == 0 && reader.has_value())
-				fontList.back().fullName = reader.get_value();
+				fontList.back().fullName = reader.get_value().raw();
 			else if (name.caseCompare("size") == 0 && reader.has_value())
 				fontList.back().size = atoi(reader.get_value().c_str());
 			else if (name.caseCompare("usageCount") == 0 && reader.has_value())
