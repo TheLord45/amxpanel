@@ -65,7 +65,7 @@ TouchPanel::TouchPanel()
 		thread thr = thread([=] { run(); });
 		thr.detach();
 	}
-	catch (exception &e)
+	catch (std::exception &e)
 	{
 		sysl->errlog(string("TouchPanel::TouchPanel: Error creating a thread: ")+e.what());
 	}
@@ -442,7 +442,24 @@ bool TouchPanel::newConnection(int id)
 			if (key->second.amxnet == 0)
 				key->second.amxnet = pANet;
 			else
-				delete pANet;
+			{
+				if (key->second.amxnet->isStopped() || !key->second.amxnet->isConnected())
+				{
+					if (!key->second.amxnet->isStopped())
+						key->second.amxnet->stop();
+
+					delete key->second.amxnet;
+					key->second.amxnet = pANet;
+				}
+				else
+				{
+					if (!key->second.amxnet->isStopped())
+						key->second.amxnet->stop();
+
+					delete pANet;
+					pANet = key->second.amxnet;
+				}
+			}
 		}
 		else
 		{
@@ -454,14 +471,17 @@ bool TouchPanel::newConnection(int id)
 			ptr = registration.insert(PAIR(id, reg));
 			sysl->warnlog("TouchPanel::newConnection: Registered panel ID "+to_string(id)+" without a registration key and with no websocket handle!");
 
-			if (!ptr.second)
+			if (!ptr.second)	// Should never happen!
+			{
 				sysl->warnlog("TouchPanel::newConnection: Key "+to_string(id)+" was not inserted again!");
+				return false;
+			}
 		}
 
 		thread thr = thread([=] { pANet->Run(); });
 		thr.detach();
 	}
-	catch (exception& e)
+	catch (std::exception& e)
 	{
 		sysl->TRACE(string("TouchPanel::newConnection: Exception: ")+e.what());
 		PANELS_T::iterator key;
@@ -633,7 +653,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 		{
 			ht = Configuration->getHashTable(Configuration->getHashTablePath());
 		}
-		catch (exception& e)
+		catch (std::exception& e)
 		{
 			sysl->warnlog("TouchPanel::webMsg: No hashtable found!");
 			ht.clear();
@@ -968,7 +988,7 @@ void TouchPanel::readPages()
 
 		scBtArray += "]";
 	}
-	catch (exception& e)
+	catch (std::exception& e)
 	{
 		sysl->errlog(string("TouchPanel::readPages: ")+e.what());
 		exit(1);

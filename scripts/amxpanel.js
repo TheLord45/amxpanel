@@ -308,7 +308,7 @@ function iterateButtonStates(addr, bts, callback, pars, port = true)
     for (var i in addrRange)
     {
 		var bt = null;
-		
+
 		if (port)
 			bt = findButtonPort(addrRange[i]);
 		else
@@ -902,10 +902,7 @@ function setButtonOnline(pnum, id, stat)
 
 function hideGroup(name)
 {
-    var nm;
-    var group;
-    var i;
-    group = popupGroups[name];
+    var group = popupGroups[name];
 
     if (group === null || typeof group == "undefined" || name === null || typeof name == "undefined" || name.length == 0)
     {
@@ -913,11 +910,10 @@ function hideGroup(name)
         return;
     }
 
-    for (i in group)
+    for (var i in group)
     {
-        var pg;
-        pg = findPopupNumber(group[i]);
-        nm = 'Page_' + pg;
+        var pg = findPopupNumber(group[i]);
+        var nm = 'Page_' + pg;
 
         try
         {
@@ -3790,45 +3786,36 @@ function getRegistrationID()
     if (regStatus == true || (registrationID !== null && typeof registrationID == "string" && registrationID.length > 0))
         return registrationID;
 
-    var regID = store.get("regID");
-
-    if (regID == null || regID.length == 0)
+    try
     {
+        var ID = 'T' + Math.random().toString(36).substr(2, 9);
+        registrationID = ID;
+    }
+    catch (e)
+    {
+        errlog("getRegistrationID: Error: " + e);
+
         try
         {
-            var ID = 'T' + Math.random().toString(36).substr(2, 9);
-            store.set("regID", ID);
+            var d = new Date();
+
+            for (var i = 0; i < d.length; i++)
+            {
+                var ID = "T";
+                var c = d.charCodeAt(i);
+                var str = Number(c).toString(16);
+                ID = ID + ((str.length == 1) ? "0" + str : str);
+            }
+
             registrationID = ID;
         }
         catch (e)
         {
             errlog("getRegistrationID: Error: " + e);
-
-            try
-            {
-                var d = new Date();
-
-                for (var i = 0; i < d.length; i++)
-                {
-                    var ID = "";
-                    var c = d.charCodeAt(i);
-                    var str = Number(c).toString(16);
-                    ID = ID + ((str.length == 1) ? "0" + str : str);
-                }
-
-                store.set("regID", ID);
-                registrationID = ID;
-            }
-            catch (e)
-            {
-                errlog("getRegistrationID: Error: " + e);
-                registrationID = "";
-                return registrationID;
-            }
+            registrationID = "";
+            return registrationID;
         }
     }
-    else
-        registrationID = regID;
 
     if (wsocket === null || wsocket.readyState == WebSocket.CLOSED)
     {
@@ -3840,34 +3827,6 @@ function getRegistrationID()
     writeTextOut("REGISTER:" + registrationID);
     return registrationID;
 }
-/*
-function onInitFs(name, root)
-{
-    var ID = 'T' + Math.random().toString(36).substr(2, 9);
-    debug("onInitFs: Storage: " + name + " / " + root + ", regID: " + ID);
-
-    try
-    {
-        window.localStorage.setItem("regID", ID);
-        registrationID = ID;
-    }
-    catch (e)
-    {
-        errlog("onInitFs: Error: " + e);
-        registrationID = "";
-        return;
-    }
-
-    debug("onInitFs: " + registrationID);
-    writeTextOut("REGISTER:" + registrationID);
-}
-
-function errorHandler(err)
-{
-    errlog("errorHandler: Error: " + err);
-    registrationID = "";
-}
-*/
 function setOnlineStatus(stat)
 {
     if (stat < 0 || stat > 11 || stat == wsStatus)

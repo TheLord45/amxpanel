@@ -442,6 +442,7 @@ bool amx::Page::parsePage()
 			if (!inButton && name.caseCompare("sr") == 0 && reader.has_attributes())
 			{
 				SR_T sr;
+                sr.clear();
 				sr.number = atoi(reader.get_attribute(0).c_str());
 				page.sr.push_back(sr);
 				sysl->TRACE("Page::Page: Added for page "+page.name+" sr with ID "+to_string(sr.number));

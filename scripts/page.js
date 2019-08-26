@@ -160,6 +160,8 @@ var EVENT_DOWN = "pointerdown";
 var EVENT_UP = "pointerup";
 var EVENT_MOVE = "pointermove";
 
+var __dropPageTimers = [];		// Page timers which are marked for drop --> { "name":"<name>","id":<id>}
+
 function isSystemReserved(channel)
 {
 	var i;
@@ -276,14 +278,14 @@ function setCSSanim(name, content)
 {
 	try
 	{
-		var element = document.querySelector('ani_'+name);
+		var element = document.querySelector(name);
 
 		if (element !== null)
 			return;
 
 		var style = document.createElement('style');;
 		style.type = 'text/css';
-		style.innerHTML = "@keyframes ani_"+name+" {"+content+"}";
+		style.innerHTML = "@keyframes "+name+" {"+content+"}";
 		document.getElementsByTagName('head')[0].appendChild(style);
 	}
 	catch (e)
@@ -692,6 +694,29 @@ function doDraw(pgKey, pageID, what)
 	var page;
 	var i, j;
 	var btArray;
+	var exist = false;
+	var oldChild = null;
+
+	if (what == PAGETYPE.SUBPAGE)
+	{
+		try
+		{
+			if (isModal(pgKey.name))
+				oldChild = document.getElementById("Page_"+pageID+"_modal");
+			else
+				oldChild = document.getElementById("Page_"+pageID);
+
+			if (oldChild !== null)
+			{
+				// If we're still here, the page already exists. We'll remember this.
+				exist = true;
+			}
+		}
+		catch(e)
+		{
+			exist = false;
+		}
+	}
 
 	try
 	{
@@ -715,13 +740,41 @@ function doDraw(pgKey, pageID, what)
 				modal.addEventListener("click", stopEvent, { capture: true });
 				modal.addEventListener(EVENT_DOWN, stopEvent, { capture: true });
 				modal.addEventListener(EVENT_UP, stopEvent, { capture: true });
-				div.appendChild(modal);
+
+				if (exist)
+				{
+					if (__dropPageTimers[pgKey.name] !== null && typeof __dropPageTimers[pgKey.name] != "undefined" && __dropPageTimers[pgKey] != 0)
+					{
+						window.clearTimeout(__dropPageTimers[pgKey.name]);
+						__dropPageTimers[pgKey.name] = 0;
+					}
+
+					div.replaceChild(modal, oldChild);
+				}
+				else
+					div.appendChild(modal);
+
+				exist = false;
 				div = modal;
 			}
 
 			page = document.createElement('div');
 			page.style.display = "inline-block"
-			div.appendChild(page);
+
+			if (exist)
+			{
+				if (__dropPageTimers[pgKey.name] !== null && typeof __dropPageTimers[pgKey.name] != "undefined" && __dropPageTimers[pgKey.name] != 0)
+				{
+					window.clearTimeout(__dropPageTimers[pgKey.name]);
+					__dropPageTimers[pgKey.name] = 0;
+					debug("DoDraw: Timer for page "+pgKey.name+" was killed.");
+				}
+
+				div.replaceChild(page, oldChild);
+				exist = false;
+			}
+			else
+				div.appendChild(page);
 		}
 		else
 		{
@@ -749,55 +802,9 @@ function doDraw(pgKey, pageID, what)
 	page.style.width = pgKey.width+"px";
 	page.style.height = pgKey.height+"px";
 
-	if (pgKey.showEffect > 0)
-	{
-		var pdim = getPageSize();
-		var totalHeight = pdim[1];
+	if (pgKey.showEffect > 0 && pgKey.showTime > 0)
+		setShowAnimation(pgKey.name);
 
-		var style = "";
-
-		switch(pgKey.showEffect)
-		{
-			case 1: 	// Fade
-				style = "from { bottom: "+totalHeight+"px; opacity: 0; }";
-				style += "to { bottom: "+(totalHeight-pgKey.height)+"px; opacity: 1; }"
-			break;
-
-			case 2:		// Slide left
-			case 6:		// Slide left fade
-				style = "from { left: -"+pgKey.left+"px; opacity: 0; }";
-				style += "to { left: 0px; opacity: 1; }"
-			break;
-
-			case 3:		// Slide right
-			case 7:		// Slide right fade
-				style = "from { right: -"+(pgKey.left+pgKey.width)+"px; opacity: 0; }";
-				style += "to { right: 0px; opacity: 1; }";
-			break;
-
-			case 4:		// Slide top
-			case 8:		// Slide top fade
-				style = "from { top: -"+pgKey.top+"px; opacity: 0; }";
-				style += "to { top: 0px; opacity: 1; }";
-			break;
-
-			case 5:		// Slide bottom
-			case 9:		// Slide bottom fade
-				style = "from { top: "+totalHeight+"px; opacity: 0; }";
-				style += "to { top: "+(totalHeight-pgKey.height)+"px; opacity: 1; }";
-			break;
-		}
-
-		setCSSanim(pgKey.name, style);
-		page.style.animationName = "ani_"+pgKey.name;
-		page.style.animationDuration = (pgKey.showTime / 10.0) + "s";
-	}
-
-/*	if (pgKey.hideEffect > 0)
-	{
-
-	}
-*/
 	for (i in pgKey.sr)        // Page background and color
 	{
 		var sr = pgKey.sr[i];
@@ -1243,17 +1250,34 @@ function doDraw(pgKey, pageID, what)
 						fnt.style.height = bsr.style.height - border * 2;
 					}
 
+					// Clipping
+					fnt.style.overflow = "hidden";
+					fnt.style.textOverflow = "clip";
 					// Prevent text from being selected.
 					fnt.style.webkitTouchCallout = 'none';
 					fnt.style.webkitUserSelect = 'none';
 					fnt.style.khtmlUserSelect = 'none';
 					fnt.style.mozUserSelect = 'none';
 					fnt.style.userSelect = 'none';
+					// A text receives no pointer events
 					fnt.style.pointerEvents = 'none';
+					// The font
 					fnt.style.fontFamily = "\""+font.name+"\"";
 					fnt.style.fontSize = font.size+"pt";
 					fnt.style.fontStyle = getFontStyle(font.subfamilyName);
 					fnt.style.fontWeight = getFontWeight(font.subfamilyName);
+
+					if (sr.ww != 0)		// line break
+					{
+						fnt.style.wordWrap = "break-word";
+						fnt.style.wordBreak = "break-all";
+					}
+					else
+					{
+						fnt.style.wordWrap = "normal";
+						fnt.style.wordBreak = "keep-all";
+					}
+
 					bsr.appendChild(fnt);
 
 					switch(sr.jt)
@@ -1297,9 +1321,9 @@ function doDraw(pgKey, pageID, what)
 							fnt.style.bottom = "0px";
 						break;
 						case TEXT_ORIENTATION.ORI_BOTTOM_MIDDLE:
-						fnt.style.left = "50%";
-						fnt.style.transform = "translateX(-50%)";
-						fnt.style.bottom = "0px";
+							fnt.style.left = "50%";
+							fnt.style.transform = "translateX(-50%)";
+							fnt.style.bottom = "0px";
 						break;
 						case TEXT_ORIENTATION.ORI_BOTTOM_RIGHT:
 							fnt.style.right = "0px";
@@ -1354,6 +1378,172 @@ function doDraw(pgKey, pageID, what)
 
 	return true;
 }
+function setShowAnimation(pname)
+{
+	var pnum = findPopupNumber(pname);
+
+	if (pnum == -1)
+		return;
+
+	var pgKey = getPage(pnum);
+
+	if (pgKey === null)
+		return;
+
+	var page = null;
+
+	try
+	{
+		page = document.getElementById("Page_"+pnum);
+	}
+	catch (e)
+	{
+		errlog("setShowAnimation: Error: "+e);
+		return;
+	}
+
+	var pdim = getPageSize();
+	var totalWidth = pdim[0];
+	var totalHeight = pdim[1];
+	page.style.animationName = "iani_"+pname;
+	page.style.animationDuration = (pgKey.showTime / 10.0) + "s";
+
+	var style = "";
+
+	switch(pgKey.showEffect)
+	{
+		case 1: 	// Fade
+			style = "from { opacity: 0; }";
+			style += "to { opacity: 1; }"
+		break;
+
+		case 2:		// Slide left
+			style = "from { transform: translate(-"+pgKey.width+"px); }";
+			style += "to { transform: translate("+pgKey.left+"px); }";
+		break;
+
+		case 3:		// Slide right
+			page.style.transition = (pgKey.showTime / 10.0) + "s ease";
+			style = "from { transform: translate("+totalWidth+"px); }";
+			style += "to { transform: translate("+pgKey.left+"px); }";
+		break;
+
+		case 4:		// Slide top
+			style = "from { transform: translateY(-"+pgKey.height+"px); }";
+			style += "to { transform: translateY("+pgKey.top+"px); }";
+		break;
+		
+		case 5:		// Slide bottom
+			style = "from { transform: translateY("+totalHeight+"px); }";
+			style += "to { transform: translateY("+pgKey.top+"px); }";
+		break;
+		
+		case 6:		// Slide left fade
+			style = "from { transform: translate(-"+pgKey.width+"px); opacity: 0; }";
+			style += "to { transform: translate("+pgKey.left+"px); opacity: 1; }";
+		break;
+
+		case 7:		// Slide right fade
+			style = "from { transform: translate("+totalWidth+"px); opacity: 0; }";
+			style += "to { transform: translate("+pgKey.left+"px); opacity: 1; }";
+		break;
+
+		case 8:		// Slide top fade
+			style = "from { transform: translateY(-"+pgKey.height+"px); opacity: 0; }";
+			style += "to { transform: translateY("+pgKey.top+"px); opacity: 1; }";
+		break;
+
+		case 9:		// Slide bottom fade
+			style = "from { transform: translateY("+totalHeight+"px); opacity: 0; }";
+			style += "to { transform: translateY("+pgKey.top+"px); opacity: 1; }";
+		break;
+	}
+
+	setCSSanim("iani_"+pname, style);
+}
+function setHideAnimation(pname)
+{
+	var pnum = findPopupNumber(pname);
+
+	if (pnum == -1)
+		return;
+
+	var pgKey = getPage(pnum);
+
+	if (pgKey === null)
+		return;
+
+	var page = null;
+
+	try
+	{
+		page = document.getElementById("Page_"+pnum);
+	}
+	catch (e)
+	{
+		errlog("setHideAnimation: Error: "+e);
+		return;
+	}
+
+	var pdim = getPageSize();
+	var totalWidth = pdim[0];
+	var totalHeight = pdim[1];
+	page.style.animationName = "oani_"+pname;
+	page.style.animationDuration = (pgKey.hideTime / 10.0) + "s";
+
+	var style = "";
+
+	switch(pgKey.showEffect)
+	{
+		case 1: 	// Fade
+			style = "from { opacity: 1; }"
+			style += "to { opacity: 0; }";
+		break;
+
+		case 2:		// Slide left
+			style = "from { transform: translate("+pgKey.left+"px); }";
+			style += "to { transform: translate(-"+pgKey.width+"px); }";
+		break;
+		
+		case 3:		// Slide right
+			page.style.transition = (pgKey.hideTime / 10.0) + "s ease";
+			style = "from { transform: translate("+pgKey.left+"px); }";
+			style += "to { transform: translate("+totalWidth+"px); }";
+		break;
+		
+		case 4:		// Slide top
+			style = "from { transform: translate("+pgKey.left+"px, "+pgKey.top+"px); }";
+			style += "to { transform: translate("+pgKey.left+"px, -"+pgKey.height+"px); }";
+		break;
+		
+		case 5:		// Slide bottom
+			style = "from { transform: translate("+pgKey.left+"px, "+pgKey.top+"px); }";
+			style += "to { transform: translate("+pgKey.left+"px, "+totalHeight+"px); }";
+		break;
+		
+		case 6:		// Slide left fade
+			style = "from { transform: translate("+pgKey.left+"px); opacity: 1; }";
+			style += "to { transform: translate(-"+pgKey.width+"px); opacity: 0; }";
+		break;
+
+		case 7:		// Slide right fade
+			style = "from { transform: translate("+pgKey.left+"px); opacity: 1; }";
+			style += "to { transform: translate("+totalWidth+"px); opacity: 0; }";
+		break;
+
+		case 8:		// Slide top fade
+			style = "from { transform: translate("+pgKey.left+"px, "+pgKey.top+"px); opacity: 1; }";
+			style += "to { transform: translate("+pgKey.left+"px, -"+pgKey.height+"px); opacity: 0; }";
+		break;
+
+		case 9:		// Slide bottom fade
+			style = "from { transform: translate("+pgKey.left+"px, "+pgKey.top+"px); opacity: 1; }";
+			style += "to { transform: translate("+pgKey.left+"px, "+totalHeight+"px); opacity: 0; }";
+		break;
+	}
+
+	setCSSanim("oani_"+pname, style);
+}
 function dropPage()
 {
 	try
@@ -1371,7 +1561,7 @@ function dropPage()
 
 	return true;
 }
-function dropPopup(name)
+function dropPopup(name, noanim=false)
 {
 	var pageID = 0;
 	var pname = "";
@@ -1390,6 +1580,22 @@ function dropPopup(name)
 	{
 		errlog("dropPopup: Couldn't find a popup with the name "+name+"!");
 		return false;
+	}
+
+	if (!noanim)
+	{
+		var pgKey = getPage(pageID);
+
+		if (pgKey === null)
+			return;
+
+		if (pgKey.hideEffect > 0 && pgKey.hideTime > 0)
+		{
+			setHideAnimation(pname);
+			var id = window.setTimeout(dropPopup.bind(null, name, true), pgKey.hideTime * 100);
+			__dropPageTimers[pname] = id;
+			return;
+		}
 	}
 
 	try

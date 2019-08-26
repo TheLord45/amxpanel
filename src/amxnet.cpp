@@ -201,7 +201,7 @@ void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)
 		start_connect(endpoints_.begin());
 		deadline_.async_wait(bind(&AMXNet::check_deadline, this));
 	}
-	catch (exception& e)
+	catch (std::exception& e)
 	{
 		sysl->errlog(string("AMXNet::start: Error: ")+e.what());
 	}
@@ -234,7 +234,7 @@ void AMXNet::stop()
 		socket_.close(ignored_error);
 		sysl->TRACE(string("AMXNet::stop: Client was stopped."));
 	}
-	catch (exception& e)
+	catch (std::exception& e)
 	{
 		sysl->errlog(string("AMXNet::stop: Error: ")+e.what());
 	}
@@ -251,7 +251,7 @@ void AMXNet::Run()
 		io_context.run();
 		sysl->TRACE("AMXNet::Run: Thread ended.");
 	}
-	catch (exception& e)
+	catch (std::exception& e)
 	{
 		sysl->errlog("AMXNet::Run: Error connecting to "+Configuration->getAMXController()+":"+to_string(Configuration->getAMXPort())+"!");
 		sysl->errlog(string("AMXNet::Run: ")+e.what());
@@ -336,7 +336,7 @@ void AMXNet::handle_connect(const error_code& error, asio::ip::tcp::resolver::re
 			if (!stopped_ && killed)
 				stop();
 		}
-		catch (exception& e)
+		catch (std::exception& e)
 		{
 			sysl->errlog(string("AMXNet::handle_connect: Error: ")+e.what());
 		}
@@ -1224,7 +1224,7 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 		buf = new unsigned char[s.hlen+5];
 		memset(buf, 0, s.hlen+5);
 	}
-	catch(exception& e)
+	catch(std::exception& e)
 	{
 		sysl->errlog(string("AMXNet::makeBuffer: Error allocating memory: ")+e.what());
 		return 0;

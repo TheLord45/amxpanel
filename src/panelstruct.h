@@ -288,6 +288,10 @@ namespace amx
 			ww = 0;
 			et = 0;
 			oo = 0x00ff;		// by default the button is fully opaque.
+			mi_width = 0;
+			mi_height = 0;
+			bm_width = 0;
+			bm_height = 0;
 		}
 	}SR_T;
 
