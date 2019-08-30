@@ -59,7 +59,7 @@ var cmdArray = {
         { "cmd": "@PST-", "call": doPST },	// Set the show effect time for the specified popup page.
         { "cmd": "PAGE-", "call": doPAGE },	// Flip to page
         { "cmd": "PPOF-", "call": doPPF },	// Popup off
-        { "cmd": "PPOG-", "call": unsupported },	// Toggle a specific popup page on either a specified page or the current page.
+        { "cmd": "PPOG-", "call": doPPG },	// Toggle a specific popup page on either a specified page or the current page.
         { "cmd": "PPON-", "call": doPPN },	// Popup on
         { "cmd": "^ANI-", "call": doANI },	// Run a button animation
         { "cmd": "^APF-", "call": doAPF },	// Add page flip action to button
@@ -68,58 +68,58 @@ var cmdArray = {
         { "cmd": "^BCB-", "call": doBCB },	// Set the border color to the specified color.
         { "cmd": "^BCF-", "call": doBCF },	// Set the fill color to the specified color.
         { "cmd": "^BCT-", "call": doBCT },	// Set the text color to the specified color.
-        { "cmd": "^BDO-", "call": unsupported },	// Set the button draw order.
+        { "cmd": "^BDO-", "call": unsupported },	// Set the button draw order. Is this possible?
         { "cmd": "^BFB-", "call": doBFB },	// Set the feedback type of the button.
-        { "cmd": "^BIM-", "call": unsupported },	// Set the input mask for the specified address.
+        { "cmd": "^BIM-", "call": doBIM },	// Set the input mask for the specified address.
         { "cmd": "^BLN-", "call": unsupported },	// Set the number of lines removed equally from the top and bottom of a composite video signal. --> will never be implemented!
-        { "cmd": "^BMC-", "call": unsupported },	// Button copy command.
+        { "cmd": "^BMC-", "call": doBMC },	// Button copy command.
         { "cmd": "^BMF-", "call": doBMF },	// Set any/all button parameters by sending embedded codes and data.
         { "cmd": "^BMI-", "call": doBMI },	// Set the button mask image.
-        { "cmd": "^BML-", "call": unsupported },	// Set the maximum length of the text area button.
+        { "cmd": "^BML-", "call": doBML },	// Set the maximum length of the text area button.
         { "cmd": "^BMP-", "call": doBMP },	// Assign a picture to those buttons with a defined addressrange.
-        { "cmd": "^BNC-", "call": unsupported },
-        { "cmd": "^BNN-", "call": unsupported },
-        { "cmd": "^BNT-", "call": unsupported },
+        { "cmd": "^BNC-", "call": unsupported },	// Clear current TakeNote annotations.
+        { "cmd": "^BNN-", "call": unsupported },	// Set the TakeNote network name for the specified Addresses.
+        { "cmd": "^BNT-", "call": unsupported },	// Set the TakeNote network port for the specified Addresses.
         { "cmd": "^BOP-", "call": doBOP }, // Set the button opacity.
         { "cmd": "^BOR-", "call": doBOR }, // Set a border to a specific border style.
-        { "cmd": "^BOS-", "call": unsupported },
-        { "cmd": "^BPP-", "call": unsupported },
-        { "cmd": "^BRD-", "call": doBRD },
-        { "cmd": "^BSF-", "call": unsupported },
-        { "cmd": "^BSP-", "call": doBSP }, // Set the button size and position.
-        { "cmd": "^BSM-", "call": unsupported },
-        { "cmd": "^BSO-", "call": unsupported },
+        { "cmd": "^BOS-", "call": unsupported },	// Set the button to display either a Video or Non-Video window.
+        { "cmd": "^BPP-", "call": unsupported },	// Set or clear the protected page flip flag of a button.
+        { "cmd": "^BRD-", "call": doBRD },	// Set the border of a button state/states.
+        { "cmd": "^BSF-", "call": doBSF },	// Set the focus to the text area.
+        { "cmd": "^BSP-", "call": doBSP },	// Set the button size and position.
+        { "cmd": "^BSM-", "call": doBSM },	// Submit text for text area buttons.
+        { "cmd": "^BSO-", "call": doBSO },	// Set the sound played when a button is pressed.
         { "cmd": "^BVL-", "call": unsupported },
         { "cmd": "^BVN-", "call": unsupported },
         { "cmd": "^BVP-", "call": unsupported },
         { "cmd": "^BVT-", "call": unsupported },
-        { "cmd": "^BWW-", "call": unsupported },
-        { "cmd": "^CPF-", "call": doCPF }, // Clear all page flips from a button.
+        { "cmd": "^BWW-", "call": doBWW },	// Set the button word wrap feature to those buttons with a defined address range.
+        { "cmd": "^CPF-", "call": doCPF },	// Clear all page flips from a button.
         { "cmd": "^DLD-", "call": unsupported },
-        { "cmd": "^DPF-", "call": unsupported },
-        { "cmd": "^ENA-", "call": doENA }, // Enable or disable buttons with a set variable text range.
-        { "cmd": "^FON-", "call": doFON },
-        { "cmd": "^GDI-", "call": unsupported },
-        { "cmd": "^GIV-", "call": unsupported },
-        { "cmd": "^GLH-", "call": unsupported },
-        { "cmd": "^GLL-", "call": unsupported },
-        { "cmd": "^GRD-", "call": unsupported },
-        { "cmd": "^GRU-", "call": unsupported },
-        { "cmd": "^GSC-", "call": unsupported },
-        { "cmd": "^GSN-", "call": unsupported },
+        { "cmd": "^DPF-", "call": doDPF },	// Delete page flips from button if it already exists.
+        { "cmd": "^ENA-", "call": doENA },	// Enable or disable buttons with a set variable text range.
+        { "cmd": "^FON-", "call": doFON },	// Set a font to a specific Font ID value for those buttons with a defined address range.
+        { "cmd": "^GDI-", "call": doGDI },	// Change the bargraph drag increment
+        { "cmd": "^GIV-", "call": unsupported },	// Invert the joystick axis to move the origin to another corner.
+        { "cmd": "^GLH-", "call": doGLH },	// Change the bargraph upper limit.
+        { "cmd": "^GLL-", "call": doGLL },	// Change the bargraph lower limit.
+        { "cmd": "^GRD-", "call": doGRD },	// Change the bargraph ramp-down time in 1/10th of a second.
+        { "cmd": "^GRU-", "call": doGRU },	// Change the bargraph ramp-up time in 1/10th of a second.
+        { "cmd": "^GSC-", "call": doGSC },	// Change the bargraph slider color or joystick cursor color.
+        { "cmd": "^GSN-", "call": unsupported },	// Change the bargraph slider name or joystick cursor name.
         { "cmd": "^ICO-", "call": doICO }, // Set the icon to a button.
-        { "cmd": "^IRM-", "call": unsupported },
-        { "cmd": "^JSB-", "call": doJSB },
-        { "cmd": "^JSI-", "call": doJSI },
-        { "cmd": "^JST-", "call": doJST },
-        { "cmd": "^MBT-", "call": unsupported },
-        { "cmd": "^MDC-", "call": unsupported },
-        { "cmd": "^SHO-", "call": doSHO },
-        { "cmd": "^TEC-", "call": unsupported },
-        { "cmd": "^TEF-", "call": unsupported },
-        { "cmd": "^TOP-", "call": unsupported },
-        { "cmd": "^TXT-", "call": doTXT },
-        { "cmd": "^UNI-", "call": unsupported },
+        { "cmd": "^IRM-", "call": unsupported },	// Set the IR channel --> Not possible!
+        { "cmd": "^JSB-", "call": doJSB },	// Set bitmap/picture alignmentusing a numeric keypad layout for those buttons witha defined address range.
+        { "cmd": "^JSI-", "call": doJSI },	// Set icon alignment using a numeric keypad layout for those buttons with a defined address range.
+        { "cmd": "^JST-", "call": doJST },	// Set text alignment using anumeric keypad layout for those buttons with a defined address range.
+        { "cmd": "^MBT-", "call": unsupported },	// Set the Mouse Button mode On for the virtual PC.
+        { "cmd": "^MDC-", "call": unsupported },	// Turn On the ’Mouse double-click’ feature for the virtual PC.
+        { "cmd": "^SHO-", "call": doSHO },	// Show or hide a button with a set variable text range.
+        { "cmd": "^TEC-", "call": doTEC },	// Set the text effect color for the specified addresses/states to the specified color.
+        { "cmd": "^TEF-", "call": doTEF },	// Set the text effect.
+        { "cmd": "^TOP-", "call": unsupported },	// Send events to the Master as string events.
+        { "cmd": "^TXT-", "call": doTXT },	// Assign a text string to those buttons with a defined address range.
+		{ "cmd": "^UNI-", "call": unsupported },	// Set Unicode text.
         { "cmd": "^LPC-", "call": unsupported },
         { "cmd": "^LPR-", "call": unsupported },
         { "cmd": "^LPS-", "call": unsupported },
@@ -1368,20 +1368,15 @@ function setLEVEL(msg)
 /*
  * Flips to a page with the specified page name using an animated transition.
  *
- * Attention: The animation is currently sot implemented. This works
+ * Attention: The animation is currently not implemented. This works
  * the same way like doPPN()!
  */
 function doAFP(msg)
 {
-    var pg;
-    var animation;
-    var origin;
-    var time;
-
-    pg = getField(msg, 0, ',');
-    animation = getField(msg, 1, ',');
-    origin = getField(msg, 2, ',');
-    time = getField(msg, 3, ',');
+    var pg = getField(msg, 0, ',');
+//    var animation = getField(msg, 1, ',');
+//    var origin = getField(msg, 2, ',');
+//    var time = getField(msg, 3, ',');
 
     showPopup(pg);
 }
@@ -2152,6 +2147,131 @@ function cbBCT(name, button, bt, idx, col)
     }
 }
 /*
+ * Button copy command. Copy attributes of the source button
+ * to all the destination buttons.
+ */
+function doBMC(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+	var src_port = getField(msg, 2, ',');
+	var src_addr = getField(msg, 3, ',');
+	var src_state = getField(msg, 4, ',');
+	var codes = getField(msg, 5, ',');
+
+    var src_button = null;		// will contain the source button
+	// Find the source button
+    for (var i in buttonArray.buttons)
+    {
+        var abut = buttonArray.buttons[i];
+
+		if (abut.ap == src_port && abut.ac == src_addr && src_state <= abut.instances)
+		{
+			var but = getPage(abut.pnum);
+
+			for (var j in but.button)
+			{
+				if (but.buttons[j].bID == abut.bi)
+				{
+					for (var x in but.buttons[j].sr)
+					{
+						if (but.buttons[j].sr[x].number == src_state)
+						{
+							src_button = but.buttons[j].sr[x];
+							break;
+						}
+					}
+
+					break;
+				}
+			}
+
+			break;
+		}
+	}
+	
+	if (src_button === null)	// Not found?
+	{
+		errlog("cbBMC: Button "+src_port+","+src_addr+","+src_state+" not found!");
+		return;
+	}
+	// Here we have our source button.
+	// Create an array with the parameter codes.
+	var pos = 0;
+	var cd = "";
+	var cdArr = [];
+
+	for (var i = 0; i < codes.length; i++)
+	{
+		var c = codes.charAt(i);
+
+		if (c >= 'A' && c <= 'Z')
+		{
+			cd = cd + c;
+			pos++;
+
+			if (pos > 1)
+			{
+				cdArr.push(cd);
+				cd = c;
+				pos = 1;
+			}
+		}
+	}
+
+	var pars = [src_button, cdArr];
+	iterateButtonStates(addr, bts, cbBMC, pars, true);
+}
+function cbBMC(name, button, bt, idx, pars)
+{
+	var sr = pars[0];
+	var cdArr = pars[1];
+
+	// We'll start to copy the parameters.
+	for (var i in cdArr)
+	{
+		if (cdArr[i] == "BM")		// Picture/Bitmap
+		{
+			button.sr[idx].bm = sr.bm;
+			button.sr[idx].bm_width = sr.bm_width;
+			button.sr[idx].bm_height = sr.bm_height;
+			button.sr[idx].mi = sr.bm;
+			button.sr[idx].mi_width = sr.bm_width;
+			button.sr[idx].mi_height = sr.bm_height;
+		}
+		else if (cdArr[i] == "BR")	// Border
+			button.sr[idx].bs = sr.bs;
+		else if (cdArr[i] == "CB")	// Border color
+			button.sr[idx].cb = sr.cb;
+		else if (cdArr[i] == "CF")	// Fill color
+			button.sr[idx].cf = sr.cf;
+		else if (cdArr[i] == "CT")	// Text color
+			button.sr[idx].ct = sr.ct;
+		else if (cdArr[i] == "EC")	// Text effect color
+			button.sr[idx].ec = sr.ec;
+		else if (cdArr[i] == "EF")	// Text effect
+			button.sr[idx].et = sr.et;
+		else if (cdArr[i] == "FT")	// Font
+			button.sr[idx].fi = sr.fi;
+		else if (cdArr[i] == "IC")	// Icon
+			button.sr[idx].ii = sr.ii;
+		else if (cdArr[i] == "JB")	// Bitmap alignment
+			button.sr[idx].jb = sr.jb;
+		else if (cdArr[i] == "JI")	// Icon alignment
+			button.sr[idx].jb = sr.jb;
+		else if (cdArr[i] == "JT")	// Text alignment
+			button.sr[idx].jt = sr.jt;
+		else if (cdArr[i] == "OP")	// Opacity
+			button.sr[idx].oo = sr.oo;
+//		else if (cdArr[i] == "SO")	// Button sound
+//			button.sr[idx].so = sr.so
+		else if (cdArr[i] == "TX")	// Text
+			button.sr[idx].te = sr.te;
+		else if (cdArr[i] == "WW")	// Word wrap
+			button.sr[idx].ww = sr.ww;
+	}
+}
+/*
  * Set the feedbacktype of the button.
  */
 function doBFB(msg)
@@ -2159,7 +2279,7 @@ function doBFB(msg)
     var addr = getField(msg, 0, ',');
     var fb = getField(msg, 1, ',');
 
-    addrRange = getRange(addr);
+    var addrRange = getRange(addr);
 
     for (var i = 0; i < addrRange.length; i++)
     {
@@ -2204,54 +2324,43 @@ function doBFB(msg)
     }
 }
 /*
- * Set the button mask image.
+ * Set the input mask for the specified address.
  */
-function doBMI(msg)
+function doBIM(msg)
 {
-    var addr = getField(msg, 0, ',');
-    var bts = getField(msg, 1, ',');
-    var img = getField(msg, 2, ',');
+	var addr = getField(msg, 0, ',');
+	var imask = getField(msg, 1, ',');
 
-    iterateButtonStates(addr, bts, cbBMI, img);
-}
-function cbBMI(name, button, bt, idx, img)
-{
-    var sr = button.sr[idx].mi = img;
+	var addrRange = getRange(addr);
 
-    try
-    {
-        // This is needed to be sure the element exists currently.
-        var bsr = document.getElementById(name);
+	for (var i = 0; i < addrRange.length; i++)
+	{
+		var bt = findButtonPort(addrRange[i]);
 
-        if ((button.btype != BUTTONTYPE.BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_GENERAL) &&
-            button.sr.length == 2)	// chameleon image?
-        {
-            if (sr.bm.length > 0)
-                drawButton(makeURL("images/"+img),makeURL("images/"+sr.bm),name,sr.mi_width, sr.mi_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
-            else
-                drawArea(makeURL("images/"+img),name, sr.mi_width, sr.mi_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
-        }
-        else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
-        {
-            if (button.sr[idx+1].bm.length > 0)
+		if (bt.length == 0)
+		{
+			errlog("doBIM: Error: Button "+addrRange[i]+" not found!");
+			continue;
+		}
+
+		for (var b = 0; b < bt.length; b++)
+		{
+			var pgKey = getPage(bt[b].pnum);
+
+            for (var z = 1; z <= bt[b].instances; z++)
             {
-                var lev = getBargraphLevel(bt.pnum, bt.bi);
-                var level = parseInt(100.0 / (button.rh - button.rl) * lev);
-                var dir = true;
+                for (var x = 0; x < pgKey.buttons.length; x++)
+                {
+                    var button = pgKey.buttons[x];
 
-                if (button.dr == "horizontal")
-                    dir = false;
-
-                drawBargraph(makeURL("images/"+img), makeURL("images/"+button.sr[idx+1].bm), name, level, sr.mi_width, sr.mi_height, getAMXColor(button.sr[idx+1].cf), getAMXColor(button.sr[idx+1].cb), dir, true, button);
-            }
-            else
-                drawArea(makeURL("images/"+img), name, sr.mi_width, sr.mi_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
-        }
-    }
-    catch(e)
-    {
-        errlog("cbBMI: Button " + name + " not found!");
-    }
+                    if (button.bID == bt[b].bi && button.btype == BUTTONTYPE.TEXT_INPUT)
+                    {
+						button.im = imask;
+					}
+				}
+			}
+		}
+	}
 }
 /*
  * Set any/all button parameters by sending embedded codes and data.
@@ -2501,6 +2610,100 @@ function cbBMF(name, button, bt, idx, data)
     }
 }
 /*
+ * Set the button mask image.
+ */
+function doBMI(msg)
+{
+    var addr = getField(msg, 0, ',');
+    var bts = getField(msg, 1, ',');
+    var img = getField(msg, 2, ',');
+
+    iterateButtonStates(addr, bts, cbBMI, img);
+}
+function cbBMI(name, button, bt, idx, img)
+{
+    var sr = button.sr[idx].mi = img;
+
+    try
+    {
+        // This is needed to be sure the element exists currently.
+        var bsr = document.getElementById(name);
+
+        if ((button.btype != BUTTONTYPE.BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_BARGRAPH && button.btype != BUTTONTYPE.MULTISTATE_GENERAL) &&
+            button.sr.length == 2)	// chameleon image?
+        {
+            if (sr.bm.length > 0)
+                drawButton(makeURL("images/"+img),makeURL("images/"+sr.bm),name,sr.mi_width, sr.mi_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+            else
+                drawArea(makeURL("images/"+img),name, sr.mi_width, sr.mi_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+        }
+        else if (button.btype == BUTTONTYPE.BARGRAPH && button.sr.length == 2 && sr.mi.length > 0 && idx == 0)
+        {
+            if (button.sr[idx+1].bm.length > 0)
+            {
+                var lev = getBargraphLevel(bt.pnum, bt.bi);
+                var level = parseInt(100.0 / (button.rh - button.rl) * lev);
+                var dir = true;
+
+                if (button.dr == "horizontal")
+                    dir = false;
+
+                drawBargraph(makeURL("images/"+img), makeURL("images/"+button.sr[idx+1].bm), name, level, sr.mi_width, sr.mi_height, getAMXColor(button.sr[idx+1].cf), getAMXColor(button.sr[idx+1].cb), dir, true, button);
+            }
+            else
+                drawArea(makeURL("images/"+img), name, sr.mi_width, sr.mi_height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+        }
+    }
+    catch(e)
+    {
+        errlog("cbBMI: Button " + name + " not found!");
+    }
+}
+/*
+ * Set the maximum length of the text area button.
+ */
+function doBML(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var len = parseInt(getField(msg, 1, ','));
+
+	var addrRange = getRange(addr);
+
+	for (var i = 0; i < addrRange.length; i++)
+	{
+		var bt = findButtonPort(addrRange[i]);
+
+		if (bt.length == 0)
+		{
+			errlog("doBML: Error: Button "+addrRange[i]+" not found!");
+			continue;
+		}
+
+		for (var b = 0; b < bt.length; b++)
+		{
+			var pgKey = getPage(bt[b].pnum);
+
+            for (var z = 1; z <= bt[b].instances; z++)
+            {
+                for (var x = 0; x < pgKey.buttons.length; x++)
+                {
+                    var button = pgKey.buttons[x];
+
+                    if (button.bID == bt[b].bi && button.btype == BUTTONTYPE.TEXT_INPUT && button.im.length == 0)
+                    {
+						if (len > 2000)
+							len = 2000;
+						else if (len < 0)
+							len = 0;
+
+						button.mt = len;
+					}
+				}
+			}
+		}
+	}
+}
+/*
  * Assign a picture to those buttons with a defined addressrange.
  */
 function doBMP(msg)
@@ -2658,6 +2861,47 @@ function cbBRD(name, button, bt, idx, frame)
     }
 }
 /*
+ * Set the focus to the text area.
+ */
+function doBSF(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var selv = getField(msg, 1, ',');
+
+	var addrRange = getRange(addr);
+
+	var bt = findButtonPort(addrRange[0]);
+
+	if (bt.length == 0)
+	{
+		errlog("doBSF: Error: Button "+addrRange[0]+" not found!");
+		return;
+	}
+
+	for (var b = 0; b < bt.length; b++)
+	{
+		var pgKey = getPage(bt[b].pnum);
+
+		for (var x = 0; x < pgKey.buttons.length; x++)
+		{
+			var button = pgKey.buttons[x];
+
+			if (button.bID == bt[b].bi && button.btype == BUTTONTYPE.TEXT_INPUT)
+			{
+				try
+				{
+					document.getElementById('"'+button.bname+'"').focus();
+					break;
+				}
+				catch(e)
+				{
+					errlog("doBSF: Error button "+button.bname+" not found!");
+				}
+			}
+		}
+	}
+}
+/*
  * Set the button size and position.
  */
 function doBSP(msg)
@@ -2706,6 +2950,80 @@ function doBSP(msg)
             }
         }
     }
+}
+/*
+ * Submit text for text area buttons.
+ */
+function doBSM(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var addrRange = getRange(addr);
+
+    for (var i = 0; i < addrRange.length; i++)
+    {
+        var bt = findButtonPort(addrRange[i]);
+
+        if (bt.length == 0)
+        {
+            errlog('doBSM: Error button ' + addrRange[i] + ' not found!');
+            continue;
+        }
+
+        for (var b = 0; b < bt.length; b++)
+        {
+			var pgKey = getPage(bt[b].pnum);
+
+			for (var j = 0; j < pgKey.buttons.length; j++)
+			{
+				var button = pgKey.buttons[j];
+
+				if (button.bID == bt[b].bi)
+				{
+					try
+					{
+						var txt = document.getElementById('"'+button.bname+"'").value;
+						sendString(button.ap, button.ad, txt);
+					}
+					catch(e)
+					{
+						errlog("doBSM: Error at button "+button.bname+": "+e);
+					}
+				}
+			}
+		}
+	}
+}
+/*
+ * Set the sound played when a button is pressed.
+ */
+function doBSO(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+	var sound = getField(msg, 2, ',');
+
+	iterateButtonStates(addr, bts, cbBSO, sound);
+}
+function cbBSO(name, button, bt, idx, sound)
+{
+	if (soundExist(sound))
+		button.sr[idx].sd = sound;
+}
+/*
+ * Set the button word wrap feature to those buttons
+ * with a defined address range.
+ */
+function doBWW(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+	var ww = getField(msg, 2, ',');
+
+	iterateButtonStates(addr, bts, cdBWW, ww);
+}
+function cbBWW(name, button, bt, idx, ww)
+{
+	button.sr[idx].ww = (ww == 0 ? 0 : 1);
 }
 /*
  * Clear all page flips from a button.
@@ -2760,6 +3078,69 @@ function doCPF(msg)
             }
         }
     }
+}
+/*
+ * Delete page flips from button if it already exists.
+ */
+function doDPF(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var action = getField(msg, 1, ',');
+	var pname = getField(msg, 2, ',');
+
+	var addrRange = getRange(addr);
+
+	for (var i in addrRange)
+	{
+		findPopupName()
+		var bt = findButton(addrRange[i]);
+
+		for (var j in bt)
+		{
+			var page = getPage(bt[j].pnum);
+			
+			if (page.name == pname)
+			{
+				for (var x in page.buttons)
+				{
+					var button = page.buttons[x];
+
+					if (button.bID = addrRange[i])
+					{
+						if (action.toLowerCase() == "stan")			// Flip to standard page
+							_delPageFlip(button, "stan");
+						if (action.toLowerCase() == "prev")			// Flip to previous page
+							_delPageFlip(button, "prev");
+						if (action.toLowerCase() == "show")			// Show popup page
+							_delPageFlip(button, "sShow")
+						else if (action.toLowerCase() == "hide")	// Hide popup page
+							_delPageFlip(button, "sHide")
+						else if (action.toLowerCase() == "togg")	// Toggle popup state
+							_delPageFlip(button, "sToggle")
+						else if (action.toLowerCase() == "clearg")	// Clear popup page group from all pages
+							_delPageFlip(button, "scGroup")
+						else if (action.toLowerCase() == "clearp")	// Clear all popup pages from a page with the specified page name
+							_delPageFlip(button, "scPage")
+						else if (action.toLowerCase() == "cleara")	// Clear all popup pages from all pages
+							_delPageFlip(button, "scPanel")
+					}
+				}
+			}
+		}
+	}
+}
+function _delPageFlip(but, name)
+{
+	for (var a in but.pf)
+	{
+		var pf = but.pf[a];
+
+		if (pf.pfType == name)
+		{
+			but.pf.splice(a, 1);
+			break;
+		}
+	}
 }
 /*
  * Enable or disable buttons with a set variable text range.
@@ -2818,6 +3199,156 @@ function cbFON(name, button, bt, idx, fID)
 	catch(e)
 	{
 		errlog('cbFON: Button '+name+' not found.');
+	}
+}
+/*
+ * Change the bargraph drag increment
+ */
+function doGDI(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var inc = getField(msg, 1, ',');
+
+	var addrRange = getRange(addr);
+
+	for (var i in addrRange)
+	{
+		var bt = findBargraphs(addrRange[i]);
+
+		for (var j in bt)
+		{
+			var button = getButton(bt[j].pnum, bt[j].bi);
+
+			if (button === null)
+				continue;
+
+			button.rn = inc;
+		}
+	}
+}
+/*
+ * Change the bargraph upper limit.
+ */
+function doGLH(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var limit = getField(msg, 1, ',');
+
+	var addrRange = getRange(addr);
+
+	for (var i in addrRange)
+	{
+		var bt = findBargraphs(addrRange[i]);
+
+		for (var j in bt)
+		{
+			var button = getButton(bt[j].pnum, bt[j].bi);
+
+			if (button === null)
+				continue;
+
+			button.rh = limit;
+		}
+	}
+}
+/*
+ * Change the bargraph lower limit.
+ */
+function doGLL(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var limit = getField(msg, 1, ',');
+
+	var addrRange = getRange(addr);
+
+	for (var i in addrRange)
+	{
+		var bt = findBargraphs(addrRange[i]);
+
+		for (var j in bt)
+		{
+			var button = getButton(bt[j].pnum, bt[j].bi);
+
+			if (button === null)
+				continue;
+
+			button.rl = limit;
+		}
+	}
+}
+/*
+ * Change the bargraph ramp-down time in 1/10th of a second.
+ */
+function doGRD(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var limit = getField(msg, 1, ',');
+
+	var addrRange = getRange(addr);
+
+	for (var i in addrRange)
+	{
+		var bt = findBargraphs(addrRange[i]);
+
+		for (var j in bt)
+		{
+			var button = getButton(bt[j].pnum, bt[j].bi);
+
+			if (button === null)
+				continue;
+
+			button.rd = limit;
+		}
+	}
+}
+/*
+ * Change the bargraph ramp-up time in 1/10th of a second.
+ */
+function doGRU(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var limit = getField(msg, 1, ',');
+
+	var addrRange = getRange(addr);
+
+	for (var i in addrRange)
+	{
+		var bt = findBargraphs(addrRange[i]);
+
+		for (var j in bt)
+		{
+			var button = getButton(bt[j].pnum, bt[j].bi);
+
+			if (button === null)
+				continue;
+
+			button.ru = limit;
+		}
+	}
+}
+/*
+ * Change the bargraph slider color or joystick cursor color.
+ */
+function doGSC(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var color = getField(msg, 1, ',');
+
+	var addrRange = getRange(addr);
+
+	for (var i in addrRange)
+	{
+		var bt = findBargraphs(addrRange[i]);
+
+		for (var j in bt)
+		{
+			var button = getButton(bt[j].pnum, bt[j].bi);
+
+			if (button === null)
+				continue;
+
+			button.sc = color;
+		}
 	}
 }
 /*
@@ -3406,6 +3937,239 @@ function doSHO(msg)
     }
 }
 /*
+ * Set the text effect color for the specified addresses/states
+ * to the specified color.
+ */
+function doTEC(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+	var color = getField(msg, 2, ',');
+
+	iterateButtonStates(addr, bts, cbTEC, color);
+}
+function cbTEC(name, button, bt, idx, color)
+{
+	button.sr[idx].ec = color;
+
+	if (button.sr[idx].et > 0)
+		cbTEF(name, button, bt, idx, button.sr[idx].et);
+}
+/*
+ * Set the text effect.
+ */
+function doTEF(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+	var effect = getField(msg, 2, ',');
+
+	var tef = 0;
+
+	if (effect == "Outline-S")
+		tef = 1;
+	else if (effect == "Outline-M")
+		tef = 2;
+	else if (effect == "Outline-L")
+		tef = 3;
+	else if (effect == "Outline-X")
+		tef = 4;
+	else if (effect == "Glow-S")
+		tef = 5;
+	else if (effect == "Glow-M")
+		tef = 6;
+	else if (effect == "Glow-L")
+		tef = 7;
+	else if (effect == "Glow-X")
+		tef = 8;
+	else if (effect == "Soft Drop Shadow 1")
+		tef = 9;
+	else if (effect == "Soft Drop Shadow 2")
+		tef = 10;
+	else if (effect == "Soft Drop Shadow 3")
+		tef = 11;
+	else if (effect == "Soft Drop Shadow 4")
+		tef = 12;
+	else if (effect == "Soft Drop Shadow 5")
+		tef = 13;
+	else if (effect == "Soft Drop Shadow 6")
+		tef = 14;
+	else if (effect == "Soft Drop Shadow 7")
+		tef = 15;
+	else if (effect == "Soft Drop Shadow 8")
+		tef = 16;
+	else if (effect == "Medium Drop Shadow 1")
+		tef = 17;
+	else if (effect == "Medium Drop Shadow 2")
+		tef = 18;
+	else if (effect == "Medium Drop Shadow 3")
+		tef = 19;
+	else if (effect == "Medium Drop Shadow 4")
+		tef = 20;
+	else if (effect == "Medium Drop Shadow 5")
+		tef = 21;
+	else if (effect == "Medium Drop Shadow 6")
+		tef = 22;
+	else if (effect == "Medium Drop Shadow 7")
+		tef = 23;
+	else if (effect == "Medium Drop Shadow 8")
+		tef = 24;
+	else if (effect == "Hard Drop Shadow 1")
+		tef = 25;
+	else if (effect == "Hard Drop Shadow 2")
+		tef = 26;
+	else if (effect == "Hard Drop Shadow 3")
+		tef = 27;
+	else if (effect == "Hard Drop Shadow 4")
+		tef = 28;
+	else if (effect == "Hard Drop Shadow 5")
+		tef = 29;
+	else if (effect == "Hard Drop Shadow 6")
+		tef = 30;
+	else if (effect == "Hard Drop Shadow 7")
+		tef = 31;
+	else if (effect == "Hard Drop Shadow 8")
+		tef = 32;
+	else if (effect == "Soft Drop Shadow 1 with outline")
+		tef = 33;
+	else if (effect == "Soft Drop Shadow 2 with outline")
+		tef = 34;
+	else if (effect == "Soft Drop Shadow 3 with outline")
+		tef = 35;
+	else if (effect == "Soft Drop Shadow 4 with outline")
+		tef = 36;
+	else if (effect == "Soft Drop Shadow 5 with outline")
+		tef = 37;
+	else if (effect == "Soft Drop Shadow 6 with outline")
+		tef = 38;
+	else if (effect == "Soft Drop Shadow 7 with outline")
+		tef = 39;
+	else if (effect == "Soft Drop Shadow 8 with outline")
+		tef = 40;
+	else if (effect == "Medium Drop Shadow 1 with outline")
+		tef = 41;
+	else if (effect == "Medium Drop Shadow 2 with outline")
+		tef = 42;
+	else if (effect == "Medium Drop Shadow 3 with outline")
+		tef = 43;
+	else if (effect == "Medium Drop Shadow 4 with outline")
+		tef = 44;
+	else if (effect == "Medium Drop Shadow 5 with outline")
+		tef = 45;
+	else if (effect == "Medium Drop Shadow 6 with outline")
+		tef = 46;
+	else if (effect == "Medium Drop Shadow 7 with outline")
+		tef = 47;
+	else if (effect == "Medium Drop Shadow 8 with outline")
+		tef = 48;
+	else if (effect == "Hard Drop Shadow 1 with outline")
+		tef = 49;
+	else if (effect == "Hard Drop Shadow 2 with outline")
+		tef = 50;
+	else if (effect == "Hard Drop Shadow 3 with outline")
+		tef = 51;
+	else if (effect == "Hard Drop Shadow 4 with outline")
+		tef = 52;
+	else if (effect == "Hard Drop Shadow 5 with outline")
+		tef = 53;
+	else if (effect == "Hard Drop Shadow 6 with outline")
+		tef = 54;
+	else if (effect == "Hard Drop Shadow 7 with outline")
+		tef = 55;
+	else if (effect == "Hard Drop Shadow 8 with outline")
+		tef = 56;
+debug("doTEF: Found effect: "+tef);
+
+	iterateButtonStates(addr, bts, cbTEF, tef);
+}
+function cbTEF(name, button, bt, idx, effect)
+{
+	button.sr[idx].et = effect;
+	var tef = "";
+
+	switch(effect)
+	{
+		case 0: tef = ""; break;
+		// Outline
+		case 1: tef = "-1px -1px "+getWebColor(button.sr[idx].ec)+",1px -1px "+getWebColor(button.sr[idx].ec)+",1px -1px "+getWebColor(button.sr[idx].ec)+",1px 1px "+getWebColor(button.sr[idx].ec); break;
+		case 2: tef = "-2px -2px "+getWebColor(button.sr[idx].ec)+",2px -2px "+getWebColor(button.sr[idx].ec)+",2px -2px "+getWebColor(button.sr[idx].ec)+",2px 2px "+getWebColor(button.sr[idx].ec); break;
+		case 3: tef = "-3px -3px "+getWebColor(button.sr[idx].ec)+",3px -3px "+getWebColor(button.sr[idx].ec)+",3px -3px "+getWebColor(button.sr[idx].ec)+",3px 3px "+getWebColor(button.sr[idx].ec); break;
+		case 4: tef = "-4px -4px "+getWebColor(button.sr[idx].ec)+",4px -4px "+getWebColor(button.sr[idx].ec)+",4px -4px "+getWebColor(button.sr[idx].ec)+",4px 4px "+getWebColor(button.sr[idx].ec); break;
+		// Glow
+		case 5: tef = "0px 0px 1px "+getWebColor(button.sr[idx].ec); break;
+		case 6: tef = "0px 0px 2px "+getWebColor(button.sr[idx].ec); break;
+		case 7: tef = "0px 0px 3px "+getWebColor(button.sr[idx].ec); break;
+		case 8: tef = "0px 0px 4px "+getWebColor(button.sr[idx].ec); break;
+		// Soft Drop Shadow
+		case 9: tef = "1px 1px 1px "+getWebColor(button.sr[idx].ec); break;
+		case 10: tef = "1px 1px 2px "+getWebColor(button.sr[idx].ec); break;
+		case 11: tef = "1px 1px 3px "+getWebColor(button.sr[idx].ec); break;
+		case 12: tef = "1px 1px 4px "+getWebColor(button.sr[idx].ec); break;
+		case 13: tef = "1px 1px 5px "+getWebColor(button.sr[idx].ec); break;
+		case 14: tef = "1px 1px 6px "+getWebColor(button.sr[idx].ec); break;
+		case 15: tef = "1px 1px 7px "+getWebColor(button.sr[idx].ec); break;
+		case 16: tef = "1px 1px 8px "+getWebColor(button.sr[idx].ec); break;
+		// Medium Drop Shadow
+		case 17: tef = "2px 2px 1px "+getWebColor(button.sr[idx].ec); break;
+		case 18: tef = "2px 2px 2px "+getWebColor(button.sr[idx].ec); break;
+		case 19: tef = "2px 2px 3px "+getWebColor(button.sr[idx].ec); break;
+		case 20: tef = "2px 2px 4px "+getWebColor(button.sr[idx].ec); break;
+		case 21: tef = "2px 2px 5px "+getWebColor(button.sr[idx].ec); break;
+		case 22: tef = "2px 2px 6px "+getWebColor(button.sr[idx].ec); break;
+		case 23: tef = "2px 2px 7px "+getWebColor(button.sr[idx].ec); break;
+		case 24: tef = "2px 2px 8px "+getWebColor(button.sr[idx].ec); break;
+		// Hard Drop Shadow
+		case 25: tef = "3px 3px 1px "+getWebColor(button.sr[idx].ec); break;
+		case 26: tef = "3px 3px 2px "+getWebColor(button.sr[idx].ec); break;
+		case 27: tef = "3px 3px 3px "+getWebColor(button.sr[idx].ec); break;
+		case 28: tef = "3px 3px 4px "+getWebColor(button.sr[idx].ec); break;
+		case 29: tef = "3px 3px 5px "+getWebColor(button.sr[idx].ec); break;
+		case 30: tef = "3px 3px 6px "+getWebColor(button.sr[idx].ec); break;
+		case 31: tef = "3px 3px 7px "+getWebColor(button.sr[idx].ec); break;
+		case 32: tef = "3px 3px 8px "+getWebColor(button.sr[idx].ec); break;
+		// Soft Drop Shadow with outline
+		case 33: tef = "-1px -1px 1px "+getWebColor(button.sr[idx].ec)+",1px 1px 1px "+getWebColor(button.sr[idx].ec); break;
+		case 34: tef = "-1px -1px 2px "+getWebColor(button.sr[idx].ec)+",1px 1px 2px "+getWebColor(button.sr[idx].ec); break;
+		case 35: tef = "-1px -1px 3px "+getWebColor(button.sr[idx].ec)+",1px 1px 3px "+getWebColor(button.sr[idx].ec); break;
+		case 36: tef = "-1px -1px 4px "+getWebColor(button.sr[idx].ec)+",1px 1px 4px "+getWebColor(button.sr[idx].ec); break;
+		case 37: tef = "-1px -1px 5px "+getWebColor(button.sr[idx].ec)+",1px 1px 5px "+getWebColor(button.sr[idx].ec); break;
+		case 38: tef = "-1px -1px 6px "+getWebColor(button.sr[idx].ec)+",1px 1px 6px "+getWebColor(button.sr[idx].ec); break;
+		case 39: tef = "-1px -1px 7px "+getWebColor(button.sr[idx].ec)+",1px 1px 7px "+getWebColor(button.sr[idx].ec); break;
+		case 40: tef = "-1px -1px 8px "+getWebColor(button.sr[idx].ec)+",1px 1px 8px "+getWebColor(button.sr[idx].ec); break;
+		// Medium Drop Shadow with outline
+		case 41: tef = "-2px -2px 1px "+getWebColor(button.sr[idx].ec)+",2px 2px 1px "+getWebColor(button.sr[idx].ec); break;
+		case 42: tef = "-2px -2px 2px "+getWebColor(button.sr[idx].ec)+",2px 2px 2px "+getWebColor(button.sr[idx].ec); break;
+		case 43: tef = "-2px -2px 3px "+getWebColor(button.sr[idx].ec)+",2px 2px 3px "+getWebColor(button.sr[idx].ec); break;
+		case 44: tef = "-2px -2px 4px "+getWebColor(button.sr[idx].ec)+",2px 2px 4px "+getWebColor(button.sr[idx].ec); break;
+		case 45: tef = "-2px -2px 5px "+getWebColor(button.sr[idx].ec)+",2px 2px 5px "+getWebColor(button.sr[idx].ec); break;
+		case 46: tef = "-2px -2px 6px "+getWebColor(button.sr[idx].ec)+",2px 2px 6px "+getWebColor(button.sr[idx].ec); break;
+		case 47: tef = "-2px -2px 7px "+getWebColor(button.sr[idx].ec)+",2px 2px 7px "+getWebColor(button.sr[idx].ec); break;
+		case 48: tef = "-2px -2px 8px "+getWebColor(button.sr[idx].ec)+",2px 2px 8px "+getWebColor(button.sr[idx].ec); break;
+		// Hard Drop Shadow with outline
+		case 49: tef = "-3px -3px 1px "+getWebColor(button.sr[idx].ec)+",3px 3px 1px "+getWebColor(button.sr[idx].ec); break;
+		case 50: tef = "-3px -3px 2px "+getWebColor(button.sr[idx].ec)+",3px 3px 2px "+getWebColor(button.sr[idx].ec); break;
+		case 51: tef = "-3px -3px 3px "+getWebColor(button.sr[idx].ec)+",3px 3px 3px "+getWebColor(button.sr[idx].ec); break;
+		case 52: tef = "-3px -3px 4px "+getWebColor(button.sr[idx].ec)+",3px 3px 4px "+getWebColor(button.sr[idx].ec); break;
+		case 53: tef = "-3px -3px 5px "+getWebColor(button.sr[idx].ec)+",3px 3px 5px "+getWebColor(button.sr[idx].ec); break;
+		case 54: tef = "-3px -3px 6px "+getWebColor(button.sr[idx].ec)+",3px 3px 6px "+getWebColor(button.sr[idx].ec); break;
+		case 55: tef = "-3px -3px 7px "+getWebColor(button.sr[idx].ec)+",3px 3px 7px "+getWebColor(button.sr[idx].ec); break;
+		case 56: tef = "-3px -3px 8px "+getWebColor(button.sr[idx].ec)+",3px 3px 8px "+getWebColor(button.sr[idx].ec); break;
+	}
+
+	try
+	{
+		debug ("cbTEF: Try to set "+tef);
+		if (button.btype == BUTTONTYPE.TEXT_INPUT)
+			document.getElementById('"'+button.bname+'"').style.textShadow = tef;
+		else
+        	document.getElementById(name + '_font').style.textShadow = tef;
+	}
+    catch (e)
+    {
+        errlog("cbTEF: No parent of name " + name + " found!");
+    }
+}
+/*
  * Assign a text string to those buttons with a defined address range.
  */
 function doTXT(msg)
@@ -3423,7 +4187,10 @@ function cbTXT(name, button, bt, idx, text)
 
     try
     {
-        document.getElementById(name + '_font').innerHTML = text;
+		if (button.btype == BUTTONTYPE.TEXT_INPUT)
+			document.getElementById('"'+button.bname+'"').value = text;
+		else
+        	document.getElementById(name + '_font').innerHTML = text;
     }
     catch (e)
     {

@@ -244,13 +244,14 @@ namespace amx
 		std::string ct;			// Text Color
 		std::string ec;			// Text effect color
 		std::string bm;			// bitmap file name
+		std::string sd;			// Sound file to play
 		int bm_width;			// Width of image
 		int bm_height;			// Height of image
 		bool dynamic;			// TRUE = moving image
 		int sb;					// Index to external graphics download
 		int ii;					// Icon index number
 		int ji;					// Icon style / position like "jt"
-		int jb;
+		int jb;					// Image position (center, left, ...)
 		int ix;					// bitmap X position
 		int iy;					// bitmap Y position
 		int fi;					// Font index?
@@ -273,6 +274,7 @@ namespace amx
 			ct.clear();
 			ec.clear();
 			bm.clear();
+			sd.clear();
 			dynamic = false;
 			ii = 0;
 			sb = 0;
@@ -328,15 +330,16 @@ namespace amx
 	typedef struct BUTTON
 	{
 		BUTTONTYPE type;
-		int bi;                	// button ID
-		std::string na;		// name
+		int bi;					// button ID
+		std::string na;			// name
+		std::string bd;			// Description --> ignored
 		int lt;					// pixel from left
 		int tp;					// pixel from top
-		int wt;                	// width
-		int ht;                	// height
-		int zo;                	// Z-Order
-		std::string hs;    	// bounding, ...
-		std::string bs;    	// Frame type (circle, ...)
+		int wt;					// width
+		int ht;					// height
+		int zo;					// Z-Order
+		std::string hs;			// bounding, ...
+		std::string bs;			// Frame type (circle, ...)
 		FEEDBACK fb;			// momentary, ...
 		int ap;					// Address port
 		int ad;					// Address channel
@@ -344,25 +347,36 @@ namespace amx
 		int cp;					// Channel port
 		int lp;					// Level port
 		int lv;					// Level code
-		std::string dr;		// Level "horizontal" or "vertical"
+		std::string dr;			// Level "horizontal" or "vertical"
 		int va;
 		int stateCount;			// State count with multistate buttons
 		int rm;					// State count with multistate buttons?
 		int nu;					// Animate time up
 		int nd;					// Animate time down
 		int ar;					// Auto repeat (1 = true)
-		int ru;					// Animate time up (again)
-		int rd;					// Animate time down (again)
+		int ru;					// Animate time up (bargraph)
+		int rd;					// Animate time down (bargraph)
+		int lu;					// Animate time up (Bargraph)
+		int ld;					// Animate time down (Bargraph)
 		int rv;
 		int rl;					// Range low
 		int rh;					// Range high
-		std::string op;		// String the button send
+		int ri;					// Bargraph inverted (0 = normal, 1 = inverted)
+		int rn;					// Bargraph: Range drag increment
+		std::string _if;		// Bargraph function: empty = display only, active, active centering, drag, drag centering
+		std::string sd;			// Name/Type of slider for a bargraph
+		std::string sc;			// Color of slider (for bargraph)
+		int mt;					// Length of text area (0 = 2000)
+		std::string dt;			// "multiple" textarea has multiple lines, else single line
+		std::string im;			// Input mask of a text area
+		std::string op;			// String the button send
 		std::vector<PUSH_FUNC_T> pushFunc;	// Push functions: This are executed on button press
 		std::vector<SR_T> sr;
 
 		void clear()
 		{
 			bi = 0;
+			bd.clear();
 			na.clear();
 			lt = 0;
 			tp = 0;
@@ -389,6 +403,17 @@ namespace amx
 			ar = 0;
 			ru = 0;
 			rd = 0;
+			lu = 0;
+			ld = 0;
+			rn = 0;
+			ri = 0;
+			mt = 0;
+			sd.clear();
+			sc.clear();
+			dt.clear();
+			im.clear();
+			op.clear();
+			_if.clear();
 			pushFunc.clear();
 			sr.clear();
 		}
@@ -435,32 +460,39 @@ namespace amx
 		std::vector<SR_T> sr;				// Page/Popup description
 	}PAGE_T;
 
-    typedef struct MAP
-    {
-        int p;              // port number
-        int c;              // channel number
-        int ax;
-        int pg;             // page number
-        int bt;             // button number
-        std::string pn; // page name
-        std::string bn; // button name
-    }MAP_T;
+	typedef struct MAP
+	{
+		int p;			// port number
+		int c;			// channel number
+		int ax;
+		int pg;			// page number
+		int bt;			// button number
+		std::string pn;	// page name
+		std::string bn;	// button name
+	}MAP_T;
 
-    // Images
-    typedef struct MAP_BM
-    {
-        std::string i;  // name
-        int id;
-    }MAP_BM_T;
+	// Images
+	typedef struct MAP_BM
+	{
+		std::string i;	// name
+		int id;
+		int rt;
+		int pg;
+		int bt;
+		int st;
+		int sl;
+		std::string pn;
+		std::string bn;
+	}MAP_BM_T;
 
     typedef struct MAP_PM
     {
         int a;
-        std::string t;  // Text
-        int pg;             // page number
-        int bt;             // button number
-        std::string pn; // page name
-        std::string bn; // button name
+        std::string t;	// Text
+        int pg;			// page number
+        int bt;			// button number
+        std::string pn;	// page name
+        std::string bn;	// button name
     }MAP_PM_T;
 
     typedef struct MAPS

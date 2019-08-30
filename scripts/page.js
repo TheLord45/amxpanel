@@ -161,6 +161,7 @@ var EVENT_UP = "pointerup";
 var EVENT_MOVE = "pointermove";
 
 var __dropPageTimers = [];		// Page timers which are marked for drop --> { "name":"<name>","id":<id>}
+var __lastPage = "";			// The previous visible page
 
 function isSystemReserved(channel)
 {
@@ -461,6 +462,13 @@ function onOffline()
 	}
 	else
 		setOnlineStatus(0);
+}
+function processKey(button, idx, inp)
+{
+	button.sr[idx].te = inp.value;
+
+	if (button.btype == BUTTONTYPE.TEXT_INPUT && button.dt != "multiple")	// single line
+		sendString(button.ap, button.ad, inp.value);
 }
 /*
  * Gets the x/y coordinates of the mouse click and finds the pixel
@@ -1038,6 +1046,28 @@ function doDraw(pgKey, pageID, what)
 						bt.addEventListener(EVENT_UP, hidePopup.bind(null, pf.pfName));
 					else if (pf.pfType == "scGroup")	// hide group
 						bt.addEventListener(EVENT_UP, hideGroup.bind(null, pf.pfName));
+					else if (pf.pfType == "Stan")		// Flip to standard page
+						bt.addEventListener(EVENT_UP, showPage.bind(null, pageName));
+					else if (pf.pfType == "Prev" && __lastPage.length > 0)		// Flip to previous page
+						bt.addEventListener(EVENT_UP, showPage.bind(null, __lastPage));
+					else if (pf.pfType == "sToggle")	// Toggle popup state
+					{
+						var pfName = pf.pfName;
+						bt.addEventListener(EVENT_UP, function(pfName) {
+							for (var i in Popups.pages)
+							{
+								if (Popups.pages[i].name == pfName)
+								{
+									if (Popups.pages[i].active)
+										hidePopup(pfName);
+									else
+										showPopup(pfName);
+
+									break;
+								}
+							}
+						})
+					}
 				}
 			}
 
@@ -1331,7 +1361,32 @@ function doDraw(pgKey, pageID, what)
 						break;
 					}
 
-					if (sr.te.length > 0)
+					if (button.btype == BUTTONTYPE.TEXT_INPUT)
+					{
+						var inp = null;
+						
+						if (button.dt == "multiple")	// textarea
+							inp = createElement("textarea");
+						else
+						{
+							document.createElement("input");
+							inp.type = "text";
+						}
+
+						inp.id = '"'+button.bname+'"';
+
+						if (button.mt == 0)
+							inp.maxlength = 2000;
+						else
+							inp.maxLength = button.mt;
+
+						inp.value = sr.te;
+						inp.autocomplete = "off";
+						inp.addEventListener("blur", processKey.bind(null, button, idx, inp), false);
+						// Add pattern for mask here, if there is a mask specified.
+						fnt.appendChild(inp);
+					}
+					else if (sr.te.length > 0)
 						fnt.innerHTML = sr.te;
 				}
 
@@ -1423,19 +1478,18 @@ function setShowAnimation(pname)
 		break;
 
 		case 3:		// Slide right
-			page.style.transition = (pgKey.showTime / 10.0) + "s ease";
-			style = "from { transform: translate("+totalWidth+"px); }";
-			style += "to { transform: translate("+pgKey.left+"px); }";
+			style = "from { transform: translate("+(totalWidth-pgKey.left)+"px); }";
+			style += "to { transform: translate(0px); }";
 		break;
 
 		case 4:		// Slide top
-			style = "from { transform: translateY(-"+pgKey.height+"px); }";
-			style += "to { transform: translateY("+pgKey.top+"px); }";
+			style = "from { transform: translateY(-"+(pgKey.top+pgKey.height)+"px); }";
+			style += "to { transform: translateY(0px); }";
 		break;
 		
 		case 5:		// Slide bottom
 			style = "from { transform: translateY("+totalHeight+"px); }";
-			style += "to { transform: translateY("+pgKey.top+"px); }";
+			style += "to { transform: translateY(0px); }";
 		break;
 		
 		case 6:		// Slide left fade
@@ -1444,18 +1498,18 @@ function setShowAnimation(pname)
 		break;
 
 		case 7:		// Slide right fade
-			style = "from { transform: translate("+totalWidth+"px); opacity: 0; }";
-			style += "to { transform: translate("+pgKey.left+"px); opacity: 1; }";
+			style = "from { transform: translate("+pgKey.width+"px); opacity: 0; }";
+			style += "to { transform: translate(0px); opacity: 1; }";
 		break;
 
 		case 8:		// Slide top fade
-			style = "from { transform: translateY(-"+pgKey.height+"px); opacity: 0; }";
+			style = "from { transform: translateY(-"+(pgKey.top+pgKey.height)+"px); opacity: 0; }";
 			style += "to { transform: translateY("+pgKey.top+"px); opacity: 1; }";
 		break;
 
 		case 9:		// Slide bottom fade
 			style = "from { transform: translateY("+totalHeight+"px); opacity: 0; }";
-			style += "to { transform: translateY("+pgKey.top+"px); opacity: 1; }";
+			style += "to { transform: translateY(0px); opacity: 1; }";
 		break;
 	}
 
@@ -1493,7 +1547,7 @@ function setHideAnimation(pname)
 
 	var style = "";
 
-	switch(pgKey.showEffect)
+	switch(pgKey.hideEffect)
 	{
 		case 1: 	// Fade
 			style = "from { opacity: 1; }"
@@ -1506,19 +1560,18 @@ function setHideAnimation(pname)
 		break;
 		
 		case 3:		// Slide right
-			page.style.transition = (pgKey.hideTime / 10.0) + "s ease";
-			style = "from { transform: translate("+pgKey.left+"px); }";
-			style += "to { transform: translate("+totalWidth+"px); }";
+			style = "from { transform: translate(0px); }";
+			style += "to { transform: translate("+(totalWidth-pgKey.left)+"px); }";
 		break;
 		
 		case 4:		// Slide top
-			style = "from { transform: translate("+pgKey.left+"px, "+pgKey.top+"px); }";
-			style += "to { transform: translate("+pgKey.left+"px, -"+pgKey.height+"px); }";
+			style = "from { transform: translateY(0px); }";
+			style += "to { transform: translateY("+(pgKey.top+pgKey.height)+"px); }";
 		break;
 		
 		case 5:		// Slide bottom
-			style = "from { transform: translate("+pgKey.left+"px, "+pgKey.top+"px); }";
-			style += "to { transform: translate("+pgKey.left+"px, "+totalHeight+"px); }";
+			style = "from { transform: translateY(0px); }";
+			style += "to { transform: translateY("+totalHeight+"px); }";
 		break;
 		
 		case 6:		// Slide left fade
@@ -1527,18 +1580,18 @@ function setHideAnimation(pname)
 		break;
 
 		case 7:		// Slide right fade
-			style = "from { transform: translate("+pgKey.left+"px); opacity: 1; }";
-			style += "to { transform: translate("+totalWidth+"px); opacity: 0; }";
+			style = "from { transform: translate(0px); opacity: 1; }";
+			style += "to { transform: translate("+(totalWidth-pgKey.left)+"px); opacity: 0; }";
 		break;
 
 		case 8:		// Slide top fade
-			style = "from { transform: translate("+pgKey.left+"px, "+pgKey.top+"px); opacity: 1; }";
-			style += "to { transform: translate("+pgKey.left+"px, -"+pgKey.height+"px); opacity: 0; }";
+			style = "from { transform: translateY(0px); opacity: 1; }";
+			style += "to { transform: translateY("+(pgKey.top+pgKey.height)+"px); opacity: 0; }";
 		break;
 
 		case 9:		// Slide bottom fade
-			style = "from { transform: translate("+pgKey.left+"px, "+pgKey.top+"px); opacity: 1; }";
-			style += "to { transform: translate("+pgKey.left+"px, "+totalHeight+"px); opacity: 0; }";
+			style = "from { transform: translateY(0px); opacity: 1; }";
+			style += "to { transform: translateY("+totalHeight+"px); opacity: 0; }";
 		break;
 	}
 

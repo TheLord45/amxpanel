@@ -82,9 +82,6 @@ string PushButton::getStyle()
 		style += "  width: "+to_string(button.wt)+"px;\n";
 		style += "  height: "+to_string(button.ht)+"px;\n";
 
-//		if (button.zo > 0)
-//			style += String("  z-index: ")+button.zo+";\n";
-
 		if (Str::caseCompare(button.hs, "bounding") == 0)
 			style += "  overflow: hidden;\n";
 
@@ -96,20 +93,7 @@ string PushButton::getStyle()
 		else
 			style += "  border: none;\n";
 
-/*		if (hasChameleon)	// Chameleon image?
-		{
-			String fname = createChameleonImage(Configuration->getHTTProot()+"/images/"+button.sr[i].mi, Configuration->getHTTProot()+"/images/"+button.sr[i].bm, pal.getColor(button.sr[i].cf), pal.getColor(button.sr[i].cb));
-
-			if (!fname.empty())
-				style += String("  background-image: url(")+fname+");\n";
-			else
-			{
-				style += String("  background-image: url(images/")+NameFormat::toURL(button.sr[i].mi)+"), ";
-				style += String("url(images/")+NameFormat::toURL(button.sr[i].bm)+");\n";
-				style += "  background-blend-mode: screen;\n";
-			}
-		}
-		else */if (!hasChameleon && button.sr[i].bm.length() && button.type != BARGRAPH)
+		if (!hasChameleon && button.sr[i].bm.length() && button.type != BARGRAPH)
 		{
 			style += "  background-image: url(images/"+NameFormat::toURL(button.sr[i].bm)+");\n";
 			style += "  background-repeat: no-repeat;\n";
@@ -129,60 +113,6 @@ string PushButton::getStyle()
 		style += "}\n";
 
 		FONT_T font = fontClass->findFont(button.sr[i].fi);
-
-/*		if (font.number == button.sr[i].fi)
-		{
-			if (button.ap == 0 && isSystemReserved(button.ad))
-				style += String(".")+btName+button.sr[i].number+"_font {\n";
-			else
-				style += String(".Page_")+pageID+"_"+btName+"_"+button.sr[i].number+"_font {\n";
-
-			if (!button.sr[i].bs.empty())
-			{
-				style += getBorderStyle(button.sr[i].bs);
-				style += "  border-color: rgba(0, 0, 0, 0);\n";
-			}
-			else
-				style += "  border: none;\n";
-
-			style += "  position: absolute;\n";
-
-			if (button.sr[i].jt != ORI_ABSOLUT)
-			{
-				style += String("  left: 0px;\n");
-				style += String("  top: 0px;\n");
-			}
-
-			style += String("  width: ")+button.wt+"px;\n";
-			style += String("  height: ")+button.ht+"px;\n";
-			style += String("  font-family: \"")+font.name+"\";\n";
-			style += String("  font-size: ")+String(font.size)+"pt;\n";
-			style += String("  font-style: ")+fontClass->getFontStyle(font.subfamilyName)+";\n";
-			style += String("  font-weight: ")+fontClass->getFontWeight(font.subfamilyName)+";\n";
-
-//			if (!button.sr[i].ww && (button.sr[i].jt == ORI_CENTER_LEFT || button.sr[i].jt == ORI_CENTER_MIDDLE || button.sr[i].jt == ORI_CENTER_RIGHT))
-//				style += String("  line-height: ")+button.ht+"px;\n";
-
-			switch(button.sr[i].jt)
-			{
-				case ORI_ABSOLUT:
-					style += String("  left: ")+button.sr[i].tx+"px;\n";
-					style += String("  top: ")+button.sr[i].ty+"px;\n";
-				break;
-
-				case ORI_TOP_LEFT:		style += "  text-align: left;\n  vertical-align: top;\n"; break;
-				case ORI_TOP_MIDDLE:	style += "  text-align: center;\n  vertical-align: top;\n"; break;
-				case ORI_TOP_RIGHT:		style += "  text-align: right;\n  vertical-align: top;\n"; break;
-				case ORI_CENTER_LEFT:	style += "  text-align: left;\n  vertical-align: middle;\n"; break;
-				case ORI_CENTER_MIDDLE:	style += "  text-align: center;\n  vertical-align: middle;\n"; break;
-				case ORI_CENTER_RIGHT:	style += "  text-align: right;\n  vertical-align: middle;\n"; break;
-				case ORI_BOTTOM_LEFT:	style += "  text-align: left;\n  vertical-align: bottom;\n"; break;
-				case ORI_BOTTOM_MIDDLE:	style += "  text-align: center;\n  vertical-align: bottom;\n"; break;
-				case ORI_BOTTOM_RIGHT:	style += "  text-align: right;\n  vertical-align: bottom;\n"; break;
-			}
-
-			style += "}\n";
-		} */
 	}
 
 	return style;
@@ -270,7 +200,7 @@ string PushButton::getWebCode()
 
 	for (size_t i = 0; i < button.sr.size(); i++)
 	{
-		// FIXME: Die unterschiedlichen button status berÃÂ¼cksichtigen
+		// FIXME: Die unterschiedlichen button status berücksichtigen
 		string nm;
 
 		if (button.ap == 0 && isSystemReserved(button.ad))

@@ -36,6 +36,7 @@
 #include "nameformat.h"
 #include "trace.h"
 #include "str.h"
+#include "map.h"
 
 #ifdef __APPLE__
 using namespace boost;
@@ -517,7 +518,7 @@ bool TouchPanel::send(int id, string& msg)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse Ã¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse ÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -1099,8 +1100,8 @@ bool TouchPanel::parsePages()
 		cacheFile << "if('serviceWorker' in navigator)\n{" << endl;
 		cacheFile << "\twindow.addEventListener('load', function() {" << endl;
 		cacheFile << "\t\tnavigator.serviceWorker.register('" << Configuration->getWebLocation() << "/scripts/sw.js').then(function(registration) {" << endl;
-		cacheFile << "\t\t\tdebug(\"Service Worker registration successful width scope: \"+registration.scope);" << endl;
-		cacheFile << "\t\t}, function(err) {\n\t\t\terrlog(\"Registration failed:\"+err);" << endl;
+		cacheFile << "\t\t\tconsole.log(\"Service Worker registration successful width scope: \"+registration.scope);" << endl;
+		cacheFile << "\t\t}, function(err) {\n\t\t\tconsole.log(\"Service Worker registration failed:\"+err);" << endl;
 		cacheFile << "\t\t})\n\t})\n}" << endl << endl;
 		cacheFile << "var cache_name = 'amxpanel-" << VERSION << "'" << endl << endl;
 		cacheFile << "var urls_to_cache = [" << endl;
@@ -1136,22 +1137,12 @@ bool TouchPanel::parsePages()
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">" << endl;
 	// Scripts
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/sw.js\"></script>" << endl;
-	pgFile << "<script type=\"text/javascript\" src=\"scripts/store.modern.min.js\"></script>" << endl;
 	pgFile << "<script>" << endl;
 	pgFile << "\"use strict\";" << endl;
-	pgFile << "var pageName = \"\";" << endl;
+	pgFile << "var pageName = \"" << getProject().panelSetup.powerUpPage << "\";" << endl;
 	pgFile << "var wsocket = null;" << endl;
 	pgFile << "var ws_online = 0;		// 0 = offline, 1 = online, 2 = connecting" << endl;
 	pgFile << "var wsStatus = 0;" << endl << endl;
-	pgFile << "var browserTests = [" << endl;
-	pgFile << "\t\"audio\",\n\t\"availableScreenResolution\",\n\t\"canvas\",\n";
-	pgFile << "\t\"colorDepth\",\n\t\"cookies\",\n\t\"cpuClass\",\n\t\"deviceDpi\",\n";
-	pgFile << "\t\"doNotTrack\",\n\t\"indexedDb\",\n\t\"installedFonts\",\n";
-	pgFile << "\t\"installedLanguages\",\n";
-	pgFile << "\t\"language\",\n\t\"localIp\",\n\t\"localStorage\",\n\t\"pixelRatio\",\n";
-	pgFile << "\t\"platform\",\n\t\"plugins\",\n\t\"processorCores\",\n\t\"screenResolution\",\n";
-	pgFile << "\t\"sessionStorage\",\n\t\"timezoneOffset\",\n\t\"touchSupport\",\n";
-	pgFile << "\t\"userAgent\",\n\t\"webGl\"\n];\n\n";
 
 	try
 	{
@@ -1165,7 +1156,6 @@ bool TouchPanel::parsePages()
 			return false;
 		}
 
-		jsFile << "var Pages;\n\n";
 		writePages(jsFile);
 		jsFile.close();
 	}
@@ -1189,7 +1179,6 @@ bool TouchPanel::parsePages()
 			return false;
 		}
 
-		jsFile << "var Popups;\n\n";
 		writePopups(jsFile);
 		jsFile.close();
 	}
@@ -1213,7 +1202,6 @@ bool TouchPanel::parsePages()
 			return false;
 		}
 
-		jsFile << "var popupGroups;\n\n";
 		writeGroups(jsFile);
 		jsFile.close();
 	}
@@ -1236,7 +1224,6 @@ bool TouchPanel::parsePages()
 			return false;
 		}
 
-		jsFile << "var buttonArray;\n\n";
 		writeBtArray(jsFile);
 		jsFile.close();
 	}
@@ -1350,8 +1337,47 @@ bool TouchPanel::parsePages()
 
 			jsFile << endl << "\t]}";
 		}
+		// Check for sound ressources. They are in the file map.xma.
+		Map map(getProject().supportFileList.mapFile);
+
+		if (map.isDone())
+		{
+			vector<string> sounds = map.getSm();
+			jsFile << "," << endl << "\t{\"type\":\"sound\",\"ressource\":[" << endl;
+			bool first = true;
+
+			for (auto snd = sounds.begin(); snd != sounds.end(); ++snd)
+			{
+				if (!first)
+					jsFile << "," << endl;
+				else
+					first = false;
+
+				jsFile << "\t\t\"" << *snd << "\"";
+			}
+
+			jsFile << endl << "\t]}";
+		}
 
 		jsFile << endl << "]};" << endl;
+		// Add some functions to file
+		jsFile << endl << "function findImage(name)" << endl << "{" << endl;
+		jsFile << "\tfor (var i in ressources.ressources)" << endl << "\t{" << endl;
+		jsFile << "\t\tvar res = ressources.ressources[i];" << endl << endl;
+		jsFile << "\t\tif (res.type == \"image\")" << endl << "\t\t{" << endl;
+		jsFile << "\t\t\tfor (var j in res.ressource)" << endl << "\t\t\t{" << endl;
+		jsFile << "\t\t\t\tvar ires = res.ressource[j];" << endl << endl;
+		jsFile << "\t\t\t\tif (ires.name == name)" << endl << "\t\t\t\t\treturn ires;" << endl;
+		jsFile << "\t\t\t}" << endl << "\t\t}" << endl << "\t}" << endl << endl;
+		jsFile << "\treturn null;" << endl << "}" << endl << endl;
+		jsFile << "function soundExist(name)" << endl << "{" << endl;
+		jsFile << "\tfor (var i in ressources.ressources)" << endl << "\t{" << endl;
+		jsFile << "\t\tvar res = ressources.ressources[i];" << endl << endl;
+		jsFile << "\t\tif (res.type == \"sound\")" << endl << "\t\t{" << endl;
+		jsFile << "\t\t\tfor (var j in res.ressource)" << endl << "\t\t\t{" << endl;
+		jsFile << "\t\t\t\tif (res.ressource[j] == name)" << endl << "\t\t\t\t\treturn true;" << endl;
+		jsFile << "\t\t\t}" << endl << "\t\t}" << endl << "\t}" << endl << endl;
+		jsFile << "\treturn false;" << endl << "}" << endl;
 		jsFile.close();
 	}
 	catch (const fstream::failure e)

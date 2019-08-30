@@ -233,6 +233,8 @@ bool amx::Page::parsePage()
 			{
 				if (name.caseCompare("bi") == 0 && reader.has_value())
 					page.buttons.back().bi = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("bd") == 0 && reader.has_value())
+					page.buttons.back().bd = reader.get_value().raw();
 				else if (name.caseCompare("na") == 0 && reader.has_value())
 					page.buttons.back().na = reader.get_value().raw();
 				else if (name.caseCompare("lt") == 0 && reader.has_value())
@@ -249,6 +251,12 @@ bool amx::Page::parsePage()
 					page.buttons.back().hs = reader.get_value().raw();
 				else if (name.caseCompare("bs") == 0 && reader.has_value())
 					page.buttons.back().bs = reader.get_value().raw();
+				else if (name.caseCompare("mt") == 0 && reader.has_value())
+					page.buttons.back().mt = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("dt") == 0 && reader.has_value())
+					page.buttons.back().dt = reader.get_value().raw();
+				else if (name.caseCompare("im") == 0 && reader.has_value())
+					page.buttons.back().im = reader.get_value().raw();
 				else if (name.caseCompare("fb") == 0 && reader.has_value())
 				{
 					Str value(reader.get_value().raw());
@@ -293,12 +301,26 @@ bool amx::Page::parsePage()
 					page.buttons.back().ru = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("rd") == 0 && reader.has_value())
 					page.buttons.back().rd = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("lu") == 0 && reader.has_value())
+					page.buttons.back().lu = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("ld") == 0 && reader.has_value())
+					page.buttons.back().ld = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("rv") == 0 && reader.has_value())
 					page.buttons.back().rv = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("rl") == 0 && reader.has_value())
 					page.buttons.back().rl = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("rh") == 0 && reader.has_value())
 					page.buttons.back().rh = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("rn") == 0 && reader.has_value())
+					page.buttons.back().rn = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("ri") == 0 && reader.has_value())
+					page.buttons.back().ri = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("if") == 0 && reader.has_value())
+					page.buttons.back()._if = reader.get_value().raw();
+				else if (name.caseCompare("sd") == 0 && reader.has_value())
+					page.buttons.back().sd = reader.get_value().raw();
+				else if (name.caseCompare("sc") == 0 && reader.has_value())
+					page.buttons.back().sc = reader.get_value().raw();
 				else if (name.caseCompare("op") == 0 && reader.has_value())
 					page.buttons.back().op = reader.get_value().raw();
 				else if (name.caseCompare("stateCount") == 0 && reader.has_value())
@@ -437,6 +459,8 @@ bool amx::Page::parsePage()
 					page.buttons.back().sr.back().ww = atoi(reader.get_value().c_str());
 				else if (name.caseCompare("oo") == 0 && reader.has_value())
 					page.buttons.back().sr.back().oo = atoi(reader.get_value().c_str());
+				else if (name.caseCompare("sd") == 0 && reader.has_value())
+					page.buttons.back().sr.back().sd = reader.get_value().raw();
 			}
 
 			if (!inButton && name.caseCompare("sr") == 0 && reader.has_attributes())
@@ -592,10 +616,10 @@ void Page::serializeToFile()
 		return;
 	}
 
-	pgFile << "var structPage" << page.pageID << " = {" << std::endl;
-	pgFile << "\t\"name\":\"" << page.name << "\",\"ID\":" << page.pageID << ",\"type\":" << page.type << "," << std::endl;
-	pgFile << "\t\"left\":" << page.left << ",\"top\":" << page.top << ",\"width\":" << page.width << ",\"height\":" << page.height << "," << std::endl;
-	pgFile << "\t\"group\":\"" << page.group << "\",\"modal\":" << page.modal << ",\"showEffect\":" << page.showEffect << ",\"showTime\":" << page.showTime << "," << std::endl;
+	pgFile << "var structPage" << page.pageID << " = {" << endl;
+	pgFile << "\t\"name\":\"" << page.name << "\",\"ID\":" << page.pageID << ",\"type\":" << page.type << "," << endl;
+	pgFile << "\t\"left\":" << page.left << ",\"top\":" << page.top << ",\"width\":" << page.width << ",\"height\":" << page.height << "," << endl;
+	pgFile << "\t\"group\":\"" << page.group << "\",\"modal\":" << page.modal << ",\"showEffect\":" << page.showEffect << ",\"showTime\":" << page.showTime << "," << endl;
 	pgFile << "\t\"hideEffect\":" << page.hideEffect << ",\"hideTime\":" << page.hideTime << ",\"timeout\":" << page.timeout << ",\"buttons\":[";
 
 	for (size_t i = 0; i < page.buttons.size(); i++)
@@ -603,14 +627,17 @@ void Page::serializeToFile()
 		if (i > 0)
 			pgFile << ",";
 
-		pgFile << "\n\t\t{\"bname\":\"" << page.buttons[i].na << "\",\"bID\":" << page.buttons[i].bi << ",\"btype\":" << page.buttons[i].type << "," << std::endl;
-		pgFile << "\t\t \"lt\":" << page.buttons[i].lt << ",\"tp\":" << page.buttons[i].tp << ",\"wt\":" << page.buttons[i].wt << ",\"ht\":" << page.buttons[i].ht << "," << std::endl;
-		pgFile << "\t\t \"zo\":" << page.buttons[i].zo << ",\"hs\":\"" << page.buttons[i].hs << "\",\"bs\":\"" << page.buttons[i].bs << "\"," << std::endl;
-		pgFile << "\t\t \"fb\":" << page.buttons[i].fb << ",\"ap\":" << page.buttons[i].ap << ",\"ad\":" << page.buttons[i].ad << ",\"ch\":" << page.buttons[i].ch << "," << std::endl;
-		pgFile << "\t\t \"cp\":" << page.buttons[i].cp << ",\"lp\":" << page.buttons[i].lp << ",\"lv\":" << page.buttons[i].lv << ",\"dr\":\"" << page.buttons[i].dr << "\"," << std::endl;
-		pgFile << "\t\t \"va\":" << page.buttons[i].va << ",\"rv\":" << page.buttons[i].rv << ",\"rl\":" << page.buttons[i].rl << ",\"rh\":" << page.buttons[i].rh << "," << std::endl;
-		pgFile << "\t\t \"rm\":" << page.buttons[i].rm << ",\"nu\":" << page.buttons[i].nu << ",\"nd\":" << page.buttons[i].nd << ",\"ar\":" << page.buttons[i].ar << "," << std::endl;
-		pgFile << "\t\t \"ru\":" << page.buttons[i].ru << ",\"rd\":" << page.buttons[i].rd << ",\"op\":\"" << page.buttons[i].op << "\",\"stateCount\":" << page.buttons[i].stateCount << "," << std::endl;
+		pgFile << "\n\t\t{\"bname\":\"" << page.buttons[i].na << "\",\"bID\":" << page.buttons[i].bi << ",\"btype\":" << page.buttons[i].type << "," << endl;
+		pgFile << "\t\t \"lt\":" << page.buttons[i].lt << ",\"tp\":" << page.buttons[i].tp << ",\"wt\":" << page.buttons[i].wt << ",\"ht\":" << page.buttons[i].ht << "," << endl;
+		pgFile << "\t\t \"zo\":" << page.buttons[i].zo << ",\"hs\":\"" << page.buttons[i].hs << "\",\"bs\":\"" << page.buttons[i].bs << "\"," << endl;
+		pgFile << "\t\t \"fb\":" << page.buttons[i].fb << ",\"ap\":" << page.buttons[i].ap << ",\"ad\":" << page.buttons[i].ad << ",\"ch\":" << page.buttons[i].ch << "," << endl;
+		pgFile << "\t\t \"cp\":" << page.buttons[i].cp << ",\"lp\":" << page.buttons[i].lp << ",\"lv\":" << page.buttons[i].lv << ",\"dr\":\"" << page.buttons[i].dr << "\"," << endl;
+		pgFile << "\t\t \"va\":" << page.buttons[i].va << ",\"rv\":" << page.buttons[i].rv << ",\"rl\":" << page.buttons[i].rl << ",\"rh\":" << page.buttons[i].rh << "," << endl;
+		pgFile << "\t\t \"rm\":" << page.buttons[i].rm << ",\"nu\":" << page.buttons[i].nu << ",\"nd\":" << page.buttons[i].nd << ",\"ar\":" << page.buttons[i].ar << "," << endl;
+		pgFile << "\t\t \"ru\":" << page.buttons[i].ru << ",\"rd\":" << page.buttons[i].rd << ",\"op\":\"" << page.buttons[i].op << "\",\"mt\":" << page.buttons[i].mt << "," << endl;
+		pgFile << "\t\t \"rn\":" << page.buttons[i].rn << ",\"sd\":\"" << page.buttons[i].sd << "\",\"sc\":\"" << page.buttons[i].sc << "\",\"if\":\"" << page.buttons[i]._if << "\",";
+		pgFile << "\"lu\":" << page.buttons[i].lu << ",\"ld\":" << page.buttons[i].ld << ",\"ri\":" << (page.buttons[i].ri ? "true" : "false") << "," << endl;
+		pgFile << "\t\t \"dt\":\"" << page.buttons[i].dt << "\",\"im\":\"" << page.buttons[i].im << "\",\"stateCount\":" << page.buttons[i].stateCount << "," << endl;
 
 		if (page.buttons[i].pushFunc.size() > 0)
 		{
@@ -634,16 +661,16 @@ void Page::serializeToFile()
 			if (j > 0)
 				pgFile << ",";
 
-			pgFile << "\n\t\t\t{\"number\":" << page.buttons[i].sr[j].number << ",\"do\":\"" << page.buttons[i].sr[j]._do << "\",\"bs\":\"" << page.buttons[i].sr[j].bs << "\"," << std::endl;
-			pgFile << "\t\t\t \"mi\":\"" << page.buttons[i].sr[j].mi << "\",\"cb\":\"" << page.buttons[i].sr[j].cb << "\",\"cf\":\"" << page.buttons[i].sr[j].cf << "\"," << std::endl;
+			pgFile << "\n\t\t\t{\"number\":" << page.buttons[i].sr[j].number << ",\"do\":\"" << page.buttons[i].sr[j]._do << "\",\"bs\":\"" << page.buttons[i].sr[j].bs << "\"," << endl;
+			pgFile << "\t\t\t \"mi\":\"" << page.buttons[i].sr[j].mi << "\",\"cb\":\"" << page.buttons[i].sr[j].cb << "\",\"cf\":\"" << page.buttons[i].sr[j].cf << "\"," << endl;
 			pgFile << "\t\t\t \"ct\":\"" << page.buttons[i].sr[j].ct << "\",\"ec\":\"" << page.buttons[i].sr[j].ec << "\",\"bm\":\"" << page.buttons[i].sr[j].bm << "\",";
 			pgFile << "\"mi_width\":" << page.buttons[i].sr[j].mi_width << ",\"mi_height\":" << page.buttons[i].sr[j].mi_height << ",\"bm_width\":" << page.buttons[i].sr[j].bm_width << ",";
-			pgFile << "\"bm_height\":" << page.buttons[i].sr[j].bm_height << "," << std::endl;
-			pgFile << "\t\t\t \"dynamic\":" << ((page.buttons[i].sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.buttons[i].sr[j].sb << ",\"ii\":" << page.buttons[i].sr[j].ii << "," << std::endl;
-			pgFile << "\t\t\t \"ji\":" << page.buttons[i].sr[j].ji << ",\"jb\":" << page.buttons[i].sr[j].jb << ",\"ix\":" << page.buttons[i].sr[j].ix << "," << std::endl;
-			pgFile << "\t\t\t \"iy\":" << page.buttons[i].sr[j].iy << ",\"fi\":" << page.buttons[i].sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.buttons[i].sr[j].te) << "\"," << std::endl;
-			pgFile << "\t\t\t \"jt\":" << page.buttons[i].sr[j].jt << ",\"tx\":" << page.buttons[i].sr[j].tx << ",\"ty\":" << page.buttons[i].sr[j].ty << "," << std::endl;
-			pgFile << "\t\t\t \"ww\":" << page.buttons[i].sr[j].ww << ",\"et\":" << page.buttons[i].sr[j].et << ",\"oo\":" << page.buttons[i].sr[j].oo << "}";
+			pgFile << "\"bm_height\":" << page.buttons[i].sr[j].bm_height << "," << endl;
+			pgFile << "\t\t\t \"dynamic\":" << ((page.buttons[i].sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.buttons[i].sr[j].sb << ",\"ii\":" << page.buttons[i].sr[j].ii << "," << endl;
+			pgFile << "\t\t\t \"ji\":" << page.buttons[i].sr[j].ji << ",\"jb\":" << page.buttons[i].sr[j].jb << ",\"ix\":" << page.buttons[i].sr[j].ix << "," << endl;
+			pgFile << "\t\t\t \"iy\":" << page.buttons[i].sr[j].iy << ",\"fi\":" << page.buttons[i].sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.buttons[i].sr[j].te) << "\"," << endl;
+			pgFile << "\t\t\t \"jt\":" << page.buttons[i].sr[j].jt << ",\"tx\":" << page.buttons[i].sr[j].tx << ",\"ty\":" << page.buttons[i].sr[j].ty << "," << endl;
+			pgFile << "\t\t\t \"ww\":" << page.buttons[i].sr[j].ww << ",\"et\":" << page.buttons[i].sr[j].et << ",\"oo\":" << page.buttons[i].sr[j].oo << ",\"sd\":\"" << page.buttons[i].sr[j].sd << "\"}";
 		}
 
 		pgFile << "]\n\t\t}";
@@ -656,14 +683,14 @@ void Page::serializeToFile()
 		if (j > 0)
 			pgFile << ",";
 
-		pgFile << "\n\t\t{\"number\":" << page.sr[j].number << ",\"do\":\"" << page.sr[j]._do << "\",\"bs\":\"" << page.sr[j].bs << "\"," << std::endl;
-		pgFile << "\t\t \"mi\":\"" << page.sr[j].mi << "\",\"cb\":\"" << page.sr[j].cb << "\",\"cf\":\"" << page.sr[j].cf << "\"," << std::endl;
+		pgFile << "\n\t\t{\"number\":" << page.sr[j].number << ",\"do\":\"" << page.sr[j]._do << "\",\"bs\":\"" << page.sr[j].bs << "\"," << endl;
+		pgFile << "\t\t \"mi\":\"" << page.sr[j].mi << "\",\"cb\":\"" << page.sr[j].cb << "\",\"cf\":\"" << page.sr[j].cf << "\"," << endl;
         pgFile << "\t\t \"mi_width\":" << page.sr[j].mi_width << ",\"mi_height\":" << page.sr[j].mi_height << ",\"bm_width\":" << page.sr[j].bm_width << ",";
-		pgFile << "\"bm_height\":" << page.sr[j].bm_height << "," << std::endl;
-		pgFile << "\t\t \"ct\":\"" << page.sr[j].ct << "\",\"ec\":\"" << page.sr[j].ec << "\",\"bm\":\"" << page.sr[j].bm << "\"," << std::endl;
-		pgFile << "\t\t \"dynamic\":" << ((page.sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.sr[j].sb << ",\"ii\":" << page.sr[j].ii << "," << std::endl;
-		pgFile << "\t\t \"ji\":" << page.sr[j].ji << ",\"jb\":" << page.sr[j].jb << ",\"ix\":" << page.sr[j].ix << "," << std::endl;
-		pgFile << "\t\t \"iy\":" << page.sr[j].iy << ",\"fi\":" << page.sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.sr[j].te) << "\"," << std::endl;
+		pgFile << "\"bm_height\":" << page.sr[j].bm_height << "," << endl;
+		pgFile << "\t\t \"ct\":\"" << page.sr[j].ct << "\",\"ec\":\"" << page.sr[j].ec << "\",\"bm\":\"" << page.sr[j].bm << "\"," << endl;
+		pgFile << "\t\t \"dynamic\":" << ((page.sr[j].dynamic)?"true":"false") << ",\"sb\":" << page.sr[j].sb << ",\"ii\":" << page.sr[j].ii << "," << endl;
+		pgFile << "\t\t \"ji\":" << page.sr[j].ji << ",\"jb\":" << page.sr[j].jb << ",\"ix\":" << page.sr[j].ix << "," << endl;
+		pgFile << "\t\t \"iy\":" << page.sr[j].iy << ",\"fi\":" << page.sr[j].fi << ",\"te\":\"" << NameFormat::textToWeb(page.sr[j].te) << "\"," << endl;
 		pgFile << "\t\t \"jt\":" << page.sr[j].jt << ",\"tx\":" << page.sr[j].tx << ",\"ty\":" << page.sr[j].ty << ",";
 		pgFile << "\"ww\":" << page.sr[j].ww << ",\"et\":" << page.sr[j].et;
 		/*
@@ -681,7 +708,7 @@ void Page::serializeToFile()
 		pgFile << "}";
 	}
 
-	pgFile << "]\n\t};" << std::endl << std::endl;
+	pgFile << "]\n\t};" << endl << endl;
 	pgFile.close();
 }
 
@@ -723,8 +750,8 @@ void amx::Page::generateButtons()
 				btArray += "\n\t\t{\"pnum\":"+to_string(page.pageID)+",\"bi\":"+to_string(page.buttons[i].bi)+",";
 				btArray += "\"instances\":"+to_string(page.buttons[i].sr.size())+",";
 				btArray += "\"ap\":"+to_string(page.buttons[i].ap)+",\"ac\":"+to_string(page.buttons[i].ad);
-				btArray += ",\"cp\":"+to_string(page.buttons[i].cp)+",\"ch\":"+to_string(page.buttons[i].ch);
-				btArray += ",\"ion\":"+to_string(on)+",\"visible\":1,\"enabled\":1}";
+				btArray += ",\"cp\":"+to_string(page.buttons[i].cp)+",\"ch\":"+to_string(page.buttons[i].ch)+",";
+				btArray += "\"ion\":"+to_string(on)+",\"visible\":1,\"enabled\":1}";
 			}
 
 			PushButton pbt(page.buttons[i], paletteClass->getPalette());
@@ -777,20 +804,7 @@ string& Page::getStyleCode()
 			styleBuffer += "  background-color: "+paletteClass->colorToString(paletteClass->getColor(page.sr[0].cf))+";\n";
 			styleBuffer += "  background-image: url(images/"+page.sr[0].bm+");\n";
 		}
-/*		else
-		{
-			String fname = PushButton::createChameleonImage(Configuration->getHTTProot()+"/images/"+page.sr[0].mi, Configuration->getHTTProot()+"/images/"+page.sr[0].bm, paletteClass->getColor(page.sr[0].cf), paletteClass->getColor(page.sr[0].cb));
 
-			if (!fname.empty())
-				styleBuffer += String("  background-image: url(")+fname+");\n";
-			else
-			{
-				styleBuffer += String("  background-image: url(images/")+NameFormat::toURL(page.sr[0].mi)+"), ";
-				styleBuffer += String("url(images/")+NameFormat::toURL(page.sr[0].bm)+");\n";
-				styleBuffer += "  background-blend-mode: screen;\n";
-			}
-		}
-*/
 		styleBuffer += "  color: "+paletteClass->colorToString(paletteClass->getColor(page.sr[0].ct))+";\n";
 		styleBuffer += "  background-repeat: no-repeat;\n";
 	}
@@ -810,15 +824,9 @@ string& Page::getStyleCode()
 					break;
 				}
 			}
-
-//			if (!have)
-//				styleBuffer += "  display: none;\n";	// Hide the popup
 		}
-//		else
-//			styleBuffer += "  display: none;\n";		// Hide the popup
 
 		styleBuffer += "  position: absolute;\n";		// Fixed position, don't move
-//		styleBuffer += "  z-index: 1;\n";				// Display on top
 
 		if (page.showEffect && page.showTime)
 		{
@@ -864,11 +872,7 @@ string& Page::getStyleCode()
 		{
 			if (page.name.compare(Project->panelSetup.powerUpPage) == 0)
 				styleBuffer += "  display: block;\n";		// Show the page
-//			else
-//				styleBuffer += "  display: none;\n";		// Hide the page
 		}
-//		else
-//			styleBuffer += "  display: none;\n";			// Hide the page
 
 		styleBuffer += "  position: absolute;\n";			// Fixed position, don't move
 		styleBuffer += "  overflow: hidden;\n";				// Enable scroll if needed
@@ -898,8 +902,7 @@ string& Page::getWebCode()
 	for (size_t i = 0; i < btWebBuffer.size(); i++)
 		webBuffer += btWebBuffer[i];
 
-//	if (page.type != SUBPAGE)
-		webBuffer += "</div>\n";
+	webBuffer += "</div>\n";
 
 	webDone = true;
 	return webBuffer;
