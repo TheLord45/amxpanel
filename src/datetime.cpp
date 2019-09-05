@@ -33,18 +33,6 @@ extern Syslog *sysl;
 
 using namespace std;
 
-DateTime::DateTime()
-{
-	format = "%Y-%m-%d %H:%M:%S%z";
-	timestamp = chrono::system_clock::now();
-}
-
-DateTime::DateTime(string f)
-{
-	format = f;
-	timestamp = chrono::system_clock::now();
-}
-
 int DateTime::getDay()
 {
 	time_t t = getTimestamp();
@@ -371,7 +359,7 @@ chrono::system_clock::time_point DateTime::Interval(string intval)
 
 		if (intval.find("months") != string::npos || intval.find("month") != string::npos)
         {
-            DateTime dt = *this;
+            DateTime dt(*this);
             int m = dt.getMonth();
             int y = dt.getYear();
 
@@ -393,7 +381,7 @@ chrono::system_clock::time_point DateTime::Interval(string intval)
 
 		if (intval.find("years") != string::npos || intval.find("year") != string::npos)
         {
-            DateTime dt = *this;
+            DateTime dt(*this);
             int y = dt.getYear();
 
             for (unsigned long i = 0; i < anz; i++)
@@ -424,7 +412,7 @@ chrono::system_clock::time_point DateTime::Interval(string intval)
 
 		if (intval.find("months") != string::npos || intval.find("month") != string::npos)
         {
-            DateTime dt = *this;
+            DateTime dt(*this);
             int m = dt.getMonth();
             int y = dt.getYear();
 
@@ -446,7 +434,7 @@ chrono::system_clock::time_point DateTime::Interval(string intval)
 
         if (intval.find("years") != string::npos || intval.find("year") != string::npos)
         {
-            DateTime dt = *this;
+            DateTime dt(*this);
             int y = dt.getYear();
 
             for (unsigned long i = 0; i < anz; i++)
@@ -477,7 +465,7 @@ DateTime DateTime::sunrise(double la, double lo)
 	min = tm - ((double)hour * 60.0);
 	DateTime dt;
 	dt.setTimestamp(getYear(), getMonth(), getDay(), hour, min);
-	return dt;
+	return dt.getThis();
 }
 
 DateTime DateTime::sunset(double la, double lo)
@@ -495,7 +483,7 @@ DateTime DateTime::sunset(double la, double lo)
 	min = tm - ((double)hour * 60.0);
 	DateTime dt;
 	dt.setTimestamp(getYear(), getMonth(), getDay(), hour, min);
-	return dt;
+	return dt.getThis();
 }
 
 DateTime::Season DateTime::getSeason()
@@ -617,17 +605,17 @@ bool DateTime::operator>=(DateTime& t) const
 
 DateTime& DateTime::operator= (DateTime& t)
 {
-	timestamp = t.getRawTime();
+	timestamp = t.timestamp;
 	return *this;
 }
-
-DateTime& DateTime::operator= (DateTime& t) const
+/*
+DateTime& DateTime::operator= (const DateTime& t) const
 {
 	DateTime *me = const_cast<DateTime *>(this);
-	me->timestamp = t.getRawTime();
+	me->timestamp = t.timestamp;
 	return *me;
 }
-
+*/
 DateTime& DateTime::operator+ (DateTime& t)
 {
 	__int64_t ms1 = chrono::duration_cast<chrono::milliseconds>(timestamp.time_since_epoch()).count();

@@ -30,13 +30,27 @@
 
 class SunSet
 {
-	public:
-		SunSet();
-		SunSet(double, double, int);
-		~SunSet();
+	double latitude { 48.199212 };
+	double longitude { 16.323004 };
+	double julianDate { 0.0 };
+	int m_year { 0 };
+	int m_month { 0 };
+	int m_day { 0 };
+	int tzOffset { -1 };
 
-		void setPosition(double, double, int);
+	public:
+		SunSet() = default;
+		SunSet(const double lat, const double lon, const int tz)
+			: latitude{lat},
+			  longitude{lon},
+			  tzOffset{tz}
+		{}
+
+		void setPosition(const double lat, const double lon, const int tz);
 		void setTZOffset(int);
+		double getLatitude() { return latitude; }
+		double getLongitude() { return longitude; }
+		int getTZOffset() { return tzOffset; }
 		double setCurrentDate(int, int, int);
 		double calcSunriseUTC();
 		double calcSunsetUTC();
@@ -62,14 +76,6 @@ class SunSet
 		double calcJD(int,int,int);
 		double calcJDFromJulianCent(double);
 		double calcSunEqOfCenter(double);
-
-		double latitude;
-		double longitude;
-		double julianDate;
-		int m_year;
-		int m_month;
-		int m_day;
-		int tzOffset;
 };
 
 #endif

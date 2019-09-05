@@ -43,27 +43,48 @@ namespace amx
      * Contains the infomations about the project.
      * This is part of the struct PROJECT.
      */
-    typedef struct PROJECT_INFO
-    {
-        std::string protection;
-        bool encrypted;
-        std::string password;
-        std::string panelType;
-        std::string fileRevision;
-        std::string dealerID;
-        std::string jobName;
-        std::string salesOrder;
-        std::string purchaseOrder;
-        std::string jobComment;
-        std::string designerID;
-        DateTime creationDate;
-        DateTime revisionDate;
-        DateTime lastSaveDate;
-        std::string fileName;
-        std::string colorChoice;
-        int specifyPortCount;
-        int specifyChanCount;
-    }PROJECT_INFO_T;
+	typedef struct PROJECT_INFO_T
+	{
+		std::string protection;
+		bool encrypted;
+		std::string password;
+		std::string panelType;
+		std::string fileRevision;
+		std::string dealerID;
+		std::string jobName;
+		std::string salesOrder;
+		std::string purchaseOrder;
+		std::string jobComment;
+		std::string designerID;
+		DateTime creationDate;
+		DateTime revisionDate;
+		DateTime lastSaveDate;
+		std::string fileName;
+		std::string colorChoice;
+		int specifyPortCount;
+		int specifyChanCount;
+/*
+		PROJECT_INFO_T(const PROJECT_INFO_T& pi)
+			: protection(pi.protection),
+			  encrypted(pi.encrypted),
+			  password(pi.password),
+			  panelType(pi.panelType),
+			  fileRevision(pi.fileRevision),
+			  dealerID(pi.dealerID),
+			  jobName(pi.jobName),
+			  salesOrder(pi.salesOrder),
+			  purchaseOrder(pi.purchaseOrder),
+			  jobComment(pi.jobComment),
+			  designerID(pi.designerID),
+			  creationDate(pi.creationDate),
+			  revisionDate(pi.revisionDate),
+			  lastSaveDate(pi.lastSaveDate),
+			  fileName(pi.fileName),
+			  colorChoice(pi.colorChoice),
+			  specifyPortCount(pi.specifyPortCount),
+			  specifyChanCount(pi.specifyChanCount)
+		{} */
+	}PROJECT_INFO_T;
 
     typedef struct SUPPORT_FILE_LIST
     {
@@ -200,22 +221,33 @@ namespace amx
         int paletteID;
     }PALETTE_T;
 
-    /**
-     * This is the main structure.
-     * This structure contains all other structures. Many of them are
-     * defined as chains.
-     */
-    typedef struct PROJECT
-    {
-        VERSION_T version;
-        PROJECT_INFO_T projectInfo;
-        SUPPORT_FILE_LIST_T supportFileList;
-        PANEL_SETUP_T panelSetup;
-        std::vector<PAGE_LIST_T> pageLists;
-        std::vector<RESOURCE_LIST_T> resourceLists;
-        std::vector<FEATURE_T> fwFeatureList;
-        std::vector<PALETTE_T> paletteList;
-    }PROJECT_T;
+	/**
+	 * This is the main structure.
+	 * This structure contains all other structures. Many of them are
+	 * defined as chains.
+	 */
+	typedef struct PROJECT
+	{
+		VERSION_T version;
+		PROJECT_INFO_T projectInfo;
+		SUPPORT_FILE_LIST_T supportFileList;
+		PANEL_SETUP_T panelSetup;
+		std::vector<PAGE_LIST_T> pageLists;
+		std::vector<RESOURCE_LIST_T> resourceLists;
+		std::vector<FEATURE_T> fwFeatureList;
+		std::vector<PALETTE_T> paletteList;
+/*
+		PROJECT(const PROJECT& p)
+			: version(p.version),
+			  projectInfo(p.projectInfo),
+			  supportFileList(p.supportFileList),
+			  panelSetup(p.panelSetup),
+			  pageLists(p.pageLists),
+			  resourceLists(p.resourceLists),
+			  fwFeatureList(p.fwFeatureList),
+			  paletteList(p.paletteList)
+		{} */
+	}PROJECT_T;
 
 	enum TEXT_ORIENTATION
 	{

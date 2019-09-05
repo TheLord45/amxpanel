@@ -28,6 +28,8 @@ endif(DEBUG)
 
 if (APPLE)
 	add_definitions(-std=c++14 ${OSX_INCLUDE})
+else(APPLE)
+	add_definitions(-std=c++17)
 endif(APPLE)
 
 add_definitions(-pedantic -fexceptions -Wextra)

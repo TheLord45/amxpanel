@@ -24,8 +24,15 @@ template<typename T> void AtomicVector<T>::insert(T in, const int index)
     vec[index] = std::move(in);
     cond.notify_one();
 }
-
+/*
 template<typename T> void AtomicVector<T>::push_back(T in)
+{
+    std::lock_guard<std::mutex> lock(mut);
+    vec.push_back(std::move(in));
+    cond.notify_one();
+}
+*/
+template<typename T> void AtomicVector<T>::push_back(const T& in)
 {
     std::lock_guard<std::mutex> lock(mut);
     vec.push_back(std::move(in));
@@ -40,6 +47,16 @@ template<typename T> T & AtomicVector<T>::operator[](const int index)
 template<typename T> T & AtomicVector<T>::at(const int index)
 {
     return vec[index];
+}
+
+template<typename T> T & AtomicVector<T>::front()
+{
+    return vec[0];
+}
+
+template<typename T> T & AtomicVector<T>::back()
+{
+    return vec.back();
 }
 
 template<typename T> typename std::vector<T>::iterator AtomicVector<T>::erase(typename std::vector<T>::iterator it)

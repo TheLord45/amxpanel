@@ -27,6 +27,9 @@
 
 class DateTime : public SunSet
 {
+	std::string format {"%Y-%m-%d %H:%M:%S%z"};
+	std::chrono::system_clock::time_point timestamp {std::chrono::system_clock::now()};
+
 	public:
 		enum Season
 		{
@@ -40,7 +43,20 @@ class DateTime : public SunSet
 		 * Constructor - Creates a DateTime class initialized to the current
 		 * date and time.
 		 */
-		DateTime();
+		DateTime() = default;
+
+		/**
+		 * Copy constructor - Creates a DateTime class initialized to the
+		 * date and time of parameter \b dt.
+		 *
+		 * @param dt
+		 * Another \a DateTime class initializing this class.
+		 */
+		DateTime(DateTime& dt)
+			: SunSet(dt.getLatitude(), dt.getLongitude(), dt.getTZOffset()),
+			  format{dt.format},
+			  timestamp{dt.timestamp}
+		{}
 
 		/**
 		 * Constructor - Creates a DateTime class initialized to the current
@@ -50,8 +66,13 @@ class DateTime : public SunSet
 		 * The format of the string when the internal timestamp is transformed
 		 * into a string. Default is "%Y-%m-%d %H:%M:%S%z".
 		 */
-		DateTime(std::string f);
-		~DateTime() {}
+		explicit DateTime(std::string f)
+			: SunSet(48.199212, 16.323004, getTimeZone()),
+			  format(f),
+			  timestamp(std::chrono::system_clock::now())
+		{}
+
+		DateTime& getThis() { return *this; }
 
 		/**
 		 * Returns the day.
@@ -205,13 +226,13 @@ class DateTime : public SunSet
 		 *      t          writes horizontal tab character
 		 *      Y          writes year as a decimal number, e.g. 2018
 		 *      EY         writes year in the alternative representation,
-		 *                 e.g. 平成23年 (year Heisei 23) instead of 2011年
+		 *                 e.g. ÃÂ¥ÃÂ¹ÃÂ³ÃÂ¦ÃÂÃÂ23ÃÂ¥ÃÂ¹ÃÂ´ (year Heisei 23) instead of 2011ÃÂ¥ÃÂ¹ÃÂ´
 		 *                 (year 2011) in ja_JP locale.
 		 *      y          writes last 2 digits of year as a decimal number (range [00,99])
-		 *      0y         writes last 2 digits of year using the alternative numeric system, e.g. 十一 instead of 11 in ja_JP locale
+		 *      0y         writes last 2 digits of year using the alternative numeric system, e.g. ÃÂ¥ÃÂÃÂÃÂ¤ÃÂ¸ÃÂ instead of 11 in ja_JP locale
 		 *      Ey         writes year as offset from locale's alternative calendar period %EC (locale-dependent)
 		 *      C          writes first 2 digits of year as a decimal number (range [00,99])
-		 *      EC         writes name of the base year (period) in the locale's alternative representation, e.g. 平成 (Heisei era) in ja_JP
+		 *      EC         writes name of the base year (period) in the locale's alternative representation, e.g. ÃÂ¥ÃÂ¹ÃÂ³ÃÂ¦ÃÂÃÂ (Heisei era) in ja_JP
 		 *      G          writes ISO 8601 week-based year, i.e. the year that contains the specified week.
 		 *                 In IS0 8601 weeks begin with Monday and the first week of the year must satisfy the following requirements:
 		 *                     * Includes January 4
@@ -224,42 +245,42 @@ class DateTime : public SunSet
 		 *      h          synonym of b
 		 *      B          writes full month name, e.g. October (locale dependent)
 		 *      m          writes month as a decimal number (range [01,12])
-		 *      0m         writes month using the alternative numeric system, e.g. 十二 instead of 12 in ja_JP locale
+		 *      0m         writes month using the alternative numeric system, e.g. ÃÂ¥ÃÂÃÂÃÂ¤ÃÂºÃÂ instead of 12 in ja_JP locale
 		 *      U          writes week of the year as a decimal number (Sunday is the first day of the week) (range [00,53])
-		 *      OU         writes week of the year, as by %U, using the alternative numeric system, e.g. 五十二 instead of 52 in ja_JP locale
+		 *      OU         writes week of the year, as by %U, using the alternative numeric system, e.g. ÃÂ¤ÃÂºÃÂÃÂ¥ÃÂÃÂÃÂ¤ÃÂºÃÂ instead of 52 in ja_JP locale
 		 *      W          writes week of the year as a decimal number (Monday is the first day of the week) (range [00,53])
-		 *      OW         writes week of the year, as by %W, using the alternative numeric system, e.g. 五十二 instead of 52 in ja_JP locale
+		 *      OW         writes week of the year, as by %W, using the alternative numeric system, e.g. ÃÂ¤ÃÂºÃÂÃÂ¥ÃÂÃÂÃÂ¤ÃÂºÃÂ instead of 52 in ja_JP locale
 		 *      V          writes ISO 8601 week of the year (range [01,53]).
 		 *                 I n IS0 8601 weeks begin with Monday* and the first week of the year must satisfy the following requirements:
 		 *                    * Includes January 4
 		 *                    * Includes first Thursday of the year
-		 *      OV         writes week of the year, as by %V, using the alternative numeric system, e.g. 五十二 instead of 52 in ja_JP locale
+		 *      OV         writes week of the year, as by %V, using the alternative numeric system, e.g. ÃÂ¤ÃÂºÃÂÃÂ¥ÃÂÃÂÃÂ¤ÃÂºÃÂ instead of 52 in ja_JP locale
 		 *      j          writes day of the year as a decimal number (range [001,366])
 		 *      d          writes day of the month as a decimal number (range [01,31])
-		 *      Od         writes zero-based day of the month using the alternative numeric system, e.g 二十七 instead of 23 in ja_JP locale.
+		 *      Od         writes zero-based day of the month using the alternative numeric system, e.g ÃÂ¤ÃÂºÃÂÃÂ¥ÃÂÃÂÃÂ¤ÃÂ¸ÃÂ instead of 23 in ja_JP locale.
 		 *                 Single character is preceded by a space.
 		 *      e          writes day of the month as a decimal number (range [1,31]).
 		 *                 Single digit is preceded by a space.
-		 *      Oe         writes one-based day of the month using the alternative numeric system, e.g. 二十七 instead of 27 in ja_JP locale
+		 *      Oe         writes one-based day of the month using the alternative numeric system, e.g. ÃÂ¤ÃÂºÃÂÃÂ¥ÃÂÃÂÃÂ¤ÃÂ¸ÃÂ instead of 27 in ja_JP locale
 		 *                 Single character is preceded by a space.
 		 *      a          writes abbreviated weekday name, e.g. Fri (locale dependent)
 		 *      A          writes full weekday name, e.g. Friday (locale dependent)
 		 *      w          writes weekday as a decimal number, where Sunday is 0 (range [0-6])
-		 *      Ow         writes weekday, where Sunday is 0, using the alternative numeric system, e.g. 二 instead of 2 in ja_JP locale
+		 *      Ow         writes weekday, where Sunday is 0, using the alternative numeric system, e.g. ÃÂ¤ÃÂºÃÂ instead of 2 in ja_JP locale
 		 *      u          writes weekday as a decimal number, where Monday is 1 (ISO 8601 format) (range [1-7])
-		 *      Ou         writes weekday, where Monday is 1, using the alternative numeric system, e.g. 二 instead of 2 in ja_JP locale
+		 *      Ou         writes weekday, where Monday is 1, using the alternative numeric system, e.g. ÃÂ¤ÃÂºÃÂ instead of 2 in ja_JP locale
 		 *      H          writes hour as a decimal number, 24 hour clock (range [00-23])
-		 *      OH         writes hour from 24-hour clock using the alternative numeric system, e.g. 十八 instead of 18 in ja_JP locale
+		 *      OH         writes hour from 24-hour clock using the alternative numeric system, e.g. ÃÂ¥ÃÂÃÂÃÂ¥ÃÂÃÂ« instead of 18 in ja_JP locale
 		 *      I          writes hour as a decimal number, 12 hour clock (range [01,12])
-		 *      OI         writes hour from 12-hour clock using the alternative numeric system, e.g. 六 instead of 06 in ja_JP locale
+		 *      OI         writes hour from 12-hour clock using the alternative numeric system, e.g. ÃÂ¥ÃÂÃÂ­ instead of 06 in ja_JP locale
 		 *      M          writes minute as a decimal number (range [00,59])
-		 *      OM         writes minute using the alternative numeric system, e.g. 二十五 instead of 25 in ja_JP locale
+		 *      OM         writes minute using the alternative numeric system, e.g. ÃÂ¤ÃÂºÃÂÃÂ¥ÃÂÃÂÃÂ¤ÃÂºÃÂ instead of 25 in ja_JP locale
 		 *      S          writes second as a decimal number (range [00,60])
-		 *      OS         writes second using the alternative numeric system, e.g. 二十四 instead of 24 in ja_JP locale
+		 *      OS         writes second using the alternative numeric system, e.g. ÃÂ¤ÃÂºÃÂÃÂ¥ÃÂÃÂÃÂ¥ÃÂÃÂ instead of 24 in ja_JP locale
 		 *      c          writes standard date and time string, e.g. Sun Oct 17 04:41:13 2010 (locale dependent)
-		 *      Ec         writes alternative date and time string, e.g. using 平成23年 (year Heisei 23) instead of 2011年 (year 2011) in ja_JP locale
+		 *      Ec         writes alternative date and time string, e.g. using ÃÂ¥ÃÂ¹ÃÂ³ÃÂ¦ÃÂÃÂ23ÃÂ¥ÃÂ¹ÃÂ´ (year Heisei 23) instead of 2011ÃÂ¥ÃÂ¹ÃÂ´ (year 2011) in ja_JP locale
 		 *      x          writes localized date representation (locale dependent)
-		 *      Ex         writes alternative date representation, e.g. using 平成23年 (year Heisei 23) instead of 2011年 (year 2011) in ja_JP locale
+		 *      Ex         writes alternative date representation, e.g. using ÃÂ¥ÃÂ¹ÃÂ³ÃÂ¦ÃÂÃÂ23ÃÂ¥ÃÂ¹ÃÂ´ (year Heisei 23) instead of 2011ÃÂ¥ÃÂ¹ÃÂ´ (year 2011) in ja_JP locale
 		 *      X          writes localized time representation (locale dependent)
 		 *      EX         writes alternative time representation (locale dependent)
 		 *      D          equivalent to "%m/%d/%y"
@@ -439,7 +460,8 @@ class DateTime : public SunSet
 		std::ostringstream operator<< (DateTime& t);
 		std::ostringstream operator>> (DateTime& t);
 		DateTime& operator= (DateTime& t);
-		DateTime& operator= (DateTime& t) const;
+		DateTime& operator= (const DateTime& t) = delete;
+//		DateTime& operator= (const DateTime& t) const;
 		bool operator== (DateTime& t) const;
 		bool operator!= (DateTime& t) const;
 		DateTime& operator+ (DateTime& t);
@@ -454,9 +476,6 @@ class DateTime : public SunSet
 	private:
 		std::string doFormat(const struct tm *t, std::string f);
 		int checkDayOfMonth(int mon, int year);
-
-		std::string format;
-		std::chrono::system_clock::time_point timestamp;
 };
 
 #endif /* datetime_h */

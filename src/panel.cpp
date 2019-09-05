@@ -41,20 +41,10 @@ using namespace std;
 using namespace xmlpp;
 using namespace amx;
 
-amx::Panel::Panel()
+Panel::Panel(PROJECT_T& prj, Palette *pPalet, Icon *pIco, FontList *pFL)
+            : Project{prj}
 {
-	sysl->TRACE(Syslog::ENTRY, std::string("Panel::Panel()"));
-    pPalettes = 0;
-    pIcons = 0;
-    pFontLists = 0;
-    status = false;
-    readProject();
-}
-
-Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)
-            : Project(prj)
-{
-	sysl->TRACE(Syslog::ENTRY, std::string("Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)"));
+	sysl->TRACE(Syslog::ENTRY, "Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)");
     pPalettes = pPalet;
     pIcons = pIco;
     pFontLists = pFL;
@@ -65,21 +55,21 @@ Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)
         status = false;
 }
 
-amx::Panel::~Panel()
+Panel::~Panel()
 {
-	sysl->TRACE(Syslog::EXIT, std::string("Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)"));
+	sysl->TRACE(Syslog::EXIT, "Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)");
 
-    if (pPalettes)
+    if (pPalettes && localPalette)
         delete pPalettes;
 
-    if (pIcons)
+    if (pIcons && localIcon)
         delete pIcons;
 
-    if (pFontLists)
+    if (pFontLists && localFontList)
         delete pFontLists;
 }
 
-void amx::Panel::readProject()
+void Panel::readProject()
 {
 	DECL_TRACER("Panel::readProject()");
 
@@ -305,15 +295,24 @@ void amx::Panel::readProject()
 	{
 		// Read the color palette
 		if (!pPalettes)
+		{
 			pPalettes = new Palette(Project.paletteList, Project.supportFileList.colorFile);
+			localPalette = true;
+		}
 
 		// Read the icon slot table
 		if (!pIcons)
+		{
 			pIcons = new Icon(Project.supportFileList.iconFile);
+			localIcon = true;
+		}
 
 		// Read the font map list
 		if (!pFontLists)
+		{
 			pFontLists = new FontList(Project.supportFileList.fontFile);
+			localFontList = true;
+		}
 
 		if (!pPalettes->isOk() || !pIcons->isOk() || !pFontLists->isOk())
 		{
@@ -668,7 +667,7 @@ DateTime& Panel::getDate(const string& dat, DateTime& dt)
 	DECL_TRACER("Panel::getDate(const string& dat, DateTime& dt)");
 
 	int day, month, year, hour, min, sec;
-	std::vector<string> teile = Str::split(dat, ' ');
+	vector<string> teile = Str::split(dat, ' ');
 
 	if (teile.size() < 5)
 		return dt;
@@ -699,7 +698,7 @@ DateTime& Panel::getDate(const string& dat, DateTime& dt)
 		month = 12;
 
 	day = atoi(teile[2].c_str());
-	std::vector<string> tim = Str::split(teile[3], ':');
+	vector<string> tim = Str::split(teile[3], ':');
 
 	if (tim.size() == 3)
 	{

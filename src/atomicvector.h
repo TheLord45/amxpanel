@@ -31,9 +31,12 @@ class AtomicVector
 		AtomicVector(const AtomicVector& orig) : vec(orig.vec), mut(), cond() {}
 
 		void insert(T in, const int index);
-		void push_back(T in);
+//		void push_back(T in);
+		void push_back(const T& in);
 		T& operator[](const int index);
 		T& at(const int index);
+		T& front();
+		T& back();
 		size_t size();
 		typename std::vector<T>::iterator erase(typename std::vector<T>::iterator it);
 		typename std::vector<T>::iterator begin();

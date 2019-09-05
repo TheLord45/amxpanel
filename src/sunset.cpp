@@ -24,28 +24,7 @@
 
 #include "sunset.h"
 
-SunSet::SunSet()
-{
-	latitude = 0.0;
-	longitude = 0.0;
-	julianDate = 0.0;
-	tzOffset = 0;
-}
-
-SunSet::SunSet(double lat, double lon, int tz)
-{
-	latitude = lat;
-	longitude = lon;
-	julianDate = 0.0;
-	tzOffset = tz;
-}
-
-SunSet::~SunSet()
-{
-
-}
-
-void SunSet::setPosition(double lat, double lon, int tz)
+void SunSet::setPosition(const double lat, const double lon, const int tz)
 {
 	latitude = lat;
 	longitude = lon;

@@ -90,6 +90,22 @@ namespace amx
 
 	class TouchPanel : public Panel, WebSocket
 	{
+		PANELS_T registration{};
+		std::string scrBuffer{""};
+		std::string scrStart{""};
+		std::string scBtArray{""};
+		std::string sBargraphs{""};
+		std::vector<ST_PAGE> stPages{};
+		std::vector<ST_POPUP> stPopups{};
+		std::vector<PAGE_T> pageList{};
+		std::atomic<bool> busy{};
+		std::string none{""};
+		long serNum{0};
+
+		AtomicVector<ANET_COMMAND> commands{};		// Commands from controller
+		std::mutex mut{};
+		std::condition_variable cond{};
+
 		public:
 			TouchPanel();
 			~TouchPanel();
@@ -131,23 +147,6 @@ namespace amx
 
 
 			void showContent(long pan);
-
-			PANELS_T registration;
-			std::string scrBuffer;
-			std::string scrStart;
-			std::string scBtArray;
-			std::string sBargraphs;
-			bool gotPages;
-			std::vector<ST_PAGE> stPages;
-			std::vector<ST_POPUP> stPopups;
-			std::vector<PAGE_T> pageList;
-			std::atomic<bool> busy;
-			std::string none;
-			long serNum;
-
-			AtomicVector<ANET_COMMAND> commands;		// Commands from controller
-			std::mutex mut;
-			std::condition_variable cond;
 	};
 }
 

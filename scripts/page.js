@@ -586,6 +586,19 @@ function activeTouch(event, name, object)
 						if (button.op.length > 0)
 							sendString(button.cp, button.ch, button.op);
 
+						if (button.sr[0].sd.length > 0)
+						{
+							try
+							{
+								var snd = new Audio("sounds/"+button.sr[0].sd);
+								snd.play();
+							}
+							catch(e)
+							{
+								errlog("activeTouch: Sound error: "+e);
+							}
+						}
+
 						return;
 					}
 					else if (event.type == "mouseup" || event.type == "pointerup" || event.type == "touchup")
@@ -597,6 +610,20 @@ function activeTouch(event, name, object)
 						else
 							pushButton(button.cp, button.ch, 0);
 
+						if ((button.sr[1].sd.length > 0 && button.sr[0].sd.length == 0) ||
+							button.sr[0].sd != button.sr[1])
+						{
+							try
+							{
+								var snd = new Audio("sounds/"+button.sr[1].sd);
+								snd.play();
+							}
+							catch(e)
+							{
+								errlog("activeTouch: Sound error: "+e);
+							}
+						}
+
 						return;
 					}
 					else
@@ -607,6 +634,26 @@ function activeTouch(event, name, object)
 						if (button.op.length > 0)
 							sendString(button.cp, button.ch, button.op);
 
+						if (button.sr[0].sd.length > 0 || button.sr[1].sd.length > 0)
+						{
+							var sd = "";
+
+							if (button.sr[0].sd.length > 0)
+								sd = button.sr[0].sd;
+							else
+								sd = button.sr[1].sd;
+
+							try
+							{
+								var snd = new Audio("sounds/"+sd);
+								snd.play();
+							}
+							catch(e)
+							{
+								errlog("activeTouch: Sound error: "+e);
+							}
+						}
+	
 						return;
 					}
 				}
@@ -657,6 +704,7 @@ function drawPage(name)
 		if (Pages.pages[i].name == name)
 		{
 			pageID = Pages.pages[i].ID;
+			Pages.pages[i].active = true;
 			break;
 		}
 	}
@@ -931,7 +979,42 @@ function doDraw(pgKey, pageID, what)
 							if (button.op.length > 0)
 								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op), false);
 
+							if (button.sr[0].sd.length > 0)
+							{
+								bt.parameter = button.sr[0].sd;
+
+								bt.addEventListener(EVENT_DOWN, function(evt) {
+									try
+									{
+										var snd = new Audio("sounds/"+evt.target.parameter);
+										snd.play();
+									}
+									catch(e)
+									{
+										errlog("doDraw: Sound error: "+e);
+									}
+								}, false)
+							}
+		
 							bt.addEventListener(EVENT_UP, switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
+
+							if ((button.sr[1].sd.length > 0 && button.sr[0].sd.length == 0) ||
+								button.sr[0].sd != button.sr[1].sd)
+							{
+								bt.parameter = button.sr[1].sd;
+
+								bt.addEventListener(EVENT_UP, function(evt) {
+									try
+									{
+										var snd = new Audio("sounds/"+evt.target.parameter);
+										snd.play();
+									}
+									catch(e)
+									{
+										errlog("doDraw: Sound error: "+e);
+									}
+								}, false)
+							}
 						}
 					}
 					else if (button.fb == FEEDBACK.FB_CHANNEL || button.fb == 0)

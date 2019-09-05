@@ -49,8 +49,6 @@ extern Config *Configuration;
 extern Syslog *sysl;
 
 TouchPanel::TouchPanel()
-		: mut(),
-		  cond()
 {
 	sysl->TRACE(Syslog::ENTRY, "TouchPanel::TouchPanel()");
 	busy = false;
@@ -59,7 +57,13 @@ TouchPanel::TouchPanel()
 	regCallbackStop(bind(&TouchPanel::stopClient, this));
 	regCallbackConnected(bind(&TouchPanel::setWebConnect, this, placeholders::_1, placeholders::_2));
 	regCallbackRegister(bind(&TouchPanel::regWebConnect, this, placeholders::_1, placeholders::_2));
-	readPages();
+
+	if (!isParsed())
+	{
+		readProject();
+		readPages();
+	}
+
 	// Start thread for websocket
 	try
 	{
@@ -180,7 +184,7 @@ bool TouchPanel::registerSlot (int channel, string& regID, long pan)
 			if (itr->first == channel && itr->second.channel == channel && itr->second.regID.compare(regID) == 0)
 				return false;
 
-			REGISTRATION_T reg = itr->second;
+			REGISTRATION_T &reg = itr->second;
 
 			if (itr->first != channel)
 				reg.channel = channel;
@@ -518,7 +522,7 @@ bool TouchPanel::send(int id, string& msg)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse ÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -837,7 +841,7 @@ void TouchPanel::stopClient()
 	while (registration.size() > 0)
 	{
 		itr = registration.begin();
-		REGISTRATION_T reg = itr->second;
+		REGISTRATION_T &reg = itr->second;
 
 		if (reg.amxnet != 0)
 		{
@@ -876,8 +880,11 @@ void TouchPanel::readPages()
 {
 	DECL_TRACER("TouchPanel::readPages()");
 
-	if (gotPages || isParsed())
+	if (isParsed())
 		return;
+
+	if (!isOk())
+		readProject();
 
 	try
 	{
@@ -1004,6 +1011,9 @@ bool TouchPanel::parsePages()
 	// Did we've already parsed?
 	if (isParsed())
 		return true;
+
+	if (!isOk())
+		readProject();
 
 	string fname = Configuration->getHTTProot()+"/index.html";
 	string cssname = Configuration->getHTTProot()+"/amxpanel.css";
@@ -1587,7 +1597,7 @@ void TouchPanel::writePopups (fstream& pgFile)
 		if (!first)
 			pgFile << ",";
 
-		pgFile << "\n\t\t{\"name\":\"" << stPopups[i].name << "\",\"ID\":" << stPopups[i].ID << ",\"group\":\"" << stPopups[i].group << "\",\"active\":false,\"lnpage\":\"\",\"modality\":" << ((stPopups[i].modal) ? "true" : "false") << "}";
+		pgFile << "\n\t\t{\"name\":\"" << stPopups[i].name << "\",\"ID\":" << stPopups[i].ID << ",\"group\":\"" << stPopups[i].group << "\",\"active\":false,\"lnpage\":[ ],\"modality\":" << ((stPopups[i].modal) ? "true" : "false") << "}";
 		first = false;
 	}
 
@@ -1623,13 +1633,13 @@ void TouchPanel::writeIconTable(fstream& pgFile)
 
 void TouchPanel::writeBargraphs(fstream& pgFile)
 {
-	DECL_TRACER(string("TouchPanel::writeBargraphs(fstream& pgFile)"));
+	DECL_TRACER("TouchPanel::writeBargraphs(fstream& pgFile)");
 	pgFile << "var bargraphs = {\"bargraphs\":[\n" << sBargraphs << "\n]};\n";
 }
 
 bool TouchPanel::isParsed()
 {
-	DECL_TRACER(string("TouchPanel::isParsed()"));
+	DECL_TRACER("TouchPanel::isParsed()");
 	fstream pgFile;
 	// Did we've already parsed?
 	try
@@ -1639,7 +1649,7 @@ bool TouchPanel::isParsed()
 
 		if (pgFile.is_open())
 		{
-			sysl->log(Syslog::INFO, string("TouchPanel::parsePages: Pages are already parsed. Skipping!"));
+			sysl->log(Syslog::INFO, "TouchPanel::isParsed: Pages are already parsed. Skipping!");
 			pgFile.close();
 			return true;
 		}
@@ -1648,7 +1658,7 @@ bool TouchPanel::isParsed()
 	}
 	catch(const fstream::failure e)
 	{
-		sysl->errlog(string("TouchPanel::parsePages: I/O Error: ")+e.what());
+		sysl->errlog(string("TouchPanel::isParsed: I/O Error: ")+e.what());
 	}
 
 	return false;

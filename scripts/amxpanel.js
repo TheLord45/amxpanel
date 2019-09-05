@@ -156,7 +156,7 @@ var cmdArray = {
         { "cmd": "SETUP", "call": unsupported },
         { "cmd": "SHUTDOWN", "call": unsupported },
         { "cmd": "SLEEP", "call": unsupported },
-        { "cmd": "@SOU-", "call": unsupported },
+        { "cmd": "@SOU-", "call": doSOU },	// Play a sound file
         { "cmd": "@TKP-", "call": unsupported },
         { "cmd": "TPAGEON", "call": unsupported },
         { "cmd": "TPAGEOFF", "call": unsupported },
@@ -251,10 +251,8 @@ function getFontWeight(fw)
 
 function unsupported(msg)
 {
-    var pos;
-    var bef;
-
-    pos = msg.search('-');
+    var bef = "";
+    var pos = msg.search('-');
 
     if (pos >= 0)
         bef = msg.substr(0, pos);
@@ -368,9 +366,7 @@ function getButton(pnum, bi)
 
 function getBargraphLevel(pnum, id)
 {
-    var i;
-
-    for (i in bargraphs.bargraphs)
+    for (var i in bargraphs.bargraphs)
     {
         var bg = bargraphs.bargraphs[i];
 
@@ -383,9 +379,7 @@ function getBargraphLevel(pnum, id)
 
 function getBargraphPC(pnum, id)
 {
-    var i;
-
-    for (i in bargraphs.bargraphs)
+    for (var i in bargraphs.bargraphs)
     {
         var bg = bargraphs.bargraphs[i];
 
@@ -398,9 +392,7 @@ function getBargraphPC(pnum, id)
 
 function getBargraphPars(pnum, id)
 {
-    var i;
-
-    for (i in bargraphs.bargraphs)
+    for (var i in bargraphs.bargraphs)
     {
         var bg = bargraphs.bargraphs[i];
 
@@ -413,13 +405,12 @@ function getBargraphPars(pnum, id)
 
 function setBargraphLevel(pnum, id, level)
 {
-    var i;
     var PC = getBargraphPC(pnum, id);
 
     if (PC === -1)
         return;
 
-    for (i in bargraphs.bargraphs)
+    for (var i in bargraphs.bargraphs)
     {
         var bg = bargraphs.bargraphs[i];
 
@@ -433,20 +424,18 @@ function setBargraphLevel(pnum, id, level)
 function getField(msg, field, sep)
 {
     var flds = [];
-    var rest;
-    var pos;
-    var i;
+    var rest = "";
     var bStr = false;
     var part = "";
 
-    pos = msg.indexOf('-'); // Check for the command part preceding the parameters
+    var pos = msg.indexOf('-'); // Check for the command part preceding the parameters
 
     if (pos >= 0)
         rest = msg.substr(pos + 1); // Cut off the command part
     else
         rest = msg; // No command part, so take the whole string
 
-    for (i = 0; i < rest.length; i++)
+    for (var i = 0; i < rest.length; i++)
     {
         if (rest.charAt(i) == sep && !bStr)
         {
@@ -632,11 +621,13 @@ function getWebColor(value)
     return rgb(red, green, blue);
 }
 
-function findPopupNumber(name)
+function findPopupNumber(name, pg = "")
 {
-    for (var i in Popups.pages)
+	var p = ((pg.length > 0) ? pg : getActivePageName());
+
+	for (var i in Popups.pages)
     {
-        if (Popups.pages[i].name == name)
+        if (Popups.pages[i].name == name && Popups.pages[i].lnpage[p] !== null)
             return Popups.pages[i].ID;
     }
 
@@ -746,13 +737,13 @@ function findBargraphs(port, channel)
     return bgArray;
 }
 
-function getPopupIndex(name)
+function getPopupIndex(name, pg = "")
 {
-    var i;
+	var p = ((pg.length > 0) ? pg : getActivePageName());
 
-    for (i in Popups.pages)
+    for (var i in Popups.pages)
     {
-        if (Popups.pages[i].name == name)
+        if (Popups.pages[i].name == name && Popups.pages[i].lnpage[p] !== null)
             return i;
     }
 
@@ -819,6 +810,17 @@ function getActivePage()
     }
 
     return 0;
+}
+
+function getActivePageIndex()
+{
+    for (var i in Pages.pages)
+    {
+        if (Pages.pages[i].active == true)
+            return i;
+    }
+
+    return -1;
 }
 
 function getActivePageName()
@@ -900,7 +902,63 @@ function setButtonOnline(pnum, id, stat)
     }
 }
 
-function hideGroup(name)
+function isPopupOnPage(page, popup)
+{
+	for (var i in Popups.pages)
+	{
+		if (Popups.pages[i].name == popup)
+		{
+			var lnpg = Popups.pages[i].lnpage;
+
+			for (var j in lnpg)
+			{
+				if (lnpg[j] == page)
+					return true;
+			}
+
+			return false;
+		}
+	}
+
+	return false;
+}
+function addPopupToPage(page, popup)
+{
+	for (var i in Popups.pages)
+	{
+		if (Popups.pages[i].name == popup)
+		{
+			if (!isPopupOnPage(page, popup))
+			{
+				Popups.pages[i].lnpage.push(page);
+				return;
+			}
+
+			return;
+		}
+	}
+}
+function removePopupFromPage(page, popup)
+{
+	for (var i in Popups.pages)
+	{
+		if (Popups.pages[i].name == popup)
+		{
+			for (var j in Popups.pages[i].lnpage)
+			{
+				if (Popups.pages[i].lnpage[j] == page)
+				{
+					Popups.pages[i].lnpage.splice(j, 1);
+					return;
+				}
+			}
+
+			return;
+		}
+	}
+}
+
+function hideGroup(name, page = "")
 {
     var group = popupGroups[name];
 
@@ -912,12 +970,16 @@ function hideGroup(name)
 
     for (var i in group)
     {
-        var pg = findPopupNumber(group[i]);
+		var pg = findPopupNumber(group[i], page);
+		
+		if (pg == -1)
+			continue;
+
         var nm = 'Page_' + pg;
 
         try
         {
-            var idx = getPopupIndex(group[i]);
+            var idx = getPopupIndex(group[i], page);
 
             if (idx >= 0)
             {
@@ -927,9 +989,10 @@ function hideGroup(name)
                     freeZIndex();
                 }
 
-                Popups.pages[idx].active = false;
-                Popups.pages[idx].lnpage = "";
-            }
+				Popups.pages[idx].active = false;
+				var page = ((page.length > 0) ? page : getActivePageName());
+				removePopupFromPage(page, Popups.pages[idx].name);
+			}
         }
         catch (e)
         {
@@ -958,8 +1021,8 @@ function showPopup(name)
 
         if (idx >= 0)
         {
-            Popups.pages[idx].active = true;
-            Popups.pages[idx].lnpage = getActivePageName();
+			Popups.pages[idx].active = true;
+			addPopupToPage(getActivePageName(), Popups.pages[idx].name);
         }
     }
     catch (e)
@@ -970,30 +1033,32 @@ function showPopup(name)
 
 function showPopupOnPage(name, pg)
 {
-    var pname;
-    var pID;
-    var group;
-    var idx;
-
-    pID = findPopupNumber(name);
-    group = findPageGroup(name);
-    pname = "Page_" + pID;
-    hideGroup(group);
+    var pID = findPopupNumber(name, pg);
+    var group = findPageGroup(name);
+    var pname = "Page_" + pID;
+    hideGroup(group, pg);
 
     try
     {
-        idx = getPopupIndex(name);
+        var idx = getPopupIndex(name);
 
         if (idx >= 0)
         {
-            if (!Popups.pages[idx].active)
-            {
-                drawPopup(name);
-                document.getElementById(pname).style.zIndex = newZIndex();
-            }
 
-            Popups.pages[idx].active = true;
-            Popups.pages[idx].lnpage = getActivePageName();
+			var actPage = getActivePageName();
+			var page = ((pg.length > 0) ? pg : actPage);
+			addPopupToPage(page, Popups.pages[idx].name);
+
+			if (!Popups.pages[idx].active)
+            {
+				Popups.pages[idx].active = true;
+
+				if (actPage == page)
+				{
+                	drawPopup(name);
+					document.getElementById(pname).style.zIndex = newZIndex();
+				}
+            }
         }
     }
     catch (e)
@@ -1004,30 +1069,29 @@ function showPopupOnPage(name, pg)
 
 function hidePopupOnPage(name, pg)
 {
-    var pname;
-    var pID;
-    var group;
-    var idx;
-
-    pID = findPopupNumber(name);
-    group = findPageGroup(name);
-    pname = "Page_" + pID;
-    hideGroup(group);
+    var pID = findPopupNumber(name, pg);
+//    var group = findPageGroup(name);
+    var pname = "Page_" + pID;
+//    hideGroup(group);
 
     try
     {
-        idx = getPopupIndex(name);
+		var actPage = getActivePageName();
+		var page = ((pg.length > 0) ? pg : actPage);
+        var idx = getPopupIndex(name);
 
         if (idx >= 0)
         {
-            if (Popups.pages[idx].active)
+			removePopupFromPage(page, Popups.pages[idx].name);
+			var active = Popups.pages[idx].active;
+			Popups.pages[idx].active = false;
+
+			if (active && actPage == page)
             {
-                dropPopup(name);
+				dropPopup(name);
                 freeZIndex();
             }
 
-            Popups.pages[idx].active = false;
-            Popups.pages[idx].lnpage = "";
         }
     }
     catch (e)
@@ -1047,14 +1111,16 @@ function hidePopup(name)
 
         if (idx >= 0)
         {
-            if (Popups.pages[idx].active)
+			var active = Popups.pages[idx].active;
+			Popups.pages[idx].active = false;
+			removePopupFromPage(getActivePageName(), Popups.pages[idx].name);
+
+			if (active)
             {
                 dropPopup(name);
                 freeZIndex();
             }
 
-            Popups.pages[idx].active = false;
-            Popups.pages[idx].lnpage = "";
         }
     }
     catch (e)
@@ -1065,10 +1131,8 @@ function hidePopup(name)
 
 function showPage(name)
 {
-    var pname;
-    var pID;
-
-    pID = findPageNumber(name);
+    var pname = "";
+    var pID = findPageNumber(name);
 
     if (pID > 0)
         pname = "Page_" + pID;
@@ -1077,24 +1141,39 @@ function showPage(name)
 
     try
     {
-        var ID;
-        ID = getActivePage();
+        var idx = getActivePageIndex();
+		dropPage();
 
-        dropPage();
-        drawPage(name);
+		if (idx >= 0)
+			Pages.pages[idx].active = false;
+
+		var idx = getPageIndex(name);
+
+		if (idx == -1)
+			return;
+
+		Pages.pages[idx].active = true;
+		drawPage(name);
+		var page = getActivePageName();
 
         for (var i in Popups.pages)
         {
-            pname = "Page_" + Popups.pages[i].ID;
+	        pname = "Page_" + Popups.pages[i].ID;
 
-            if (Popups.pages[i].active && Popups.pages[i].lnpage != name)
+			if (Popups.pages[i].modality)
+	            pname = pname+"_modal";
+
+            if (Popups.pages[i].active && !isPopupOnPage(page, name))
             {
                 freeZIndex();
             }
             else if (Popups.pages[i].active)
             {
-                if (document.getElementById(pname) === null)
-                    drawPopup(name);
+				if (document.getElementById(pname) === null)
+				{
+					addPopupToPage(page, Popups.pages[i].name);
+					drawPopup(name);
+				}
 
                 document.getElementById(pname).style.zIndex = newZIndex();
             }
@@ -1108,35 +1187,36 @@ function showPage(name)
 
 function hidePage(name)
 {
-    var pname;
-    var pID;
+	var idx = getPageIndex(name);
 
-    pID = findPageNumber(name);
+	if (idx >= 0)
+	{
+		if (!Pages.pages[idx].active)
+			return;
 
-    if (pID >= 0)
-        pname = "Page_" + pID;
-    else
-        pname = name;
+		Pages.pages[idx].active = false;
+	}
+	else
+		return;
 
     try
     {
         dropPage();
 
         for (var i in Popups.pages)
-        {
-            if (Popups.pages[i].active)
-            {
-                if (Popups.pages[i].lnpage != name)
-                    freeZIndex();
-                else
-                    Popups.pages[i].active = false;
+		{
+			if (Popups.pages[i].active)
+			{
+				if (!isPopupOnPage(name, Popups.pages[idx].name))
+					freeZIndex();
 
+				Popups.pages[i].active = false;
             }
         }
     }
     catch (e)
     {
-        errlog('hidePage: Error on name <' + name + '> and page ' + pname + ': ' + e);
+        errlog('hidePage: Error on page ' + name + ': ' + e);
     }
 }
 
@@ -1236,7 +1316,14 @@ function setON(msg)
             setButtonOnline(bt[b].pnum, bt[b].bi, 2);
             document.getElementById(name1).style.display = 'none';
             document.getElementById(name2).style.display = 'inline';
-            writeTextOut("ON:"+panelID+':' + bt[b].cp + ":" + bt[b].ch);
+			writeTextOut("ON:"+panelID+':' + bt[b].cp + ":" + bt[b].ch);
+			var button = findButtonDistinct(bt[b].pnum, bt[b].bi);
+
+			if (button.sr[1].sd.length > 0)
+			{
+				var snd = new Audio("sounds/"+button.sr[1].sd);
+				snd.play();
+			}
         }
         catch (e)
         {
@@ -1272,6 +1359,13 @@ function setOFF(msg)
             document.getElementById(name1).style.display = 'inline';
             document.getElementById(name2).style.display = 'none';
             writeTextOut("OFF:"+panelID+':' + bt[b].cp + ":" + bt[b].ch);
+			var button = findButtonDistinct(bt[b].pnum, bt[b].bi);
+
+			if (button.sr[0].sd.length > 0)
+			{
+				var snd = new Audio("sounds/"+button.sr[0].sd);
+				snd.play();
+			}
         }
         catch (e)
         {
@@ -1583,12 +1677,8 @@ function doPPN(msg)
  */
 function doPPF(msg)
 {
-    var pos;
-    var name;
-    var pg;
-
-    pg = "";
-    pos = msg.indexOf(";"); // Do we have a page name?
+    var pg = "";
+    var pos = msg.indexOf(";"); // Do we have a page name?
     // FIXME: Page names are not supported currently!
     if (pos < 0)
         pos = msg.length - 5;
@@ -1597,7 +1687,7 @@ function doPPF(msg)
         pos = msg.length - pos - 5;
     }
 
-    name = msg.substr(5, pos); // Extract the popup name
+    var name = msg.substr(5, pos); // Extract the popup name
 
     if (pg.length > 0)
         hidePopupOnPage(name, pg);
@@ -1865,7 +1955,7 @@ function doPPA(msg)
 	{
 		var pop = Popup.pages[i];
 
-		if (pop.active == true && pop.lnpage == pname)
+		if (pop.active == true && isPopupOnPage(pname, pop.name))
 			hidePopup(pop.name);
 	}
 }
@@ -4078,7 +4168,6 @@ function doTEF(msg)
 		tef = 55;
 	else if (effect == "Hard Drop Shadow 8 with outline")
 		tef = 56;
-debug("doTEF: Found effect: "+tef);
 
 	iterateButtonStates(addr, bts, cbTEF, tef);
 }
@@ -4158,7 +4247,6 @@ function cbTEF(name, button, bt, idx, effect)
 
 	try
 	{
-		debug ("cbTEF: Try to set "+tef);
 		if (button.btype == BUTTONTYPE.TEXT_INPUT)
 			document.getElementById('"'+button.bname+'"').style.textShadow = tef;
 		else
@@ -4209,7 +4297,29 @@ function doADBEEP(msg)
         beep();
     });
 }
+/*
+ * Play a sound file.
+ */
+function doSOU(msg)
+{
+	var sound = getField(msg, 0, ',');
 
+	if (!soundExist(sound))
+	{
+		errlog("doSOU: Sound file "+sound+" does not exist!");
+		return;
+	}
+
+	try
+	{
+		var snd = new Audio("sounds/"+sound);
+		snd.play();
+	}
+	catch(e)
+	{
+		errlog("doSOU: Error: "+e);
+	}
+}
 function doERR(msg)
 {
     var emg = getField(msg, 0, ',');

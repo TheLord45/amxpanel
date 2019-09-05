@@ -28,13 +28,23 @@ namespace amx
 {
 	class Panel
 	{
+		PROJECT_T Project{};
+		Palette *pPalettes{nullptr};
+		Icon *pIcons{nullptr};
+		FontList *pFontLists{nullptr};
+		bool status{false};
+		bool localPalette{false};
+		bool localIcon{false};
+		bool localFontList{false};
+
 		public:
-			Panel();
-			Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL);
+			Panel() = default;
+			Panel (PROJECT_T &prj, Palette *pPalet, Icon *pIco, FontList *pFL);
 			~Panel();
 
 			bool isOk() { return status; }
 			std::vector<std::string> getPageFileNames();
+			void readProject();
 
 		protected:
 			PROJECT_T& getProject() { return Project; }
@@ -43,7 +53,6 @@ namespace amx
 			Icon *getIconClass() { return pIcons; }
 
 		private:
-			void readProject();
 			void setVersionInfo(const std::string& name, const std::string& value);
 			void setProjectInfo(const std::string& name, const std::string& value, const std::string& attr);
 			void setSupportFileList(const std::string& name, const std::string& value);
@@ -53,12 +62,6 @@ namespace amx
 			void setFwFeatureList(const std::string& name, const std::string& value);
 			void setPaletteList(const std::string& name, const std::string& value);
 			DateTime& getDate(const std::string& dat, DateTime& dt);
-
-			PROJECT_T Project;
-			Palette *pPalettes;
-			Icon *pIcons;
-			FontList *pFontLists;
-			bool status;
 	};
 }
 
