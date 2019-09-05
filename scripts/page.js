@@ -478,10 +478,8 @@ function processKey(button, idx, inp)
  * When a non transparent pixel was found, the mouse event is
  * passed to the parent of that image (button).
  */
-function activeTouch(event, name, object)
+async function activeTouch(event, name, object)
 {
-	var i;
-
 	if (event === null)
 	{
 		errlog("activeTouch: Got no valid event on "+name);
@@ -502,7 +500,7 @@ function activeTouch(event, name, object)
 	if (objs === null)
 		return;
 
-	for (i in objs)
+	for (var i in objs)
 	{
 		if (objs[i].id.indexOf(name) == 0 && objs[i].id != name &&
 			(objs[i].localName == "canvas" || objs[i].localName == "img" || objs[i].localName == "div" || objs[i].localName == "span"))
@@ -542,9 +540,37 @@ function activeTouch(event, name, object)
 					ctx = objs[i].getContext("2d");
 				else if (objs[i].style.backgroundImage.length > 0)
 				{
-					var img = document.createElement("img");
+					var img = new Image(w, h);
 					img.src = objs[i].style.backgroundImage.slice(4, -1).replace(/["']/g, "");
-					ctx.drawImage(img, 0, 0, w, h);
+					var readyPic = false;
+
+					if (!img.complete)
+					{			
+						img.onload = function()
+						{
+							ctx.drawImage(img, 0, 0, w, h);
+							readyPic = true;
+						}
+					}
+					else
+					{
+						ctx.drawImage(img, 0, 0, w, h);
+						readyPic = true;
+					}
+
+					var cnt = 0;
+
+					while(!readyPic && cnt < 20)
+					{
+						await new Promise(r => setTimeout(r, 200));
+						cnt++;
+					}
+
+					if (!readyPic)
+					{
+						errlog("activeTouch: WARNING: "+img.src+" not loaded!");
+						ctx.drawImage(img, 0, 0, w, h);
+					}
 				}
 				else
 					continue;
@@ -586,7 +612,7 @@ function activeTouch(event, name, object)
 						if (button.op.length > 0)
 							sendString(button.cp, button.ch, button.op);
 
-						if (button.sr[0].sd.length > 0)
+						if (soundExist(button.sr[0].sd))
 						{
 							try
 							{
@@ -610,8 +636,8 @@ function activeTouch(event, name, object)
 						else
 							pushButton(button.cp, button.ch, 0);
 
-						if ((button.sr[1].sd.length > 0 && button.sr[0].sd.length == 0) ||
-							button.sr[0].sd != button.sr[1])
+						if ((soundExist(button.sr[1].sd) && !soundExist(button.sr[0].sd)) ||
+							button.sr[0].sd != button.sr[1].sd)
 						{
 							try
 							{
@@ -634,7 +660,7 @@ function activeTouch(event, name, object)
 						if (button.op.length > 0)
 							sendString(button.cp, button.ch, button.op);
 
-						if (button.sr[0].sd.length > 0 || button.sr[1].sd.length > 0)
+						if (soundExist(button.sr[0].sd) || soundExist(button.sr[1].sd))
 						{
 							var sd = "";
 
@@ -823,7 +849,6 @@ function doDraw(pgKey, pageID, what)
 				{
 					window.clearTimeout(__dropPageTimers[pgKey.name]);
 					__dropPageTimers[pgKey.name] = 0;
-					debug("DoDraw: Timer for page "+pgKey.name+" was killed.");
 				}
 
 				div.replaceChild(page, oldChild);
@@ -1017,7 +1042,7 @@ function doDraw(pgKey, pageID, what)
 							}
 						}
 					}
-					else if (button.fb == FEEDBACK.FB_CHANNEL || button.fb == 0)
+					else if (button.fb == FEEDBACK.FB_CHANNEL || button.fb == FEEDBACK.FB_NONE)
 					{
 						if (button.hs.length == 0)
 						{

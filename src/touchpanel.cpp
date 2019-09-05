@@ -522,7 +522,7 @@ bool TouchPanel::send(int id, string& msg)
 
 /*
  * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
+ * Methode an die Klasse ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
  * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
@@ -1381,6 +1381,7 @@ bool TouchPanel::parsePages()
 		jsFile << "\t\t\t}" << endl << "\t\t}" << endl << "\t}" << endl << endl;
 		jsFile << "\treturn null;" << endl << "}" << endl << endl;
 		jsFile << "function soundExist(name)" << endl << "{" << endl;
+        jsFile << "\tif (typeof name != \"string\" || name.length == 0)" << endl << "\t\treturn false;" << endl << endl;
 		jsFile << "\tfor (var i in ressources.ressources)" << endl << "\t{" << endl;
 		jsFile << "\t\tvar res = ressources.ressources[i];" << endl << endl;
 		jsFile << "\t\tif (res.type == \"sound\")" << endl << "\t\t{" << endl;
