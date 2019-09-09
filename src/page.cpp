@@ -714,11 +714,12 @@ void Page::serializeToFile()
 
 void amx::Page::generateButtons()
 {
-	DECL_TRACER(std::string("Page::generateButtons()"));
+	DECL_TRACER("Page::generateButtons()");
 
 	if (buttonsDone)
 		return;
 
+	string buf;
 	sysl->TRACE("Page::generateButtons: for page: "+page.name);
 
 	try
@@ -732,7 +733,7 @@ void amx::Page::generateButtons()
 
 		for (size_t i = 0; i < page.buttons.size(); i++)
 		{
-			if (page.buttons[i].ad > 0 || page.buttons[i].ch > 0)
+			if (page.buttons[i].ad > 0 || page.buttons[i].ch > 0 || !page.buttons[i].op.empty())
 			{
 				int on = 1;
 
@@ -740,12 +741,8 @@ void amx::Page::generateButtons()
 					btArray += ",";
 
 				// Find which instance is on
-				if (i == 0 && page.buttons[i].fb != FB_INV_CHANNEL && page.buttons[i].fb != FB_ALWAYS_ON)
-					on = 1;
-				else if (i == 1 && (page.buttons[i].fb == FB_INV_CHANNEL || page.buttons[i].fb == FB_ALWAYS_ON))
+				if (page.buttons[i].fb == FB_INV_CHANNEL || page.buttons[i].fb == FB_ALWAYS_ON)
 					on = 2;
-				else
-					on = 1;
 
 				btArray += "\n\t\t{\"pnum\":"+to_string(page.pageID)+",\"bi\":"+to_string(page.buttons[i].bi)+",";
 				btArray += "\"instances\":"+to_string(page.buttons[i].sr.size())+",";
@@ -759,17 +756,16 @@ void amx::Page::generateButtons()
 			pbt.setPageList(pgList);
 			pbt.setIconClass(iconClass);
 			pbt.setPageID(page.pageID);
-			styleBuffer += pbt.getStyle();
-			string buf = pbt.getWebCode();
+			buf.assign(pbt.getWebCode());
 			btWebBuffer.push_back(buf);
-			scriptCode += pbt.getScriptCode();
-			scrStart += pbt.getScriptCodeStart();
+			scriptCode.append(pbt.getScriptCode());
+			scrStart.append(pbt.getScriptCodeStart());
 
 			if (!sBargraphs.empty() && pbt.haveBargraph())
-				sBargraphs += ",\n";
+				sBargraphs.append(",\n");
 
 			if (pbt.haveBargraph())
-				sBargraphs += pbt.getBargraphs();
+				sBargraphs.append(pbt.getBargraphs());
 		}
 	}
 	catch (exception& e)

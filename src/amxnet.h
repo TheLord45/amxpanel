@@ -39,7 +39,15 @@ namespace amx
 		uint16_t level;			// level number (if any)
 		uint16_t channel;		// channel status
 		uint16_t value;			// level value
-		std::string msg;	// message string
+		// this is for custom events
+		uint16_t ID;			// ID of button
+		uint16_t type;			// Type of event
+		uint16_t flag;			// Flag
+		uint32_t value1;		// Value 1
+		uint32_t value2;		// Value 2
+		uint32_t value3;		// Value 3
+		unsigned char dtype;	// Type of data
+		std::string msg;		// message string
 	}ANET_SEND;
 
 	typedef union
@@ -170,6 +178,22 @@ namespace amx
 		unsigned char str[512];	// Null terminated status string
 	}ANET_ASTATUS;
 
+	typedef struct				// Custom event
+	{
+		uint16_t device;		// Device number
+		uint16_t port;			// Port number
+		uint16_t system;		// System number
+		uint16_t ID;			// ID of event (button ID)
+		uint16_t type;			// Type of event
+		uint16_t flag;			// Flag
+		uint32_t value1;		// Value 1
+		uint32_t value2;		// Value 2
+		uint32_t value3;		// Value 3
+		unsigned char dtype;	// type of following data
+		uint16_t length;		// length of following string
+		unsigned char data[255];// Custom data
+	}ANET_CUSTOM;
+
 	typedef union
 	{
 		ANET_CHANNEL chan_state;
@@ -186,6 +210,7 @@ namespace amx
 		ANET_LEVEL reqLevels;
 		ANET_LEVSUPPORT sendLevSupport;
 		ANET_ADEVINFO srDeviceInfo;		// send/receive device info
+		ANET_CUSTOM customEvent;
 	}ANET_DATA;
 
 	typedef struct ANET_COMMAND	// Structure of type command (type = 0x00, status = 0x000c)
@@ -267,7 +292,7 @@ namespace amx
 	{
 		public:
 			AMXNet();
-			AMXNet(const std::string& sn);
+			explicit AMXNet(const std::string& sn);
 			~AMXNet();
 
 			void Run();

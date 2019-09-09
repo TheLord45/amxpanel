@@ -123,21 +123,21 @@ var cmdArray = {
         { "cmd": "^LPC-", "call": unsupported },
         { "cmd": "^LPR-", "call": unsupported },
         { "cmd": "^LPS-", "call": unsupported },
-        { "cmd": "?BCP-", "call": unsupported },
-        { "cmd": "?BCF-", "call": unsupported },
-        { "cmd": "?BCT-", "call": unsupported },
-        { "cmd": "?BMP-", "call": unsupported },
-        { "cmd": "?BOP-", "call": unsupported },
-        { "cmd": "?BRD-", "call": unsupported },
-        { "cmd": "?BWW-", "call": unsupported },
-        { "cmd": "?FON-", "call": unsupported },
-        { "cmd": "?ICO-", "call": unsupported },
-        { "cmd": "?JSB-", "call": unsupported },
-        { "cmd": "?JSI-", "call": unsupported },
-        { "cmd": "?JST-", "call": unsupported },
-        { "cmd": "?TEC-", "call": unsupported },
-        { "cmd": "?TEF-", "call": unsupported },
-        { "cmd": "?TXT-", "call": unsupported },
+        { "cmd": "?BCB-", "call": doGetBCB },	// Get the current border color.
+        { "cmd": "?BCF-", "call": doGetBCF },	// Get the current fill color.
+        { "cmd": "?BCT-", "call": doGetBCT },	// Get the current text color.
+        { "cmd": "?BMP-", "call": doGetBMP },	// Get the current bitmap name.
+        { "cmd": "?BOP-", "call": doGetBOP },	// Get the overall button opacity.
+        { "cmd": "?BRD-", "call": doGetBRD },	// Get the current border name.
+        { "cmd": "?BWW-", "call": doGetBWW },	// Get the current word wrap flag status.
+        { "cmd": "?FON-", "call": doGetFON },	// Get the current font index.
+        { "cmd": "?ICO-", "call": doGetICO },	// Get the current icon index.
+        { "cmd": "?JSB-", "call": doGetJSB },	// Get the current bitmap justification.
+        { "cmd": "?JSI-", "call": doGetJSI },	// Get the current icon justification.
+        { "cmd": "?JST-", "call": doGetJST },	// Get the current text justification.
+        { "cmd": "?TEC-", "call": doGetTEC },	// Get the current text effect color.
+        { "cmd": "?TEF-", "call": doGetTEF },	// Get the current text effect name.
+        { "cmd": "?TXT-", "call": doGetTXT },	// Get the current text information.
         { "cmd": "ABEEP", "call": doABEEP },
         { "cmd": "ADBEEP", "call": doADBEEP },
         { "cmd": "@AKB-", "call": doAKB },      // Pop up the keyboard icon and initialize the text string to that specified.
@@ -544,81 +544,99 @@ function getRGBColor(name)
 
 function getAMXColor(value)
 {
-    var alpha = 1;
-    var pos = value.indexOf('#');
+	var alpha = 1;
+	var pos = value.indexOf('#');
 
-    if (pos < 0)
-        return getRGBAColor(value);
+	if (pos < 0)
+	{
+		var col = getRGBAColor(value);
 
-    var red = parseInt(value.substr(1, 2), 16);
-    var green = parseInt(value.substr(3, 2), 16);
-    var blue = parseInt(value.substr(5, 2), 16);
-    var colArr = [];
+		if (col === -1)
+			return [0, 0, 0, 0];
 
-    colArr.push(red);
-    colArr.push(green);
-    colArr.push(blue);
+		return col;
+	}
 
-    if (value.length > 6)
-    {
-        alpha = parseInt(value.substr(7, 2), 16);
-        colArr.push(alpha);
-    }
+	var red = parseInt(value.substr(1, 2), 16);
+	var green = parseInt(value.substr(3, 2), 16);
+	var blue = parseInt(value.substr(5, 2), 16);
+	var colArr = [];
 
-    return colArr;
+	colArr.push(red);
+	colArr.push(green);
+	colArr.push(blue);
+
+	if (value.length > 6)
+	{
+		alpha = parseInt(value.substr(7, 2), 16);
+		colArr.push(alpha);
+	}
+
+	return colArr;
 }
 
 function getHexColor(value)
 {
-    var alpha = 1.0;
-    var pos = value.indexOf('#');
+	var alpha = 1.0;
+	var pos = value.indexOf('#');
 
-    if (pos < 0)
-        return getRGBAColor(value);
+	if (pos < 0)
+	{
+		var col = getRGBAColor(value);
 
-    var red = parseInt(value.substr(1, 2), 16);
-    var green = parseInt(value.substr(3, 2), 16);
-    var blue = parseInt(value.substr(5, 2), 16);
-    var colArr = [];
+		if (col === -1)
+			return [0, 0, 0, 0];
 
-    colArr.push(red);
-    colArr.push(green);
-    colArr.push(blue);
+		return col;
+	}
 
-    if (value.length > 6)
-    {
-        alpha = parseInt(value.substr(7, 2), 16);
-        alpha = 1.0 / 256.0 * alpha;
-        colArr.push(alpha);
-    }
-    else
-        colArr.push(alpha);
+	var red = parseInt(value.substr(1, 2), 16);
+	var green = parseInt(value.substr(3, 2), 16);
+	var blue = parseInt(value.substr(5, 2), 16);
+	var colArr = [];
 
-    return colArr;
+	colArr.push(red);
+	colArr.push(green);
+	colArr.push(blue);
+
+	if (value.length > 6)
+	{
+		alpha = parseInt(value.substr(7, 2), 16);
+		alpha = 1.0 / 256.0 * alpha;
+		colArr.push(alpha);
+	}
+	else
+		colArr.push(alpha);
+
+	return colArr;
 }
 
 function getWebColor(value)
 {
-    var pos = value.indexOf('#');
+	var pos = value.indexOf('#');
 
-    if (pos < 0)
-    {
-        var col = getRGBAColor(value);
-        return rgba(col[0], col[1], col[2], col[3]);
-    }
+	if (pos < 0)
+	{
+		var col = getRGBAColor(value);
 
-    var red = parseInt(value.substr(1, 2), 16);
-    var green = parseInt(value.substr(3, 2), 16);
-    var blue = parseInt(value.substr(5, 2), 16);
+		if (col === -1)
+			return [0, 0, 0, 0];
 
-    if (value.length > 6)
-    {
-        var alpha = parseInt(value.substr(7, 2), 16);
-        alpha = 1.0 / 256.0 * alpha;
-        return rgba(red, green, blue, alpha);
-    }
+		return rgba(col[0], col[1], col[2], col[3]);
+	}
 
-    return rgb(red, green, blue);
+	var red = parseInt(value.substr(1, 2), 16);
+	var green = parseInt(value.substr(3, 2), 16);
+	var blue = parseInt(value.substr(5, 2), 16);
+
+	if (value.length > 6)
+	{
+		var alpha = parseInt(value.substr(7, 2), 16);
+		alpha = 1.0 / 256.0 * alpha;
+		return rgba(red, green, blue, alpha);
+	}
+
+	return rgb(red, green, blue);
 }
 
 function findPopupNumber(name, pg = "")
@@ -626,23 +644,23 @@ function findPopupNumber(name, pg = "")
 	var p = ((pg.length > 0) ? pg : getActivePageName());
 
 	for (var i in Popups.pages)
-    {
-        if (Popups.pages[i].name == name && Popups.pages[i].lnpage[p] !== null)
-            return Popups.pages[i].ID;
-    }
+	{
+		if (Popups.pages[i].name == name && Popups.pages[i].lnpage[p] !== null)
+			return Popups.pages[i].ID;
+	}
 
-    return -1;
+	return -1;
 }
 
 function findPageNumber(name)
 {
-    for (var i in Pages.pages)
-    {
-        if (Pages.pages[i].name == name)
-            return Pages.pages[i].ID;
-    }
+	for (var i in Pages.pages)
+	{
+		if (Pages.pages[i].name == name)
+			return Pages.pages[i].ID;
+	}
 
-    return -1;
+	return -1;
 }
 
 function findPageName(num)
@@ -971,7 +989,7 @@ function hideGroup(name, page = "")
     for (var i in group)
     {
 		var pg = findPopupNumber(group[i], page);
-		
+
 		if (pg == -1)
 			continue;
 
@@ -2279,7 +2297,7 @@ function doBMC(msg)
 			break;
 		}
 	}
-	
+
 	if (src_button === null)	// Not found?
 	{
 		errlog("cbBMC: Button "+src_port+","+src_addr+","+src_state+" not found!");
@@ -3188,7 +3206,7 @@ function doDPF(msg)
 		for (var j in bt)
 		{
 			var page = getPage(bt[j].pnum);
-			
+
 			if (page.name == pname)
 			{
 				for (var x in page.buttons)
@@ -4319,6 +4337,279 @@ function doSOU(msg)
 	{
 		errlog("doSOU: Error: "+e);
 	}
+}
+/*
+ * Get the current border color.
+ */
+function doGetBCB(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetBCB, 0, false);
+}
+function cbGetBCB(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1011:"+button.sr[idx].number+":"+button.sr[idx].cb.length+":0:1:"+button.sr[idx].cb);
+}
+/*
+ * Get the current fill color.
+ */
+function doGetBCF(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetBCF, 0, false);
+}
+function cbGetBCF(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1012:"+button.sr[idx].number+":"+button.sr[idx].cf.length+":0:1:"+button.sr[idx].cf);
+}
+/*
+ * Get the current text color.
+ */
+function doGetBCT(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetBCT, 0, false);
+}
+function cbGetBCT(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1013:"+button.sr[idx].number+":"+button.sr[idx].ct.length+":0:1:"+button.sr[idx].ct);
+}
+/*
+ * Get the current bitmap name.
+ */
+function doGetBMP(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetBMP, 0, false);
+}
+function cbGetBMP(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1002:"+button.sr[idx].number+":"+button.sr[idx].bm.length+":0:1:"+button.sr[idx].bm);
+}
+/*
+ * Get the overall button opacity.
+ */
+function doGetBOP(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetBOP, 0, false);
+}
+function cbGetBOP(name, button, bt, idx, par)
+{
+	var page = getPage(bt.pnum);
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1015:"+button.sr[idx].number+":"+page.sr[0].oo+":0:1:");
+}
+/*
+ * Get the current border name.
+ */
+function doGetBRD(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetBRD, 0, false);
+}
+function cbGetBRD(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1014:"+button.sr[idx].number+":"+button.sr[idx].bs.length+":0:1:"+button.sr[idx].bs);
+}
+/*
+ * Get the current word wrap flag status.
+ */
+function doGetBWW(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetBWW, 0, false);
+}
+function cbGetBWW(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1010:"+button.sr[idx].number+":"+button.sr[idx].ww+":0:1:");
+}
+/*
+ * Get the current font index.
+ */
+function doGetFON(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetFON, 0, false);
+}
+function cbGetFON(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1007:"+button.sr[idx].number+":"+button.sr[idx].fi+":0:1:");
+}
+/*
+ * Get the current icon index.
+ */
+function doGetICO(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetICO, 0, false);
+}
+function cbGetICO(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1003:"+button.sr[idx].number+":"+button.sr[idx].ii+":0:1:");
+}
+/*
+ * Get the current bitmap justification.
+ */
+function doGetJSB(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetJSB, 0, false);
+}
+function cbGetJSB(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1005:"+button.sr[idx].number+":"+button.sr[idx].jb+":0:1:");
+}
+/*
+ * Get the current icon justification.
+ */
+function doGetJSI(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetJSI, 0, false);
+}
+function cbGetJSI(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1006:"+button.sr[idx].number+":"+button.sr[idx].ji+":0:1:");
+}
+/*
+ * Get the current text justification.
+ */
+function doGetJST(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetJST, 0, false);
+}
+function cbGetJST(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1004:"+button.sr[idx].number+":"+button.sr[idx].jt+":0:1:");
+}
+/*
+ * Get the current text effect color.
+ */
+function doGetTEC(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetTEC, 0, false);
+}
+function cbGetTEC(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1009:"+button.sr[idx].number+":"+button.sr[idx].ec.length+":0:1:"+button.sr[idx].ec);
+}
+/*
+ * Get the current text effect name.
+ */
+function doGetTEF(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetTEF, 0, false);
+}
+function cbGetTEF(name, button, bt, idx, par)
+{
+	var tef = "";
+
+	switch (button.sr[idx].et)
+	{
+		case 1:  tef = "Outline-S"; break;
+		case 2:  tef = "Outline-M"; break;
+		case 3:  tef = "Outline-L"; break;
+		case 4:  tef = "Outline-X"; break;
+		case 5:  tef = "Glow-S"; break;
+		case 6:  tef = "Glow-M"; break;
+		case 7:  tef = "Glow-L"; break;
+		case 8:  tef = "Glow-X"; break;
+		case 9:  tef = "Soft Drop Shadow 1"; break;
+		case 10: tef = "Soft Drop Shadow 2"; break;
+		case 11: tef = "Soft Drop Shadow 3"; break;
+		case 12: tef = "Soft Drop Shadow 4"; break;
+		case 13: tef = "Soft Drop Shadow 5"; break;
+		case 14: tef = "Soft Drop Shadow 6"; break;
+		case 15: tef = "Soft Drop Shadow 7"; break;
+		case 16: tef = "Soft Drop Shadow 8"; break;
+		case 17: tef = "Medium Drop Shadow 1"; break;
+		case 18: tef = "Medium Drop Shadow 2"; break;
+		case 19: tef = "Medium Drop Shadow 3"; break;
+		case 20: tef = "Medium Drop Shadow 4"; break;
+		case 21: tef = "Medium Drop Shadow 5"; break;
+		case 22: tef = "Medium Drop Shadow 6"; break;
+		case 23: tef = "Medium Drop Shadow 7"; break;
+		case 24: tef = "Medium Drop Shadow 8"; break;
+		case 25: tef = "Hard Drop Shadow 1"; break;
+		case 26: tef = "Hard Drop Shadow 2"; break;
+		case 27: tef = "Hard Drop Shadow 3"; break;
+		case 28: tef = "Hard Drop Shadow 4"; break;
+		case 29: tef = "Hard Drop Shadow 5"; break;
+		case 30: tef = "Hard Drop Shadow 6"; break;
+		case 31: tef = "Hard Drop Shadow 7"; break;
+		case 32: tef = "Hard Drop Shadow 8"; break;
+		case 33: tef = "Soft Drop Shadow 1 with outline"; break;
+		case 34: tef = "Soft Drop Shadow 2 with outline"; break;
+		case 35: tef = "Soft Drop Shadow 3 with outline"; break;
+		case 36: tef = "Soft Drop Shadow 4 with outline"; break;
+		case 37: tef = "Soft Drop Shadow 5 with outline"; break;
+		case 38: tef = "Soft Drop Shadow 6 with outline"; break;
+		case 39: tef = "Soft Drop Shadow 7 with outline"; break;
+		case 40: tef = "Soft Drop Shadow 8 with outline"; break;
+		case 41: tef = "Medium Drop Shadow 1 with outline"; break;
+		case 42: tef = "Medium Drop Shadow 2 with outline"; break;
+		case 43: tef = "Medium Drop Shadow 3 with outline"; break;
+		case 44: tef = "Medium Drop Shadow 4 with outline"; break;
+		case 45: tef = "Medium Drop Shadow 5 with outline"; break;
+		case 46: tef = "Medium Drop Shadow 6 with outline"; break;
+		case 47: tef = "Medium Drop Shadow 7 with outline"; break;
+		case 48: tef = "Medium Drop Shadow 8 with outline"; break;
+		case 49: tef = "Hard Drop Shadow 1 with outline"; break;
+		case 50: tef = "Hard Drop Shadow 2 with outline"; break;
+		case 51: tef = "Hard Drop Shadow 3 with outline"; break;
+		case 52: tef = "Hard Drop Shadow 4 with outline"; break;
+		case 53: tef = "Hard Drop Shadow 5 with outline"; break;
+		case 54: tef = "Hard Drop Shadow 6 with outline"; break;
+		case 55: tef = "Hard Drop Shadow 7 with outline"; break;
+		case 56: tef = "Hard Drop Shadow 8 with outline"; break;
+	}
+
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1008:"+button.sr[idx].number+":"+tef.length+":0:1:"+tef);
+}
+/*
+ * Get the current text information.
+ */
+function doGetTXT(msg)
+{
+	var addr = getField(msg, 0, ',');
+	var bts = getField(msg, 1, ',');
+
+	iterateButtonStates(addr, bts, cbGetTXT, 0, false);
+}
+function cbGetTXT(name, button, bt, idx, par)
+{
+	writeTextOut("CUSTOM:"+panelID+":"+button.cp+":"+button.ch+":0:1001:"+button.sr[idx].number+":"+button.sr[idx].te.length+":0:1:"+button.sr[idx].te);
 }
 function doERR(msg)
 {

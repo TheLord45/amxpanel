@@ -45,21 +45,21 @@ namespace amx
 {
 	typedef struct ST_PAGE
 	{
-		int ID;						// ID of page
+		int ID{0};				// ID of page
 		std::string name;		// Name of page
 		std::string file;		// File name of page
-		bool active;				// true = active/visible.
+		bool active{false};		// true = active/visible.
 		std::string styles;		// The needed styles
 		std::string webcode;	// The webcode
 	}ST_PAGE;
 
 	typedef struct ST_POPUP
 	{
-		int ID;						// ID of popup
+		int ID{0};					// ID of popup
 		std::string name;			// Name of page
 		std::string file;			// File name of page
-		bool active;				// true = visible
-		bool modal;					// true = popup is modal
+		bool active{0};				// true = visible
+		bool modal{0};					// true = popup is modal
 		std::string group;			// Group name
 		std::vector<int> onPages;	// Linked to page ID
 		std::string styles;			// The needed styles
@@ -68,11 +68,11 @@ namespace amx
 
 	typedef struct REGISTRATION_T
 	{
-		int channel;						// The channel used for the panel (>10000 && <11000)
+		int channel{0};						// The channel used for the panel (>10000 && <11000)
 		std::string regID;					// The registration ID of the client
-		AMXNet *amxnet;						// The class communicating with the AMX controller
-		long pan;							// The handle to the connection to the internet browser
-		bool status;
+		AMXNet *amxnet{nullptr};			// The class communicating with the AMX controller
+		long pan{0};						// The handle to the connection to the internet browser
+		bool status{false};
 		std::string amxBuffer;				// Individual buffer for inclomplete commands
 
 		REGISTRATION_T& operator= (REGISTRATION_T& reg) {
@@ -144,8 +144,6 @@ namespace amx
 			bool send(int id, std::string& msg);
 			bool replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg);
 			std::string getSerialNum();
-
-
 			void showContent(long pan);
 	};
 }

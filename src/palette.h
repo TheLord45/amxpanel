@@ -26,9 +26,9 @@ namespace amx
 {
 	typedef struct PDATA
 	{
-		int index;
+		int index{0};
 		std::string name;
-		unsigned long color;
+		unsigned long color{0};
 
 		void clear()
 		{
@@ -42,8 +42,8 @@ namespace amx
 	{
 		public:
 			Palette();
-			Palette(const std::string& file);
-			Palette(const std::vector<PALETTE_T>& pal);
+			explicit Palette(const std::string& file);
+			explicit Palette(const std::vector<PALETTE_T>& pal);
 			Palette(const std::vector<PALETTE_T>& pal, const std::string& main);
 			~Palette();
 
@@ -62,7 +62,7 @@ namespace amx
 		private:
 			std::vector<PDATA_T> palette;
 			std::vector<std::string> paletteFiles;
-			bool status;
+			bool status{false};
 	};
 }
 

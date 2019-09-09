@@ -151,6 +151,11 @@ function baseColor(basePix, maskPix, col1, col2)
 	var alpha = basePix[3];
 	var red = basePix[0];
 	var green = basePix[1];
+	var blue = basePix[2];
+
+	if ((red > 0 && (green > 0 || blue > 0)) ||
+		(green > 0 && (red > 0 || blue > 0)))
+		return [0, 0, 0, 0];
 
 	if (alpha == 0)
 		return maskPix;
@@ -1059,7 +1064,7 @@ async function drawButtonMultistateAni(button, name, run = 0, start = 0, end = 0
 			runlen = 10;
 	}
 
-	var handle = setInterval(function() 
+	var handle = setInterval(function()
 	{
 		var sr = button.sr[idx];
 

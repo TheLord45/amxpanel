@@ -33,10 +33,10 @@ namespace amx
      */
     typedef struct VERSION
     {
-        int formatVersion;
-        int graphicsVersion;
-        int fileVersion;
-        int designVersion;
+        int formatVersion{0};
+        int graphicsVersion{0};
+        int fileVersion{0};
+        int designVersion{0};
     }VERSION_T;
 
     /**
@@ -46,7 +46,7 @@ namespace amx
 	typedef struct PROJECT_INFO_T
 	{
 		std::string protection;
-		bool encrypted;
+		bool encrypted{false};
 		std::string password;
 		std::string panelType;
 		std::string fileRevision;
@@ -61,29 +61,8 @@ namespace amx
 		DateTime lastSaveDate;
 		std::string fileName;
 		std::string colorChoice;
-		int specifyPortCount;
-		int specifyChanCount;
-/*
-		PROJECT_INFO_T(const PROJECT_INFO_T& pi)
-			: protection(pi.protection),
-			  encrypted(pi.encrypted),
-			  password(pi.password),
-			  panelType(pi.panelType),
-			  fileRevision(pi.fileRevision),
-			  dealerID(pi.dealerID),
-			  jobName(pi.jobName),
-			  salesOrder(pi.salesOrder),
-			  purchaseOrder(pi.purchaseOrder),
-			  jobComment(pi.jobComment),
-			  designerID(pi.designerID),
-			  creationDate(pi.creationDate),
-			  revisionDate(pi.revisionDate),
-			  lastSaveDate(pi.lastSaveDate),
-			  fileName(pi.fileName),
-			  colorChoice(pi.colorChoice),
-			  specifyPortCount(pi.specifyPortCount),
-			  specifyChanCount(pi.specifyChanCount)
-		{} */
+		int specifyPortCount{0};
+		int specifyChanCount{0};
 	}PROJECT_INFO_T;
 
     typedef struct SUPPORT_FILE_LIST
@@ -98,66 +77,66 @@ namespace amx
 
     typedef struct PANEL_SETUP
     {
-        int portCount;
-        int setupPort;
-        int addressCount;
-        int channelCount;
-        int levelCount;
+        int portCount{0};
+        int setupPort{0};
+        int addressCount{0};
+        int channelCount{0};
+        int levelCount{0};
         std::string powerUpPage;
         std::vector<std::string> powerUpPopup;
-        int feedbackBlinkRate;
+        int feedbackBlinkRate{0};
         std::string startupString;
         std::string wakeupString;
         std::string sleepString;
         std::string standbyString;
         std::string shutdownString;
         std::string idlePage;
-        int idleTimeout;
-        int extButtonsKey;
-        int screenWidth;
-        int screenHeight;
-        int screenRefresh;
-        int screenRotate;
+        int idleTimeout{0};
+        int extButtonsKey{0};
+        int screenWidth{0};
+        int screenHeight{0};
+        int screenRefresh{0};
+        int screenRotate{0};
         std::string screenDescription;
-        int pageTracking;
-        int cursor;
-        int brightness;
-        int lightSensorLevelPort;
-        int lightSensorLevelCode;
-        int lightSensorChannelPort;
-        int lightSensorChannelCode;
-        int motionSensorChannelPort;
-        int motionSensorChannelCode;
-        int batteryLevelPort;
-        int batteryLevelCode;
-        int irPortAMX38Emit;
-        int irPortAMX455Emit;
-        int irPortAMX38Recv;
-        int irPortAMX455Recv;
-        int irPortUser1;
-        int irPortUser2;
-        int cradleChannelPort;
-        int cradleChannelCode;
+        int pageTracking{0};
+        int cursor{0};
+        int brightness{0};
+        int lightSensorLevelPort{0};
+        int lightSensorLevelCode{0};
+        int lightSensorChannelPort{0};
+        int lightSensorChannelCode{0};
+        int motionSensorChannelPort{0};
+        int motionSensorChannelCode{0};
+        int batteryLevelPort{0};
+        int batteryLevelCode{0};
+        int irPortAMX38Emit{0};
+        int irPortAMX455Emit{0};
+        int irPortAMX38Recv{0};
+        int irPortAMX455Recv{0};
+        int irPortUser1{0};
+        int irPortUser2{0};
+        int cradleChannelPort{0};
+        int cradleChannelCode{0};
         std::string uniqueID;
         std::string appCreated;
-        int buildNumber;
+        int buildNumber{0};
         std::string appModified;
-        int buildNumberMod;
+        int buildNumberMod{0};
         std::string buildStatusMod;
-        int activePalette;
-        int marqueeSpeed;
-        int setupPagesProject;
-        int voipCommandPort;
+        int activePalette{0};
+        int marqueeSpeed{0};
+        int setupPagesProject{0};
+        int voipCommandPort{0};
     }PANEL_SETUP_T;
 
     typedef struct PAGE_ENTRY
     {
         std::string name;
-        int pageID;
+        int pageID{0};
         std::string file;
         std::string group;
-        int isValid;
-        int popupType;
+        int isValid{0};
+        int popupType{0};
 
         void clear()
         {
@@ -182,11 +161,11 @@ namespace amx
         std::string protocol;
         std::string user;
         std::string password;
-        bool encrypted;
+        bool encrypted{false};
         std::string host;
         std::string path;
         std::string file;
-        int refresh;
+        int refresh{0};
 
         void clear()
         {
@@ -211,14 +190,14 @@ namespace amx
     typedef struct FEATURE
     {
         std::string featureID;
-        int usageCount;
+        int usageCount{0};
     }FEATURE_T;
 
     typedef struct PALETTE
     {
         std::string name;
         std::string file;
-        int paletteID;
+        int paletteID{0};
     }PALETTE_T;
 
 	/**
@@ -236,17 +215,6 @@ namespace amx
 		std::vector<RESOURCE_LIST_T> resourceLists;
 		std::vector<FEATURE_T> fwFeatureList;
 		std::vector<PALETTE_T> paletteList;
-/*
-		PROJECT(const PROJECT& p)
-			: version(p.version),
-			  projectInfo(p.projectInfo),
-			  supportFileList(p.supportFileList),
-			  panelSetup(p.panelSetup),
-			  pageLists(p.pageLists),
-			  resourceLists(p.resourceLists),
-			  fwFeatureList(p.fwFeatureList),
-			  paletteList(p.paletteList)
-		{} */
 	}PROJECT_T;
 
 	enum TEXT_ORIENTATION
@@ -265,35 +233,35 @@ namespace amx
 
 	typedef struct SR
 	{
-		int number;
+		int number{0};
 		std::string _do;		// Order on how to show a multistate bargraph (010203...)
 		std::string bs;			// Frame type (circle, ...)
 		std::string mi;			// Chameleon image
-		int mi_width;			// Width of image
-		int mi_height;			// Height of image
+		int mi_width{0};		// Width of image
+		int mi_height{0};		// Height of image
 		std::string cb;			// Border color
 		std::string cf;			// Fill color
 		std::string ct;			// Text Color
 		std::string ec;			// Text effect color
 		std::string bm;			// bitmap file name
 		std::string sd;			// Sound file to play
-		int bm_width;			// Width of image
-		int bm_height;			// Height of image
-		bool dynamic;			// TRUE = moving image
-		int sb;					// Index to external graphics download
-		int ii;					// Icon index number
-		int ji;					// Icon style / position like "jt"
-		int jb;					// Image position (center, left, ...)
-		int ix;					// bitmap X position
-		int iy;					// bitmap Y position
-		int fi;					// Font index?
+		int bm_width{0};		// Width of image
+		int bm_height{0};		// Height of image
+		bool dynamic{false};	// TRUE = moving image
+		int sb{0};				// Index to external graphics download
+		int ii{0};				// Icon index number
+		int ji{0};				// Icon style / position like "jt"
+		int jb{0};				// Image position (center, left, ...)
+		int ix{0};				// bitmap X position
+		int iy{0};				// bitmap Y position
+		int fi{0};				// Font index?
 		std::string te;			// Text
-		TEXT_ORIENTATION jt;	// Text orientation
-		int tx;					// Text X position
-		int ty;					// Text Y position
-		int ww;					// line break when 1
-		int et;					// Text effect (^TEF)
-		int oo;					// Over all opacity
+		TEXT_ORIENTATION jt{ORI_CENTER_MIDDLE};	// Text orientation
+		int tx{0};				// Text X position
+		int ty{0};				// Text Y position
+		int ww{0};				// line break when 1
+		int et{0};				// Text effect (^TEF)
+		int oo{0};				// Over all opacity
 
 		void clear()
 		{
@@ -362,43 +330,43 @@ namespace amx
 	typedef struct BUTTON
 	{
 		BUTTONTYPE type;
-		int bi;					// button ID
+		int bi{0};				// button ID
 		std::string na;			// name
 		std::string bd;			// Description --> ignored
-		int lt;					// pixel from left
-		int tp;					// pixel from top
-		int wt;					// width
-		int ht;					// height
-		int zo;					// Z-Order
+		int lt{0};				// pixel from left
+		int tp{0};				// pixel from top
+		int wt{0};				// width
+		int ht{0};				// height
+		int zo{0};				// Z-Order
 		std::string hs;			// bounding, ...
 		std::string bs;			// Frame type (circle, ...)
-		FEEDBACK fb;			// momentary, ...
-		int ap;					// Address port
-		int ad;					// Address channel
-		int ch;					// Channel number
-		int cp;					// Channel port
-		int lp;					// Level port
-		int lv;					// Level code
+		FEEDBACK fb{FB_NONE};	// momentary, ...
+		int ap{0};				// Address port
+		int ad{0};				// Address channel
+		int ch{0};				// Channel number
+		int cp{0};				// Channel port
+		int lp{0};				// Level port
+		int lv{0};				// Level code
 		std::string dr;			// Level "horizontal" or "vertical"
-		int va;
-		int stateCount;			// State count with multistate buttons
-		int rm;					// State count with multistate buttons?
-		int nu;					// Animate time up
-		int nd;					// Animate time down
-		int ar;					// Auto repeat (1 = true)
-		int ru;					// Animate time up (bargraph)
-		int rd;					// Animate time down (bargraph)
-		int lu;					// Animate time up (Bargraph)
-		int ld;					// Animate time down (Bargraph)
-		int rv;
-		int rl;					// Range low
-		int rh;					// Range high
-		int ri;					// Bargraph inverted (0 = normal, 1 = inverted)
-		int rn;					// Bargraph: Range drag increment
+		int va{0};
+		int stateCount{0};		// State count with multistate buttons
+		int rm{0};				// State count with multistate buttons?
+		int nu{0};				// Animate time up
+		int nd{0};				// Animate time down
+		int ar{0};				// Auto repeat (1 = true)
+		int ru{0};				// Animate time up (bargraph)
+		int rd{0};				// Animate time down (bargraph)
+		int lu{0};				// Animate time up (Bargraph)
+		int ld{0};				// Animate time down (Bargraph)
+		int rv{0};
+		int rl{0};				// Range low
+		int rh{0};				// Range high
+		int ri{0};				// Bargraph inverted (0 = normal, 1 = inverted)
+		int rn{0};				// Bargraph: Range drag increment
 		std::string _if;		// Bargraph function: empty = display only, active, active centering, drag, drag centering
 		std::string sd;			// Name/Type of slider for a bargraph
 		std::string sc;			// Color of slider (for bargraph)
-		int mt;					// Length of text area (0 = 2000)
+		int mt{0};				// Length of text area (0 = 2000)
 		std::string dt;			// "multiple" textarea has multiple lines, else single line
 		std::string im;			// Input mask of a text area
 		std::string op;			// String the button send
@@ -475,30 +443,30 @@ namespace amx
 	typedef struct PAGE
 	{
 		PAGETYPE type;						// Type: PAGE | SUBPAGE
-		int pageID;							// Unique ID of popup/page
+		int pageID{0};						// Unique ID of popup/page
 		std::string name;					// The name of the popup/page
-		int left;							// Left position of popup
-		int top;							// Top position of popup
-		int width;							// Width of popup
-		int height;							// Height of popup
-		int modal;							// 0 = Popup/Page = non modal
+		int left{0};						// Left position of popup
+		int top{0};							// Top position of popup
+		int width{0};						// Width of popup
+		int height{0};						// Height of popup
+		int modal{0};						// 0 = Popup/Page = non modal
 		std::string group;					// Name of the group the popup belongs
-		int timeout;						// Time after the popup hides in 1/10 seconds
-		SHOWEFFECT showEffect;				// The effect when the popup is shown
-		int showTime;						// The time reserved for the show effect
-		SHOWEFFECT hideEffect;				// The effect when the popup hides
-		int hideTime;						// The time reserved for the hide effect
+		int timeout{0};						// Time after the popup hides in 1/10 seconds
+		SHOWEFFECT showEffect{SE_NONE};		// The effect when the popup is shown
+		int showTime{0};					// The time reserved for the show effect
+		SHOWEFFECT hideEffect{SE_NONE};		// The effect when the popup hides
+		int hideTime{0};					// The time reserved for the hide effect
 		std::vector<BUTTON_T> buttons;		// Array of elements
 		std::vector<SR_T> sr;				// Page/Popup description
 	}PAGE_T;
 
 	typedef struct MAP
 	{
-		int p;			// port number
-		int c;			// channel number
-		int ax;
-		int pg;			// page number
-		int bt;			// button number
+		int p{0};		// port number
+		int c{0};		// channel number
+		int ax{0};
+		int pg{0};		// page number
+		int bt{0};		// button number
 		std::string pn;	// page name
 		std::string bn;	// button name
 	}MAP_T;
@@ -507,22 +475,22 @@ namespace amx
 	typedef struct MAP_BM
 	{
 		std::string i;	// name
-		int id;
-		int rt;
-		int pg;
-		int bt;
-		int st;
-		int sl;
+		int id{0};
+		int rt{0};
+		int pg{0};
+		int bt{0};
+		int st{0};
+		int sl{0};
 		std::string pn;
 		std::string bn;
 	}MAP_BM_T;
 
     typedef struct MAP_PM
     {
-        int a;
+        int a{0};
         std::string t;	// Text
-        int pg;			// page number
-        int bt;			// button number
+        int pg{0};		// page number
+        int bt{0};		// button number
         std::string pn;	// page name
         std::string bn;	// button name
     }MAP_PM_T;

@@ -78,7 +78,7 @@ string cmdList[] = {
 	"^BVT-", "^BWW-", "^CPF-", "^DLD-", "^DPF-", "^ENA-", "^FON-", "^GDI-",
 	"^GIV-", "^GLH-", "^GLL-", "^GRD-", "^GRU-", "^GSC-", "^GSN-", "^ICO-",
 	"^IRM-", "^JSB-", "^JSI-", "^JST-", "^MBT-", "^MDC-", "^SHO-", "^TEC-",
-	"^TEF-", "^TOP-", "^TXT-", "^UNI-", "^LPC-", "^LPR-", "^LPS-", "?BCP-",
+	"^TEF-", "^TOP-", "^TXT-", "^UNI-", "^LPC-", "^LPR-", "^LPS-", "?BCB-",
 	"?BCF-", "?BCT-", "?BMP-", "?BOP-", "?BRD-", "?BWW-", "?FON-", "?ICO-",
 	"?JSB-", "?JSI-", "?JST-", "?TEC-", "?TEF-", "?TXT-", "ABEEP", "ADBEEP",
 	"@AKB-", "AKEYB-", "AKEYP-", "AKEYR-", "@AKP-", "@AKR", "BEEP", "BRIT-",
@@ -636,7 +636,32 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						if (callback)
 							callback(comm);
 					break;
+/*
+					case 0x000d:	// Custom event
+						comm.data.customEvent.device = makeWord(buff_[0], buff_[1]);
+						comm.data.customEvent.port = makeWord(buff_[2], buff_[3]);
+						comm.data.customEvent.system = makeWord(buff_[4], buff_[5]);
+						comm.data.customEvent.ID = makeWord(buff_[6], buff_[7]);
+						comm.data.customEvent.type = makeWord(buff_[8], buff_[9]);
+						comm.data.customEvent.flag = makeWord(buff_[10], buff_[11]);
+						comm.data.customEvent.value1 = makeDWord(buff_[12], buff_[13], buff_[14], buff_[15]);
+						comm.data.customEvent.value2 = makeDWord(buff_[16], buff_[17], buff_[18], buff_[19]);
+						comm.data.customEvent.value3 = makeDWord(buff_[20], buff_[21], buff_[22], buff_[23]);
+						comm.data.customEvent.dtype = buff_[24];
+						comm.data.customEvent.length = makeWord(buff_[25], buff_[26]);
+						len = (buff_[24] == 0x01) ? comm.data.customEvent.length : comm.data.customEvent.length * 2;
 
+						if (len >= sizeof(comm.data.customEvent.data))
+						{
+							len = sizeof(comm.data.customEvent.data) - 1;
+							comm.data.customEvent.length = (buff_[24] == 0x01) ? len : len / 2;
+						}
+
+						memcpy(&comm.data.customEvent.data[0], &buff_[27], len);
+						pos = (int)(27 + len + 2);
+						comm.checksum = buff_[pos];
+					break;
+*/
 					case 0x000e:	// request level value
 						comm.data.level.device = makeWord(buff_[0], buff_[1]);
 						comm.data.level.port = makeWord(buff_[2], buff_[3]);
@@ -828,6 +853,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 	DECL_TRACER("AMXNet::sendCommand (const ANET_SEND& s)");
 
 	bool status = false;
+	size_t len;
 	ANET_COMMAND com;
 	com.clear();
 	com.MC = s.MC;
@@ -897,12 +923,10 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 
 		case 0x008b:		// string command
 		case 0x008c:		// send command string
-		{
 			com.data.message_string.device = com.device2;
 			com.data.message_string.port = s.port;
 			com.data.message_string.system = com.system;
 			com.data.message_string.type = 0x01;	// char string
-			size_t len;
 
 			if (s.msg.length() >= sizeof(com.data.message_string.content))
 				len = sizeof(com.data.message_string.content) - 1;
@@ -914,7 +938,30 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			com.hlen = 0x0016 - 3 + 9 + len;
 			comStack.push_back(com);
 			status = true;
-		}
+		break;
+
+		case 0x008d:	// Custom event
+			com.data.customEvent.device = com.device2;
+			com.data.customEvent.port = s.port;
+			com.data.customEvent.system = com.system;
+			com.data.customEvent.ID = s.ID;
+			com.data.customEvent.type = s.type;
+			com.data.customEvent.flag = s.flag;
+			com.data.customEvent.value1 = s.value1;
+			com.data.customEvent.value2 = s.value2;
+			com.data.customEvent.value3 = s.value3;
+			com.data.customEvent.dtype = s.dtype;
+
+			if (s.msg.length() >= sizeof(com.data.customEvent.data))
+				len = sizeof(com.data.customEvent.data) - 1;
+			else
+				len = s.msg.length();
+
+			com.data.customEvent.length = len;
+			memcpy(&com.data.customEvent.data[0], s.msg.c_str(), s.msg.length());
+			com.hlen = 0x0016 - 3 + 29 + s.msg.length();
+			comStack.push_back(com);
+			status = true;
 		break;
 
 		case 0x0090:		// port count
@@ -1357,6 +1404,49 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 			*(buf+pos) = calcChecksum(buf, pos);
 			valid = true;
 		break;
+
+		case 0x008d:	// Custom event
+			*(buf+22) = s.data.customEvent.device >> 8;
+			*(buf+23) = s.data.customEvent.device;
+			*(buf+24) = s.data.customEvent.port >> 8;
+			*(buf+25) = s.data.customEvent.port;
+			*(buf+26) = s.data.customEvent.system >> 8;
+			*(buf+27) = s.data.customEvent.system;
+			*(buf+28) = s.data.customEvent.ID >> 8;
+			*(buf+29) = s.data.customEvent.ID;
+			*(buf+30) = s.data.customEvent.type >> 8;
+			*(buf+31) = s.data.customEvent.type;
+			*(buf+32) = s.data.customEvent.flag >> 8;
+			*(buf+33) = s.data.customEvent.flag;
+			*(buf+34) = s.data.customEvent.value1 >> 24;
+			*(buf+35) = s.data.customEvent.value1 >> 16;
+			*(buf+36) = s.data.customEvent.value1 >> 8;
+			*(buf+37) = s.data.customEvent.value1;
+			*(buf+38) = s.data.customEvent.value2 >> 24;
+			*(buf+39) = s.data.customEvent.value2 >> 16;
+			*(buf+40) = s.data.customEvent.value2 >> 8;
+			*(buf+41) = s.data.customEvent.value2;
+			*(buf+42) = s.data.customEvent.value3 >> 24;
+			*(buf+43) = s.data.customEvent.value3 >> 16;
+			*(buf+44) = s.data.customEvent.value3 >> 8;
+			*(buf+45) = s.data.customEvent.value3;
+			*(buf+46) = s.data.customEvent.dtype;
+			*(buf+47) = s.data.customEvent.length >> 8;
+			*(buf+48) = s.data.customEvent.length;
+			pos = 49;
+
+			if (s.data.customEvent.length > 0)
+			{
+				memcpy(buf+pos, s.data.customEvent.data, s.data.customEvent.length);
+				pos += s.data.customEvent.length;
+			}
+
+			*(buf+pos) = 0;
+			*(buf+pos+1) = 0;
+			pos += 2;
+			*(buf+pos) = calcChecksum(buf, pos);
+			valid = true;
+			break;
 
 		case 0x0090:
 			*(buf+22) = s.data.sendPortNumber.device >> 8;

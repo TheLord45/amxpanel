@@ -545,7 +545,7 @@ async function activeTouch(event, name, object)
 					var readyPic = false;
 
 					if (!img.complete)
-					{			
+					{
 						img.onload = function()
 						{
 							ctx.drawImage(img, 0, 0, w, h);
@@ -679,7 +679,7 @@ async function activeTouch(event, name, object)
 								errlog("activeTouch: Sound error: "+e);
 							}
 						}
-	
+
 						return;
 					}
 				}
@@ -705,6 +705,19 @@ function isModal(name)
 		if (pop.name == name)
 			return pop.modality;
 	}
+
+	return false;
+}
+function isClickable(button, insts=0)
+{
+	if (button === null || typeof button != "object")
+		return false;
+
+	var inst = (insts == 0) ? button.sr.length : insts;
+
+	if ((button.cp > 0 && button.ch > 0 && inst == button.sr.length) ||
+		(button.op.length > 0 && inst == button.sr.length))
+		return true;
 
 	return false;
 }
@@ -965,7 +978,7 @@ function doDraw(pgKey, pageID, what)
 
 			if (button.hs != "passThru")
 			{
-				if (button.cp > 0 && button.ch > 0 && button.sr.length == 2)		// clickable?
+				if (isClickable(button, 2))		// clickable?
 				{
 					if (button.fb == FEEDBACK.FB_MOMENTARY)
 					{
@@ -1020,7 +1033,7 @@ function doDraw(pgKey, pageID, what)
 									}
 								}, false)
 							}
-		
+
 							bt.addEventListener(EVENT_UP, switchDisplay.bind(null, name1,name2,0,button.cp,button.ch), false);
 
 							if ((button.sr[1].sd.length > 0 && button.sr[0].sd.length == 0) ||
@@ -1237,12 +1250,12 @@ function doDraw(pgKey, pageID, what)
 					var width = sr.mi_width;
 					var height = sr.mi_height;
 					var css = calcImagePosition(width, height, button, CENTER_CODE.SC_BITMAP, sr.number);
-					setCSSclass(nm+sr.number+"_canvas", css+"display: flex; order: 1;");
+					setCSSclass(nm + sr.number + "_canvas", css + "display: flex; order: 1;");
 
-					if (sr.bm.length > 0)
+					if (sr.bm.length > 0)		// Only if there is a mask image and a bitmap we've a chameleon image!
 						drawButton(makeURL("images/"+sr.mi),makeURL("images/"+sr.bm),nm+sr.number,width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 					else
-						drawArea(makeURL("images/"+sr.mi),nm+sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
+						drawArea(makeURL("images/" + sr.mi), nm + sr.number, width, height, getAMXColor(sr.cf), getAMXColor(sr.cb));
 				}
 				else if (button.btype == BUTTONTYPE.GENERAL && sr.sb == 1 && sr.bm.length > 0)
 				{
@@ -1472,7 +1485,7 @@ function doDraw(pgKey, pageID, what)
 					if (button.btype == BUTTONTYPE.TEXT_INPUT)
 					{
 						var inp = null;
-						
+
 						if (button.dt == "multiple")	// textarea
 							inp = createElement("textarea");
 						else
@@ -1594,12 +1607,12 @@ function setShowAnimation(pname)
 			style = "from { transform: translateY(-"+(pgKey.top+pgKey.height)+"px); }";
 			style += "to { transform: translateY(0px); }";
 		break;
-		
+
 		case 5:		// Slide bottom
 			style = "from { transform: translateY("+totalHeight+"px); }";
 			style += "to { transform: translateY(0px); }";
 		break;
-		
+
 		case 6:		// Slide left fade
 			style = "from { transform: translate(-"+pgKey.width+"px); opacity: 0; }";
 			style += "to { transform: translate("+pgKey.left+"px); opacity: 1; }";
@@ -1666,22 +1679,22 @@ function setHideAnimation(pname)
 			style = "from { transform: translate("+pgKey.left+"px); }";
 			style += "to { transform: translate(-"+pgKey.width+"px); }";
 		break;
-		
+
 		case 3:		// Slide right
 			style = "from { transform: translate(0px); }";
 			style += "to { transform: translate("+(totalWidth-pgKey.left)+"px); }";
 		break;
-		
+
 		case 4:		// Slide top
 			style = "from { transform: translateY(0px); }";
 			style += "to { transform: translateY("+(pgKey.top+pgKey.height)+"px); }";
 		break;
-		
+
 		case 5:		// Slide bottom
 			style = "from { transform: translateY(0px); }";
 			style += "to { transform: translateY("+totalHeight+"px); }";
 		break;
-		
+
 		case 6:		// Slide left fade
 			style = "from { transform: translate("+pgKey.left+"px); opacity: 1; }";
 			style += "to { transform: translate(-"+pgKey.width+"px); opacity: 0; }";

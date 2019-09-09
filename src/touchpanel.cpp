@@ -521,9 +521,9 @@ bool TouchPanel::send(int id, string& msg)
 }
 
 /*
- * Diese Methode wird aus der Klasse AMXNet heraus aufgerufen. Dazu wird die
- * Methode an die Klasse ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¼bergeben. Sie fungiert dann als Callback-Funktion und
- * wird immer dann aufgerufen, wenn vom Controller eine Mitteilung gekommen ist.
+ * This method is called out of the class AMXNet. Therefore the pointer to this
+ * method will be bound to the class. Then this method is a callback method and
+ * is called whenever the controller sends a message.
  */
 void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 {
@@ -787,7 +787,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 	}
 	else if (isRegistered(as.device) &&
 			 (msg.find("KEY:") != string::npos ||		// KEY:<panelID>:<port>:<channel>:<string>;
-			  msg.find("STRING:") != string::npos))	// STRING:<panelID>:<port>:<channel>:<string>;
+			  msg.find("STRING:") != string::npos))		// STRING:<panelID>:<port>:<channel>:<string>;
 	{
 		AMXNet *amxnet;
 
@@ -821,6 +821,53 @@ void TouchPanel::webMsg(string& msg, long pan)
 
 		as.MC = 0x008b;
 		sysl->TRACE("TouchPanel::webMsg: port: "+to_string(as.port)+", channel: "+to_string(as.channel)+", msg: "+as.msg+", MC: 0x"+NameFormat::toHex(as.MC, 4));
+
+		if (amxnet != 0)
+			amxnet->sendCommand(as);
+		else
+			sysl->warnlog("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!");
+	}
+	else if (isRegistered(as.device) &&
+				msg.find("CUSTOM:") != string::npos)	// CUSTOM:<panelID>:<port>:<channel>:<flag>:<type>:<value1>:<value2>:<value3>:<dType>:<data>;
+	{
+		AMXNet *amxnet;
+
+		if ((amxnet = getConnection(as.device)) == 0)
+		{
+			sysl->errlog("TouchPanel::webMsg: Network connection not found for panel "+to_string(as.device)+"!");
+			cond.notify_one();
+			return;
+		}
+
+		as.port = atoi(parts[2].c_str());
+		as.channel = atoi(parts[3].c_str());
+		as.ID = as.channel;
+		as.flag = atoi(parts[4].c_str());
+		as.type = atoi(parts[5].c_str());
+		as.value1 = atol(parts[6].c_str());
+		as.value2 = atol(parts[7].c_str());
+		as.value3 = atol(parts[8].c_str());
+		as.dtype = atoi(parts[9].c_str());
+
+		size_t i = 10;
+
+		while (i < parts.size())
+		{
+			if (i > 10)
+				as.msg.append(":");
+
+			as.msg.append(parts[i]);
+			i++;
+		}
+
+		size_t pos = as.msg.find_last_of(';');
+
+		if (pos != string::npos)
+			as.msg = as.msg.substr(0, pos);
+
+//		as.msg = NameFormat::UTF8ToCp1250(as.msg);
+		as.MC = 0x008d;
+		sysl->TRACE("TouchPanel::webMsg: port: "+to_string(as.port)+", channel: "+to_string(as.channel)+", custom msg: "+as.msg+", MC: 0x"+NameFormat::toHex(as.MC, 4));
 
 		if (amxnet != 0)
 			amxnet->sendCommand(as);

@@ -44,7 +44,6 @@ using namespace amx;
 Palette::Palette()
 {
 	sysl->TRACE(Syslog::ENTRY, "Palette::Palette()");
-	status = false;
 }
 
 Palette::Palette(const string& file)

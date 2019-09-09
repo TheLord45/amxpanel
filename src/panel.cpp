@@ -45,28 +45,28 @@ Panel::Panel(PROJECT_T& prj, Palette *pPalet, Icon *pIco, FontList *pFL)
             : Project{prj}
 {
 	sysl->TRACE(Syslog::ENTRY, "Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)");
-    pPalettes = pPalet;
-    pIcons = pIco;
-    pFontLists = pFL;
+	pPalettes = pPalet;
+	pIcons = pIco;
+	pFontLists = pFL;
 
-    if (pPalettes && pPalettes->isOk() && pIcons && pIcons->isOk() && pFontLists && pFontLists->isOk())
-        status = true;
-    else
-        status = false;
+	if (pPalettes && pPalettes->isOk() && pIcons && pIcons->isOk() && pFontLists && pFontLists->isOk())
+		status = true;
+	else
+		status = false;
 }
 
 Panel::~Panel()
 {
 	sysl->TRACE(Syslog::EXIT, "Panel::Panel(const PROJECT& prj, Palette *pPalet, Icon *pIco, FontList *pFL)");
 
-    if (pPalettes && localPalette)
-        delete pPalettes;
+	if (pPalettes && localPalette)
+		delete pPalettes;
 
-    if (pIcons && localIcon)
-        delete pIcons;
+	if (pIcons && localIcon)
+		delete pIcons;
 
-    if (pFontLists && localFontList)
-        delete pFontLists;
+	if (pFontLists && localFontList)
+		delete pFontLists;
 }
 
 void Panel::readProject()
@@ -91,7 +91,7 @@ void Panel::readProject()
 		ePaletteList
 	};
 
-	PART Part;
+	PART Part = eNone;
 	string uri; // = "file://";
 	uri.append(Configuration->getHTTProot());
 	uri.append("/prj.xma");

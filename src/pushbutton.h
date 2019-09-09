@@ -46,6 +46,7 @@ namespace amx
 				SCR_DATE_Y_M_D
 			};
 
+			PushButton() = delete;
 			PushButton(const BUTTON_T& bt, const std::vector<PDATA_T>& pal);
 			~PushButton();
 
@@ -53,7 +54,7 @@ namespace amx
 			void setIconClass(Icon *ic) { iconClass = ic; }
 			void setPageID(int id) { pageID = id; }
 			void setPalette(const std::vector<PDATA_T>& pal) { palette = pal; }
-			std::string getStyle();
+//			std::string getStyle();
 			std::string getWebCode();
 			std::string getScriptCode();
 			bool haveScript() { return hScript; }
@@ -67,14 +68,14 @@ namespace amx
 
 		private:
 			BUTTON_T button;
-			FontList *fontClass;
-			Icon *iconClass;
-			int pageID;
+			FontList *fontClass{nullptr};
+			Icon *iconClass{nullptr};
+			int pageID{0};
 			std::string btName;
 			std::string scrStart;
 			std::string sBargraph;
-			bool hScript;
-			SCR_TYPE scriptType;
+			bool hScript{false};
+			SCR_TYPE scriptType{SCR_NONE};
 			std::vector<PAGE_T> pageList;
 			std::vector<PDATA_T> palette;
 	};
