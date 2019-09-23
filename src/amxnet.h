@@ -21,6 +21,7 @@
 
 #include <functional>
 #include <cstring>
+#include <cstdio>
 #include <atomic>
 
 #ifdef __APPLE__
@@ -31,22 +32,25 @@ extern std::atomic<bool> killed;
 
 namespace amx
 {
+	#define MAX_CHUNK	0x07d0	// Maximum size a part of a file can have. The file will be splitted into this size of chunks.
+	#define BUF_SIZE	0x1000	// 4096 bytes
+
 	typedef struct
 	{
-		uint16_t device;		// Device ID of panel
-		uint16_t MC;			// message command number
-		uint16_t port;			// port number
-		uint16_t level;			// level number (if any)
-		uint16_t channel;		// channel status
-		uint16_t value;			// level value
+		uint16_t device{0};		// Device ID of panel
+		uint16_t MC{0};			// message command number
+		uint16_t port{0};		// port number
+		uint16_t level{0};		// level number (if any)
+		uint16_t channel{0};	// channel status
+		uint16_t value{0};		// level value
 		// this is for custom events
-		uint16_t ID;			// ID of button
-		uint16_t type;			// Type of event
-		uint16_t flag;			// Flag
-		uint32_t value1;		// Value 1
-		uint32_t value2;		// Value 2
-		uint32_t value3;		// Value 3
-		unsigned char dtype;	// Type of data
+		uint16_t ID{0};			// ID of button
+		uint16_t type{0};		// Type of event
+		uint16_t flag{0};		// Flag
+		uint32_t value1{0};		// Value 1
+		uint32_t value2{0};		// Value 2
+		uint32_t value3{0};		// Value 3
+		unsigned char dtype{0};	// Type of data
 		std::string msg;		// message string
 	}ANET_SEND;
 
@@ -58,11 +62,11 @@ namespace amx
 		int16_t sinteger;	// type = 0x21
 		uint32_t dword;		// type = 0x40
 		int32_t sdword;		// type = 0x41
-		float_t fvalue;		// type = 0x4f
-		double_t dvalue;	// type = 0x8f
+		float fvalue;		// type = 0x4f
+		double dvalue;		// type = 0x8f
 	}ANET_CONTENT;
 
-	typedef struct
+	typedef struct ANET_MSG
 	{
 		uint16_t device;		// device number
 		uint16_t port;			// port number
@@ -72,7 +76,7 @@ namespace amx
 		ANET_CONTENT content;
 	}ANET_MSG;
 
-	typedef struct
+	typedef struct ANET_MSG_STRING
 	{
 		uint16_t device;		// device number
 		uint16_t port;			// port number
@@ -82,7 +86,7 @@ namespace amx
 		unsigned char content[1500];// content string
 	}ANET_MSG_STRING;
 
-	typedef struct
+	typedef struct ANET_ASIZE
 	{
 		uint16_t device;		// device number
 		uint16_t port;			// port number
@@ -91,7 +95,7 @@ namespace amx
 		uint16_t length;		// length of following content
 	}ANET_ASIZE;
 
-	typedef struct
+	typedef struct ANET_LEVSUPPORT
 	{
 		uint16_t device;		// device number
 		uint16_t port;			// port number
@@ -101,7 +105,7 @@ namespace amx
 		unsigned char types[6];	// Type codes
 	}ANET_LEVSUPPORT;
 
-	typedef struct
+	typedef struct ANET_ASTATCODE
 	{
 		uint16_t device;		// device number
 		uint16_t port;			// port number
@@ -112,7 +116,7 @@ namespace amx
 		unsigned char str[512];
 	}ANET_ASTATCODE;
 
-	typedef struct
+	typedef struct ANET_LEVEL
 	{
 		uint16_t device;		// device number
 		uint16_t port;			// port number
@@ -120,7 +124,7 @@ namespace amx
 		uint16_t level;			// level number
 	}ANET_LEVEL;
 
-	typedef struct
+	typedef struct ANET_CHANNEL
 	{
 		uint16_t device;		// device number
 		uint16_t port;			// port number
@@ -128,27 +132,27 @@ namespace amx
 		uint16_t channel;		// level number
 	}ANET_CHANNEL;
 
-	typedef struct
+	typedef struct ANET_RPCOUNT
 	{
 		uint16_t device;		// device number
 		uint16_t system;		// system number
 	}ANET_RPCOUNT;
 
-	typedef struct				// Answer to request for port count
+	typedef struct ANET_APCOUNT	// Answer to request for port count
 	{
 		uint16_t device;		// device number
 		uint16_t system;		// system number
 		uint16_t pcount;		// number of supported ports
 	}ANET_APCOUNT;
 
-	typedef struct				// Request for port count
+	typedef struct ANET_ROUTCHAN	// Request for port count
 	{
 		uint16_t device;		// device number
 		uint16_t port;			// system number
 		uint16_t system;		// number of supported ports
 	}ANET_ROUTCHAN;
 
-	typedef struct				// Answer to request for port count
+	typedef struct ANET_AOUTCHAN	// Answer to request for port count
 	{
 		uint16_t device;		// device number
 		uint16_t port;			// system number
@@ -156,7 +160,7 @@ namespace amx
 		uint16_t count;			// number of supported channels
 	}ANET_AOUTCHAN;
 
-	typedef struct				// Answer to "request device info"
+	typedef struct ANET_ADEVINFO // Answer to "request device info"
 	{
 		uint16_t device;		// device number
 		uint16_t system;		// system number
@@ -171,14 +175,14 @@ namespace amx
 		int len;				// length of field info
 	}ANET_ADEVINFO;
 
-	typedef struct				// Answer to "master status"
+	typedef struct ANET_ASTATUS	// Answer to "master status"
 	{
 		uint16_t system;		// number of system
 		uint16_t status;		// Bit field
 		unsigned char str[512];	// Null terminated status string
 	}ANET_ASTATUS;
 
-	typedef struct				// Custom event
+	typedef struct ANET_CUSTOM	// Custom event
 	{
 		uint16_t device;		// Device number
 		uint16_t port;			// Port number
@@ -193,6 +197,19 @@ namespace amx
 		uint16_t length;		// length of following string
 		unsigned char data[255];// Custom data
 	}ANET_CUSTOM;
+
+	typedef struct ANET_FILETRANSFER	// File transfer
+	{
+		uint16_t ftype;			// 0 = not used, 1=IR, 2=Firmware, 3=TP file, 4=Axcess2
+		uint16_t function;		// The function to be performed, or length of data block
+		uint16_t info1;
+        uint16_t info2;
+		uint32_t unk;			// ?
+		uint32_t unk1;			// ?
+		uint32_t unk2;			// ?
+		uint32_t unk3;			// ?
+		unsigned char data[2048];// Function specific data
+	}ANET_FILETRANSFER;
 
 	typedef union
 	{
@@ -211,25 +228,26 @@ namespace amx
 		ANET_LEVSUPPORT sendLevSupport;
 		ANET_ADEVINFO srDeviceInfo;		// send/receive device info
 		ANET_CUSTOM customEvent;
+		ANET_FILETRANSFER filetransfer;
 	}ANET_DATA;
 
 	typedef struct ANET_COMMAND	// Structure of type command (type = 0x00, status = 0x000c)
 	{
-		char ID;				// 0x00:        Always 0x02
-		uint16_t hlen;			// 0x01 - 0x02: Header length (length + 3 for total length!)
-		char sep1;				// 0x03:        Seperator always 0x02
-		char type;				// 0x04:        Type of header
-		uint16_t unk1;			// 0x05 - 0x06: always 0x001
-		uint16_t device1;		// 0x07 - 0x08: receive: device, send: 0x000
-		uint16_t port1;			// 0x09 - 0x0a: receive: port,   send: 0x001
-		uint16_t system;		// 0x0b - 0x0c: receive: system, send: 0x001
-		uint16_t device2;		// 0x0d - 0x0e: send: device,    receive: 0x0000
-		uint16_t port2;			// 0x0f - 0x10: send: port,      receive: 0x0001
-		char unk6;				// 0x11:        Always 0x0f
-		uint16_t count;			// 0x12 - 0x13: Counter
-		uint16_t MC;			// 0x14 - 0x15: Message command identifier
+		char ID{2};				// 0x00:        Always 0x02
+		uint16_t hlen{0};		// 0x01 - 0x02: Header length (length + 3 for total length!)
+		char sep1{2};			// 0x03:        Seperator always 0x02
+		char type{0};			// 0x04:        Type of header
+		uint16_t unk1{1};		// 0x05 - 0x06: always 0x0001
+		uint16_t device1{0};	// 0x07 - 0x08: receive: device, send: 0x000
+		uint16_t port1{0};		// 0x09 - 0x0a: receive: port,   send: 0x001
+		uint16_t system{0};		// 0x0b - 0x0c: receive: system, send: 0x001
+		uint16_t device2{0};	// 0x0d - 0x0e: send: device,    receive: 0x0000
+		uint16_t port2{0};		// 0x0f - 0x10: send: port,      receive: 0x0001
+		char unk6{0x0f};		// 0x11:        Always 0x0f
+		uint16_t count{0};		// 0x12 - 0x13: Counter
+		uint16_t MC{0};			// 0x14 - 0x15: Message command identifier
 		ANET_DATA data;			// 0x16 - n     Data block
-		unsigned char checksum;	// last byte:   Checksum
+		unsigned char checksum{0};	// last byte:   Checksum
 
 		void clear()
 		{
@@ -246,28 +264,7 @@ namespace amx
 			unk6 = 0x0f;
 			count = 0;
 			MC = 0;
-			memset(&data, 0, sizeof(ANET_DATA));
 			checksum = 0;
-		}
-
-		ANET_COMMAND& operator= (const ANET_COMMAND& cmd)
-		{
-			ID = cmd.ID;
-			hlen = cmd.hlen;
-			sep1 = cmd.sep1;
-			type = cmd.type;
-			unk1 = cmd.unk1;
-			device1 = cmd.device1;
-			port1 = cmd.port1;
-			system = cmd.system;
-			device2 = cmd.device2;
-			port2 = cmd.port2;
-			unk6 = cmd.unk6;
-			count = cmd.count;
-			MC = cmd.MC;
-			memcpy(&data, &cmd.data, sizeof(ANET_DATA));
-			checksum = cmd.checksum;
-			return *this;
 		}
 	}ANET_COMMAND;
 
@@ -338,6 +335,7 @@ namespace amx
 #endif
 			void start_write();
 			void handle_write(const std::error_code& error);
+			void handleFTransfer(ANET_SEND& s, ANET_FILETRANSFER& ft);
 			void check_deadline();
 			uint16_t swapWord(uint16_t w);
 			uint32_t swapDWord(uint32_t dw);
@@ -353,26 +351,37 @@ namespace amx
 			asio::steady_timer deadline_;
 			asio::steady_timer heartbeat_timer_;
 
-			bool stopped_;
+			bool stopped_{false};
 			asio::ip::tcp::resolver::results_type endpoints_;
 			asio::ip::tcp::socket socket_;
 			std::string input_buffer_;
-			unsigned char buff_[2048];
+			unsigned char buff_[BUF_SIZE];
 			std::function<void(const ANET_COMMAND&)> callback;
 			std::function<bool(AMXNet *)> cbWebConn;
-			bool protError;				// true = error on receive --> disconnect
-			uint16_t reqDevStatus;
+			bool protError{false};		// true = error on receive --> disconnect
+			uint16_t reqDevStatus{0};
 			ANET_COMMAND comm;			// received command
 			ANET_COMMAND send;			// answer / request
-			uint16_t sendCounter;		// Counter increment on every send
+			uint16_t sendCounter{0};	// Counter increment on every send
 			std::vector<ANET_COMMAND> comStack;	// commands to answer
-			bool initSend;				// TRUE = all init messages are send.
-			bool ready;					// TRUE = ready for communication
-			bool write_busy;
+			bool initSend{false};		// TRUE = all init messages are send.
+			bool ready{false};			// TRUE = ready for communication
+			bool write_busy{false};
 			std::vector<DEVICE_INFO> devInfo;
 			std::string oldCmd;
-			int panelID;				// Panel ID of currently legalized panel.
+			int panelID{0};				// Panel ID of currently legalized panel.
 			std::string serNum;
+			bool receiveSetup{false};
+			std::string sndFileName;
+			std::string rcvFileName;
+			FILE *rcvFile{nullptr};
+			FILE *sndFile{nullptr};
+			bool isOpenSnd{false};
+			bool isOpenRcv{false};
+			size_t posRcv{0};
+			size_t lenRcv{0};
+			size_t posSnd{0};
+			size_t lenSnd{0};
 	};
 }
 

@@ -10,6 +10,8 @@ add_executable(amxpanel main.cpp
             map.cpp
             amxnet.cpp
             websocket.cpp
+            expand.cpp
+            directory.cpp
             config.cpp
             nameformat.cpp
             datetime.cpp
@@ -20,15 +22,15 @@ add_executable(amxpanel main.cpp
 
 add_definitions(-D_REENTRANT)
 add_definitions(-D_GNU_SOURCE)
-# add_definitions(-DASIO_STANDALONE)
 
 if (DEBUG)
    add_definitions(-g)
 endif(DEBUG)
 
 if (APPLE)
-	add_definitions(-std=c++14 ${OSX_INCLUDE})
+	add_definitions(-std=c++17 ${OSX_INCLUDE})
 else(APPLE)
+    add_definitions(-DASIO_STANDALONE)
 	add_definitions(-std=c++17)
 endif(APPLE)
 

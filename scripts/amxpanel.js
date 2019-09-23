@@ -1395,13 +1395,11 @@ function setOFF(msg)
 
 function setLEVEL(msg)
 {
-    var i, j;
-
     var addr = getField(msg, 0, ',');
     var level = getField(msg, 1, ',');
     var bgArray = findBargraphs(curPort, addr);
 
-    for (i in bgArray)
+    for (var i in bgArray)
     {
         var value = parseInt(100.0 / (bgArray[i].rh - bgArray[i].rl) * level);
         var name = "Page_" + bgArray[i].pnum + "_Button_" + bgArray[i].bi + "_1";

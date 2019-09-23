@@ -170,7 +170,7 @@ class NameFormat
 		static char *EncodeTo(char *buf, size_t *len, const std::string& str, const std::string& from, const std::string& to);
 		static std::string textToWeb(const std::string& txt);
 		static std::string toHex(int num, int width);
-		static std::string strToHex(std::string str, int width, bool format = false);
+		static std::string strToHex(std::string str, int width, bool format = false, int indent = 0);
 		static std::string latin1ToUTF8(const std::string& str);
 		static std::string cp1250ToUTF8(const std::string& str);
 		static std::string UTF8ToCp1250(const std::string& str);

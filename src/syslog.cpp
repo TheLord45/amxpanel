@@ -219,6 +219,8 @@ void Syslog::TRACE(FUNCTION f, const std::string& msg)
 	}
 	else if (f == EXIT)
 		s += "} Exit: ";
+	else
+		s += " ";
 
 	DebugMsg(s+msg);
 }

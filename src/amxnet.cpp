@@ -38,6 +38,9 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "syslog.h"
 #include "strings.h"
 #include "config.h"
@@ -50,6 +53,8 @@
 #include "nameformat.h"
 #include "trace.h"
 #include "str.h"
+#include "expand.h"
+#include "directory.h"
 
 #ifdef __APPLE__
 using namespace boost;
@@ -128,7 +133,7 @@ void AMXNet::init()
 	initSend = false;
 	ready = false;
 	write_busy = false;
-	string version = "v1.01.00";
+	string version = "v3.01.00";		// A version > 2.0 is needed for file transfer!
 	// Initialize the devive info structure
 	DEVICE_INFO di;
 	// Answer to MC = 0x0017 --> MC = 0x0097
@@ -141,7 +146,7 @@ void AMXNet::init()
 	if (!serNum.empty())
 		memcpy(di.serialNum, serNum.c_str(), serNum.length());
 
-	di.firmwareID = 0x0310;
+	di.firmwareID = 0x7310; // 0x0310;
 	memset(di.versionInfo, 0, sizeof(di.versionInfo));
 	strncpy(di.versionInfo, version.c_str(), version.length());
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
@@ -154,7 +159,7 @@ void AMXNet::init()
 	devInfo.push_back(di);
 	// Kernel info
 	di.objectID = 2;
-	di.firmwareID = 0x0311;
+	di.firmwareID = 0x7311; // 0x0311;
 	memset(di.serialNum, 0x20, sizeof(di.serialNum));
 	memcpy(di.serialNum, "N/A", 3);
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
@@ -165,13 +170,13 @@ void AMXNet::init()
 	uname(&kinfo);
 	strncpy (di.versionInfo, kinfo.release, sizeof(di.versionInfo));
 #else
-	strncpy(di.versionInfo, "2.16.00", 7);
+	strncpy(di.versionInfo, "4.00.00", 7);
 #endif
 	devInfo.push_back(di);
 	memset(di.versionInfo, 0, sizeof(di.versionInfo));
 	strncpy(di.versionInfo, version.c_str(), version.length());
 	// Root file system
-	di.objectID = 3;
+/*	di.objectID = 3;
 	di.firmwareID = 0x0312;
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
 	strncpy(di.deviceInfo, "Root File System", 16);
@@ -188,6 +193,7 @@ void AMXNet::init()
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
 	strncpy(di.deviceInfo, "File System", 11);
 	devInfo.push_back(di);
+*/
 }
 
 void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)
@@ -429,9 +435,9 @@ void AMXNet::start_read()
 	// Calculate the length of the data block. This is the rest of the total length
 	size_t len = (comm.hlen + 3) - 0x0015;
 
-	if (len >= 2048)
+	if (len > BUF_SIZE)
 	{
-		sysl->errlog("AMXnet::start_read: Length to read is "+to_string(len)+" bytes, but the buffer is only 2048 bytes!");
+		sysl->errlog("AMXnet::start_read: Length to read is "+to_string(len)+" bytes, but the buffer is only " + to_string(BUF_SIZE) + " bytes!");
 		return;
 	}
 
@@ -471,7 +477,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 		input_buffer_.assign((char *)&buff_[0], len);
 
 		if (len >= 8)
-			sysl->DebugMsg("AMXNet::handle_read: read:\n"+NameFormat::strToHex(input_buffer_, 8, true)+"\n\t\t\t\t\tToken: "+to_string(tk)+", "+to_string(len)+" bytes");
+			sysl->DebugMsg("AMXNet::handle_read: read:\n"+NameFormat::strToHex(input_buffer_, 8, true, 26)+"\n\t\t\t\t\tToken: "+to_string(tk)+", "+to_string(len)+" bytes");
 		else
 			sysl->DebugMsg("AMXNet::handle_read: read: "+NameFormat::strToHex(input_buffer_, 1)+", Token: "+to_string(tk)+", "+to_string(len)+" bytes");
 
@@ -603,6 +609,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.message_string.system = makeWord(buff_[4], buff_[5]);
 						comm.data.message_string.type = buff_[6];
 						comm.data.message_string.length = makeWord(buff_[7], buff_[8]);
+						memset(&comm.data.message_string.content[0], 0, sizeof(comm.data.message_string.content));
 						len = (buff_[6] == 0x01) ? comm.data.message_string.length : comm.data.message_string.length * 2;
 
 						if (len >= sizeof(comm.data.message_string.content))
@@ -636,32 +643,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						if (callback)
 							callback(comm);
 					break;
-/*
-					case 0x000d:	// Custom event
-						comm.data.customEvent.device = makeWord(buff_[0], buff_[1]);
-						comm.data.customEvent.port = makeWord(buff_[2], buff_[3]);
-						comm.data.customEvent.system = makeWord(buff_[4], buff_[5]);
-						comm.data.customEvent.ID = makeWord(buff_[6], buff_[7]);
-						comm.data.customEvent.type = makeWord(buff_[8], buff_[9]);
-						comm.data.customEvent.flag = makeWord(buff_[10], buff_[11]);
-						comm.data.customEvent.value1 = makeDWord(buff_[12], buff_[13], buff_[14], buff_[15]);
-						comm.data.customEvent.value2 = makeDWord(buff_[16], buff_[17], buff_[18], buff_[19]);
-						comm.data.customEvent.value3 = makeDWord(buff_[20], buff_[21], buff_[22], buff_[23]);
-						comm.data.customEvent.dtype = buff_[24];
-						comm.data.customEvent.length = makeWord(buff_[25], buff_[26]);
-						len = (buff_[24] == 0x01) ? comm.data.customEvent.length : comm.data.customEvent.length * 2;
 
-						if (len >= sizeof(comm.data.customEvent.data))
-						{
-							len = sizeof(comm.data.customEvent.data) - 1;
-							comm.data.customEvent.length = (buff_[24] == 0x01) ? len : len / 2;
-						}
-
-						memcpy(&comm.data.customEvent.data[0], &buff_[27], len);
-						pos = (int)(27 + len + 2);
-						comm.checksum = buff_[pos];
-					break;
-*/
 					case 0x000e:	// request level value
 						comm.data.level.device = makeWord(buff_[0], buff_[1]);
 						comm.data.level.port = makeWord(buff_[2], buff_[3]);
@@ -777,6 +759,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.data.srDeviceInfo.deviceID = makeWord(buff_[10], buff_[11]);
 						memcpy(comm.data.srDeviceInfo.serial, &buff_[12], 16);
 						comm.data.srDeviceInfo.fwid = makeWord(buff_[28], buff_[29]);
+                        memset(comm.data.srDeviceInfo.info, 0, sizeof(comm.data.srDeviceInfo.info));
 						memcpy(comm.data.srDeviceInfo.info, &buff_[30], comm.hlen - 0x0015 - 29);
 						comm.checksum = buff_[comm.hlen + 3];
 						// Prepare answer
@@ -824,6 +807,127 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						comm.checksum = buff_[2];
 					break;
 
+					case 0x0204:	// file transfer
+						s.device = comm.device2;
+						comm.data.filetransfer.ftype = makeWord(buff_[0], buff_[1]);
+						comm.data.filetransfer.function = makeWord(buff_[2], buff_[3]);
+						pos = 4;
+
+						if (comm.data.filetransfer.ftype == 0 && comm.data.filetransfer.function == 0x0105)			// Directory exist?
+						{
+							for (size_t i = 0; i < 0x0104; i++)
+							{
+								comm.data.filetransfer.data[i] = buff_[pos];
+								pos++;
+							}
+
+							comm.data.filetransfer.data[0x0103] = 0;
+							handleFTransfer(s, comm.data.filetransfer);
+						}
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0100)	// Controller have more files
+							handleFTransfer(s, comm.data.filetransfer);
+						else if (comm.data.filetransfer.ftype == 0 && comm.data.filetransfer.function == 0x0100)	// Request directory listing
+						{
+							comm.data.filetransfer.unk = makeWord(buff_[4], buff_[5]);
+							pos = 6;
+
+							for (size_t i = 0; i < 0x0104; i++)
+							{
+								comm.data.filetransfer.data[i] = buff_[pos];
+								pos++;
+							}
+
+							comm.data.filetransfer.data[0x0103] = 0;
+							handleFTransfer(s, comm.data.filetransfer);
+						}
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0102)	// controller will send a file
+						{
+							comm.data.filetransfer.unk = makeDWord(buff_[4], buff_[5], buff_[6], buff_[7]);
+							comm.data.filetransfer.unk1 = makeDWord(buff_[8], buff_[9], buff_[10], buff_[11]);
+							pos = 12;
+
+							for (size_t i = 0; i < 0x0104; i++)
+							{
+								comm.data.filetransfer.data[i] = buff_[pos];
+								pos++;
+							}
+
+							comm.data.filetransfer.data[0x0103] = 0;
+							handleFTransfer(s, comm.data.filetransfer);
+						}
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0103)	// file or part of a file
+						{
+							comm.data.filetransfer.unk = makeWord(buff_[4], buff_[5]);
+							pos = 6;
+
+							for (size_t i = 0; i < comm.data.filetransfer.unk; i++)
+							{
+								comm.data.filetransfer.data[i] = buff_[pos];
+								pos++;
+							}
+
+							handleFTransfer(s, comm.data.filetransfer);
+						}
+						else if (comm.data.filetransfer.ftype == 0 && comm.data.filetransfer.function == 0x0104)	// Does file exist;
+						{
+							for (size_t i = 0; i < 0x0104; i++)
+							{
+								comm.data.filetransfer.data[i] = buff_[pos];
+								pos++;
+							}
+
+							comm.data.filetransfer.data[0x0103] = 0;
+							handleFTransfer(s, comm.data.filetransfer);
+						}
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0104)	// request a file
+						{
+							comm.data.filetransfer.unk = makeWord(buff_[4], buff_[5]);
+							pos = 6;
+
+							for (size_t i = 0; i < 0x0104; i++)
+							{
+								comm.data.filetransfer.data[i] = buff_[pos];
+								pos++;
+							}
+
+							comm.data.filetransfer.data[0x0103] = 0;
+							handleFTransfer(s, comm.data.filetransfer);
+						}
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0106)	// ACK for 0x0105
+						{
+							comm.data.filetransfer.unk = makeDWord(buff_[4], buff_[5], buff_[6], buff_[7]);
+							pos = 8;
+							handleFTransfer(s, comm.data.filetransfer);
+						}
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0002)	// request next part of file
+							handleFTransfer(s, comm.data.filetransfer);
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0003)	// File content from controller
+						{
+							comm.data.filetransfer.unk = makeWord(buff_[4], buff_[5]);	// length of data block
+							pos = 6;
+
+							for (size_t i = 0; i < comm.data.filetransfer.unk; i++)
+							{
+								comm.data.filetransfer.data[i] = buff_[pos];
+								pos++;
+							}
+
+							handleFTransfer(s, comm.data.filetransfer);
+						}
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0004)	// End of file
+							handleFTransfer(s, comm.data.filetransfer);
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0005)	// End of file ACK
+							handleFTransfer(s, comm.data.filetransfer);
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0006)	// End of directory listing ACK
+						{
+							comm.data.filetransfer.unk = makeWord(buff_[4], buff_[5]);	// length of received data block
+							pos = 6;
+							handleFTransfer(s, comm.data.filetransfer);
+						}
+						else if (comm.data.filetransfer.ftype == 4 && comm.data.filetransfer.function == 0x0007)	// End of file transfer
+							handleFTransfer(s, comm.data.filetransfer);
+					break;
+
 					case 0x0501:    // ping
 						comm.data.chan_state.device = makeWord(buff_[0], buff_[1]);
 						comm.data.chan_state.system = makeWord(buff_[2], buff_[3]);
@@ -837,7 +941,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 				}
 			break;
 
-			default:		// should never happen and is only to satisfy the compiler
+			default:		// Every unknown or unsupported command/request should be ignored.
 				ignore = true;
 		}
 	}
@@ -853,11 +957,16 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 	DECL_TRACER("AMXNet::sendCommand (const ANET_SEND& s)");
 
 	bool status = false;
-	size_t len;
+	size_t len, size;
 	ANET_COMMAND com;
 	com.clear();
 	com.MC = s.MC;
-	com.device1 = 0;
+
+	if (s.MC == 0x0204)		// file transfer
+		com.device1 = s.device;
+	else
+		com.device1 = 0;
+
 	com.device2 = panelID;
 	com.port1 = 1;
 	com.system = Configuration->getAMXSystem();
@@ -958,6 +1067,7 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 				len = s.msg.length();
 
 			com.data.customEvent.length = len;
+			memset(com.data.customEvent.data, 0, sizeof(com.data.customEvent.data));
 			memcpy(&com.data.customEvent.data[0], s.msg.c_str(), s.msg.length());
 			com.hlen = 0x0016 - 3 + 29 + s.msg.length();
 			comStack.push_back(com);
@@ -1044,6 +1154,46 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 			status = true;
 		break;
 
+		case 0x0204:		// File transfer
+			com.port1 = 0;
+			com.port2 = 0;
+			com.data.filetransfer.ftype = s.dtype;
+			com.data.filetransfer.function = s.type;
+			com.data.filetransfer.info1 = s.value;
+			com.data.filetransfer.info2 = s.level;
+			com.data.filetransfer.unk = s.value1;
+			com.data.filetransfer.unk1 = s.value2;
+			com.data.filetransfer.unk2 = s.value3;
+			size = min(s.msg.length(), sizeof(com.data.filetransfer.data)-1);
+			memcpy(com.data.filetransfer.data, s.msg.c_str(), size);
+			com.data.filetransfer.data[size] = 0;
+			len = 4;
+
+			if (s.dtype == 0)
+			{
+				switch(s.type)
+				{
+					case 0x0001: len += 2; break;
+					case 0x0101: len += 16 + size + 1; break;
+					case 0x0102: len += 19 + size + 1; break;
+				}
+			}
+			else
+			{
+				switch(s.type)
+				{
+					case 0x0003: len += 2 + s.value1; break;
+					case 0x0101: len += 8; break;
+					case 0x0103: len += 6; break;
+					case 0x0105: len += 8; break;
+				}
+			}
+
+			com.hlen = 0x0016 - 3 + len;
+            comStack.push_back(com);
+			status = true;
+		break;
+
 		case 0x0581:		// Pong
 			com.data.srDeviceInfo.device = panelID; // Configuration->getAMXChannel();
 			com.data.srDeviceInfo.system = Configuration->getAMXSystem();
@@ -1070,6 +1220,439 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 		start_write();
 
 	return status;
+}
+
+void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
+{
+	DECL_TRACER("AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)");
+
+	int len;
+
+	if (ft.ftype == 0 && ft.function == 0x0105)
+	{
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 0;				// ftype --> function type
+		s.type = 0x0001;   			// function
+		s.value1 = 0;				// 1st data byte 0x00
+		s.value2 = 0x10;			// 2nd data byte 0x10
+		string f((char *)&ft.data);
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0000/0x0105: Directory "+f+" exist?");
+
+		if (f.compare(0, 8, "AMXPanel") == 0)
+		{
+			if (f.find("/images") > 0)
+				mkdir(string(Configuration->getHTTProot()+"/images").c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+			else if (f.find("/sounds") > 0)
+				mkdir(string(Configuration->getHTTProot()+"/sounds").c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+			else if (f.find("/fonts") > 0)
+				mkdir(string(Configuration->getHTTProot()+"/fonts").c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+		}
+		else if (f.compare(0, 8, "__system") == 0)
+		{
+			if (access(string(Configuration->getHTTProot()+"/__system").c_str(), R_OK | W_OK | X_OK))
+			{
+				mkdir(string(Configuration->getHTTProot()+"/__system").c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+				mkdir(string(Configuration->getHTTProot()+"/__system/graphics").c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+			}
+		}
+
+		sendCommand(s);
+	}
+	else if (ft.ftype == 0 && ft.function == 0x0100)	// Request directory
+	{
+		string fname((char *)&ft.data);
+		string amxpath(fname);
+		string realPath;
+		size_t pos = 0;
+		len = 0;
+		dir::Directory dr;
+
+		if (fname.compare("AMXPanel/") == 0)
+		{
+			realPath.assign(Configuration->getHTTProot());
+			amxpath.assign("/opt/amx/user/AMXPanel");
+		}
+		else if ((pos = fname.find("AMXPanel/")) != string::npos)
+		{
+			if (pos == 0)
+				amxpath = "/opt/amx/user/"+fname;
+
+			realPath = dr.stripPath("AMXPanel", fname);
+			realPath = Configuration->getHTTProot() + "/" + realPath;
+
+			if (dr.isFile(realPath))
+				len = dr.getFileSize(realPath);
+		}
+
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0000/0x0100: Request directory "+fname);
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 0x0000;
+		s.type = 0x0101;
+		s.value1 = len;		// File length
+		s.value2 = 0x0000be42;
+		s.value3 = 0x00003e75;
+		s.msg = amxpath;
+		sendCommand(s);
+		// Read the directory tree
+		dr.setStripPath(true);
+		dr.readDir(realPath);
+		amxpath = fname;
+
+		if (amxpath.length() > 1 && amxpath.at(amxpath.length()-1) == '/')
+			amxpath = amxpath.substr(0, amxpath.length()-1);
+
+		for (pos = 0; pos < dr.getNumEntries(); pos++)
+		{
+			dir::DFILES_T df = dr.getEntry(pos);
+			s.type = 0x0102;
+
+			s.value = (dr.testDirectory(df.attr)) ? 1 : 0;	// Depends on type of entry
+			s.level = dr.getNumEntries();		// # entries
+			s.value1 = df.count;				// counter
+			s.value2 = df.size;					// Size of file
+			s.value3 = df.date;					// Last modification date (epoch)
+			s.msg.assign(amxpath+"/"+df.name);
+			sendCommand(s);
+		}
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0100)	// Have more files to send.
+	{
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0100: Have more files to send.");
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 4;				// ftype --> function type
+		s.type = 0x0101;   			// function:
+		s.value1 = 0x01bb3000;		// ?
+		s.value2 = 0;				// ?
+		sendCommand(s);
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0102)	// Controller will send a file
+	{
+		string f((char*)&ft.data);
+		size_t pos;
+		rcvFileName.assign(Configuration->getHTTProot());
+
+		if (f.find("AMXPanel") != string::npos)
+		{
+			pos = f.find_first_of("/");
+			rcvFileName.append(f.substr(pos));
+		}
+		else
+		{
+			rcvFileName.append("/");
+			rcvFileName.append((char*)&ft.data);
+		}
+
+		if (rcvFile != nullptr)
+			fclose(rcvFile);
+
+		rcvFile = fopen(rcvFileName.c_str(), "w+");
+
+		if (!rcvFile)
+		{
+			sysl->errlog("AMXNet::handleFTransfer: Error creating file "+rcvFileName);
+			isOpenRcv = false;
+		}
+		else
+			isOpenRcv = true;
+
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0102: Controller will send file "+f);
+		posRcv = 0;
+		lenRcv = ft.unk;
+
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 4;				// ftype --> function type
+		s.type = 0x0103;   			// function: ready for receiving file
+		s.value1 = MAX_CHUNK;		// Maximum length of a chunk
+		s.value2 = ft.unk1;			// ID?
+		sendCommand(s);
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0103)	// File or part of a file
+	{
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0103: Reveiving file or part of file");
+
+		if (isOpenRcv)
+		{
+			fwrite(ft.data, 1, ft.unk, rcvFile);
+			posRcv += ft.unk;
+		}
+
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 4;				// ftype --> function type
+		s.type = 0x0002;   			// function: request next chunk
+		sendCommand(s);
+	}
+	else if (ft.ftype == 0 && ft.function == 0x0104)	// Delete file <name>
+	{
+		dir::Directory dr;
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		string f((char*)&ft.data[0]);
+		size_t pos = 0;
+
+		if ((pos = f.find("AMXPanel/")) == string::npos)
+			pos = f.find("__system/");
+
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0000/0x0104: Delete file "+f);
+
+		if (pos != string::npos)
+			f = Configuration->getHTTProot()+"/"+f.substr(pos+9);
+		else
+			f = Configuration->getHTTProot()+"/"+f;
+
+		if (dr.exists(f))
+		{
+			s.dtype = 0;				// ftype --> function type
+			s.type = 0x0002;   			// function: yes file exists
+			remove(f.c_str());
+		}
+		else	// Send: file was deleted although it does not exist.
+		{
+			s.dtype = 0;				// ftype --> function type
+			s.type = 0x0002;   			// function: yes file exists
+		}
+/*		else	// FIXME: Following is only an assumption!
+		{
+			sysl->errlog("AMXNet::handleFTransfer: File "+f+" not found!");
+			s.dtype = 0;				// ftype --> function type
+			s.type = 1;					// function: No, file/directory does not exit --> This is an assumption!
+			s.value1 = 0;				// 1st data byte 0x00
+			s.value2 = 0;				// 2nd data byte 0x00 --> does not exist?
+		}
+*/
+		sendCommand(s);
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0104)	// request a file
+	{
+		string f((char*)&ft.data);
+		size_t pos;
+		len = 0;
+		sndFileName.assign(Configuration->getHTTProot());
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0104: Request file "+f);
+
+		if (f.find("AMXPanel") != string::npos)
+		{
+			pos = f.find_first_of("/");
+			sndFileName.append(f.substr(pos));
+		}
+		else
+		{
+			sndFileName.append("/");
+			sndFileName.append(f);
+		}
+
+		if (!access(sndFileName.c_str(), R_OK))
+		{
+			struct stat s;
+
+			if (stat(sndFileName.c_str(), &s) == 0)
+				len = s.st_size;
+			else
+				len = 0;
+		}
+		else if (sndFileName.find("/version.xma") > 0)
+			len = 0x0015;
+		else
+			len = 0;
+
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0104: ("+to_string(len)+") File: "+sndFileName);
+
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 4;				// ftype --> function type
+		s.type = 0x0105;   			// function
+		s.value1 = len;				// length of file to send
+		s.value2 = 0x00001388;		// ID for device when sending a file.
+		sendCommand(s);
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0106)	// Controller is ready for receiving file
+	{
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0106: Controller is ready for receiving file.");
+
+		if (!access(sndFileName.c_str(), R_OK))
+		{
+			struct stat st;
+			stat(sndFileName.c_str(), &st);
+			len = st.st_size;
+			lenSnd = len;
+			posSnd = 0;
+			sndFile = fopen(sndFileName.c_str(), "r");
+
+			if (!sndFile)
+			{
+				sysl->errlog("AMXNet::handleFTransfer: Error reading file "+sndFileName);
+				len = 0;
+				isOpenSnd = false;
+			}
+			else
+				isOpenSnd = true;
+
+			if (isOpenSnd && len <= MAX_CHUNK)
+			{
+				char *buf = new char[len+1];
+				fread(buf, 1, len, sndFile);
+				s.msg.assign(buf, len);
+				delete[] buf;
+				posSnd = len;
+			}
+			else if (isOpenSnd)
+			{
+				char *buf = new char[MAX_CHUNK+1];
+				fread(buf, 1, MAX_CHUNK, sndFile);
+				s.msg.assign(buf, MAX_CHUNK);
+				delete[] buf;
+				posSnd = MAX_CHUNK;
+				len = MAX_CHUNK;
+			}
+		}
+		else if (sndFileName.find("/version.xma") > 0)
+		{
+			s.msg.assign("<version>9</version>\n");
+			len = s.msg.length();
+			posSnd = len;
+		}
+		else
+			len = 0;
+
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 4;				// ftype --> function type
+		s.type = 0x0003;   			// function: Sending file with length <len>
+		s.value1 = len;				// length of content to send
+		sendCommand(s);
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0002)	// request next part of file
+	{
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0002: Request next part of file.");
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 4;				// ftype --> function type
+
+		if (posSnd < lenSnd)
+		{
+			s.type = 0x0003;		// Next part of file
+
+			if ((posSnd + MAX_CHUNK) > lenSnd)
+				len = lenSnd - posSnd;
+			else
+				len = MAX_CHUNK;
+
+			s.value1 = len;
+
+			if (isOpenSnd)
+			{
+				char *buf = new char[len+1];
+				fread(buf, 1, len, sndFile);
+				s.msg.assign(buf, len);
+				delete[] buf;
+				posSnd += len;
+			}
+			else
+				s.value1 = 0;
+		}
+		else
+			s.type = 0x0004;		// function: End of file reached
+
+		sendCommand(s);
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0003)	// File content
+	{
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0003: Received (part of) file.");
+		len = ft.unk;
+
+		if (isOpenRcv)
+			fwrite(ft.data, 1, len, rcvFile);
+		else
+			sysl->warnlog("AMXNet::handleFTransfer: No open file to write to!");
+
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 4;				// ftype --> function type
+		s.type = 0x0002;   			// function: Request next part of file
+		sendCommand(s);
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0004)	// End of file
+	{
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0004: End of file.");
+
+		if (isOpenRcv)
+		{
+			unsigned char buf[8];
+			fseek(rcvFile, 0, SEEK_SET);
+			fread(buf, 1, sizeof(buf), rcvFile);
+			fclose(rcvFile);
+			isOpenRcv = false;
+			rcvFile = nullptr;
+
+			if (buf[0] == 0x1f && buf[1] == 0x8b)	// GNUzip compressed?
+			{
+				Expand exp(rcvFileName);
+				exp.unzip();
+			}
+		}
+
+		s.channel = 0;
+		s.level = 0;
+		s.port = 0;
+		s.value = 0;
+		s.MC = 0x0204;
+		s.dtype = 4;				// ftype --> function type
+		s.type = 0x0005;   			// function: ACK, file received. No answer expected.
+		sendCommand(s);
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0005)	// ACK, controller received file, no answer
+	{
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0005: Controller received file.");
+		posSnd = 0;
+		lenSnd = 0;
+
+		if (isOpenSnd && sndFile != nullptr)
+			fclose(sndFile);
+
+		sndFile = nullptr;
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0006)	// End of directory transfer ACK
+	{
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0006: End of directory transfer.");
+	}
+	else if (ft.ftype == 4 && ft.function == 0x0007)	// End of file transfer
+	{
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0007: End of file transfer.");
+	}
 }
 
 int AMXNet::msg97fill(ANET_COMMAND *com)
@@ -1263,6 +1846,7 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 	DECL_TRACER("AMXNet::makeBuffer (const ANET_COMMAND& s)");
 
 	int pos = 0;
+	int len;
 	bool valid = false;
 	unsigned char *buf;
 
@@ -1521,6 +2105,7 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 			*(buf+31) = s.data.sendStatusCode.length >> 8;
 			*(buf+32) = s.data.sendStatusCode.length;
 			pos = 33;
+			memset((void*)&s.data.sendStatusCode.str[0], 0, sizeof(s.data.sendStatusCode.str));
 			memcpy(buf+pos, s.data.sendStatusCode.str, s.data.sendStatusCode.length);
 			pos += s.data.sendStatusCode.length;
 			*(buf+pos) = calcChecksum(buf, pos);
@@ -1562,6 +2147,140 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 			valid = true;
 		break;
 
+		case 0x0204:	// file transfer
+			*(buf+22) = s.data.filetransfer.ftype >> 8;
+			*(buf+23) = s.data.filetransfer.ftype;
+			*(buf+24) = s.data.filetransfer.function >> 8;
+			*(buf+25) = s.data.filetransfer.function;
+			pos = 26;
+
+			switch(s.data.filetransfer.function)
+			{
+				case 0x0001:
+					*(buf+26) = s.data.filetransfer.unk;
+					*(buf+27) = s.data.filetransfer.unk1;
+					pos = 28;
+				break;
+
+				case 0x0003:
+					*(buf+26) = s.data.filetransfer.unk >> 8;
+					*(buf+27) = s.data.filetransfer.unk;
+					pos = 28;
+
+					for (uint32_t i = 0; i < s.data.filetransfer.unk && pos < (s.hlen+3); i++)
+					{
+						*(buf+pos) = s.data.filetransfer.data[i];
+						pos++;
+					}
+				break;
+
+				case 0x0101:
+					if (s.data.filetransfer.ftype == 0)
+					{
+						*(buf+26) = s.data.filetransfer.unk >> 24;
+						*(buf+27) = s.data.filetransfer.unk >> 16;
+						*(buf+28) = s.data.filetransfer.unk >> 8;
+						*(buf+29) = s.data.filetransfer.unk;
+						*(buf+30) = s.data.filetransfer.unk1 >> 24;
+						*(buf+31) = s.data.filetransfer.unk1 >> 16;
+						*(buf+32) = s.data.filetransfer.unk1 >> 8;
+						*(buf+33) = s.data.filetransfer.unk1;
+						*(buf+34) = s.data.filetransfer.unk2 >> 24;
+						*(buf+35) = s.data.filetransfer.unk2 >> 16;
+						*(buf+36) = s.data.filetransfer.unk2 >> 8;
+						*(buf+37) = s.data.filetransfer.unk2;
+						*(buf+38) = 0x00;
+						*(buf+39) = 0x00;
+						*(buf+40) = 0x3e;
+						*(buf+41) = 0x75;
+						pos = 42;
+						len = 0;
+
+						while (s.data.filetransfer.data[len] != 0)
+						{
+							*(buf+pos) = s.data.filetransfer.data[len];
+							len++;
+							pos++;
+						}
+
+						*(buf+pos) = 0;
+						pos++;
+					}
+					else
+					{
+						*(buf+26) = s.data.filetransfer.unk >> 24;
+						*(buf+27) = s.data.filetransfer.unk >> 16;
+						*(buf+28) = s.data.filetransfer.unk >> 8;
+						*(buf+29) = s.data.filetransfer.unk;
+						*(buf+30) = 0x00;
+						*(buf+31) = 0x00;
+						*(buf+32) = 0x00;
+						*(buf+33) = 0x00;
+						pos = 34;
+					}
+				break;
+
+				case 0x0102:
+					*(buf+26) = 0x00;
+					*(buf+27) = 0x00;
+					*(buf+28) = 0x00;
+					*(buf+29) = s.data.filetransfer.info1;			// dir flag
+					*(buf+30) = s.data.filetransfer.info2 >> 8;		// # entries
+					*(buf+31) = s.data.filetransfer.info2;
+					*(buf+32) = s.data.filetransfer.unk >> 8;		// counter
+					*(buf+33) = s.data.filetransfer.unk;
+					*(buf+34) = s.data.filetransfer.unk1 >> 24;		// file size
+					*(buf+35) = s.data.filetransfer.unk1 >> 16;
+					*(buf+36) = s.data.filetransfer.unk1 >> 8;
+					*(buf+37) = s.data.filetransfer.unk1;
+					*(buf+38) = (s.data.filetransfer.info1 == 1) ? 0x0c : 0x0b;
+					*(buf+39) = (s.data.filetransfer.info1 == 1) ? 0x0e : 0x13;
+					*(buf+40) = 0x07;
+					*(buf+41) = s.data.filetransfer.unk2 >> 24;		// Date
+					*(buf+42) = s.data.filetransfer.unk2 >> 16;
+					*(buf+43) = s.data.filetransfer.unk2 >> 8;
+					*(buf+44) = s.data.filetransfer.unk2;
+					pos = 45;
+					len = 0;
+
+					while (s.data.filetransfer.data[len] != 0)
+					{
+						*(buf+pos) = s.data.filetransfer.data[len];
+						pos++;
+						len++;
+					}
+
+					*(buf+pos) = 0;
+					pos++;
+				break;
+
+				case 0x0103:
+					*(buf+26) = s.data.filetransfer.unk >> 8;
+					*(buf+27) = s.data.filetransfer.unk;
+					*(buf+28) = s.data.filetransfer.unk1 >> 24;
+					*(buf+29) = s.data.filetransfer.unk1 >> 16;
+					*(buf+30) = s.data.filetransfer.unk1 >> 8;
+					*(buf+31) = s.data.filetransfer.unk1;
+					pos = 32;
+				break;
+
+				case 0x105:
+					*(buf+26) = s.data.filetransfer.unk >> 24;
+					*(buf+27) = s.data.filetransfer.unk >> 16;
+					*(buf+28) = s.data.filetransfer.unk >> 8;
+					*(buf+29) = s.data.filetransfer.unk;
+					*(buf+30) = s.data.filetransfer.unk1 >> 24;
+					*(buf+31) = s.data.filetransfer.unk1 >> 16;
+					*(buf+32) = s.data.filetransfer.unk1 >> 8;
+					*(buf+33) = s.data.filetransfer.unk1;
+					pos = 34;
+				break;
+			}
+
+			*(buf+pos) = calcChecksum(buf, pos);
+			valid = true;
+		break;
+
 		case 0x0581:	// Pong
 			*(buf+22) = s.data.srDeviceInfo.device >> 8;
 			*(buf+23) = s.data.srDeviceInfo.device;
@@ -1589,7 +2308,7 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 	}
 
 	string b((char *)buf, s.hlen+4);
-	sysl->TRACE("AMXNet::makeBuffer: "+NameFormat::strToHex(b, 8, true));
+	sysl->TRACE("AMXNet::makeBuffer:\n"+NameFormat::strToHex(b, 8, true, 26));
 	return buf;
 }
 

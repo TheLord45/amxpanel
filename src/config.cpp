@@ -152,6 +152,19 @@ void Config::readConfig(const string &sFile)
 
 	for (string line; getline(fs, line);)
 	{
+		size_t pos;
+
+		if ((pos = line.find("#")) != string::npos)
+		{
+			if (pos == 0)
+				line.clear();
+			else
+				line = line.substr(0, pos);
+		}
+
+		if (line.empty() || line.find("=") == string::npos)
+			continue;
+
 		vector<string> parts = Str(line).split('=');
 
 		if (parts.size() == 2)

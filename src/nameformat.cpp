@@ -239,12 +239,19 @@ string NameFormat::toHex(int num, int width)
 	return ret;
 }
 
-string NameFormat::strToHex(string str, int width, bool format)
+string NameFormat::strToHex(string str, int width, bool format, int indent)
 {
 	DECL_TRACER("NameFormat::strToHex(string str, int width, bool format)");
 	int len = 0, pos = 0, old = 0;
 	int w = (format) ? 1 : width;
 	string out, left, right;
+	string ind;
+
+	if (indent > 0)
+	{
+		for (int j = 0; j < indent; j++)
+			ind.append(" ");
+	}
 
 	for (size_t i = 0; i < str.length(); i++)
 	{
@@ -256,14 +263,14 @@ string NameFormat::strToHex(string str, int width, bool format)
 
 		if (format && i > 0 && (pos % width) == 0)
 		{
-			out += toHex(old, 4)+": "+left + " | " + right + "\n";
+			out += ind + toHex(old, 4) + ": " + left + " | " + right + "\n";
 			left.clear();
 			right.clear();
 			old = pos;
 		}
 
-		char c = str.at(i);
-		left.append(toHex((int)(c & 0x000000ff), 2));
+		int c = str.at(i) & 0x000000ff;
+		left.append(toHex(c, 2));
 
 		if (format)
 		{
@@ -281,10 +288,13 @@ string NameFormat::strToHex(string str, int width, bool format)
 		return left;
 	else if (pos > 0)
 	{
-		for (int i = 0; i < (width - (pos % width)); i++)
-			left.append("   ");
+		if ((pos % width) != 0)
+		{
+			for (int i = 0; i < (width - (pos % width)); i++)
+				left.append("   ");
+		}
 
-		out += toHex(old, 4)+": "+left + "  | " + right;
+		out += ind + toHex(old, 4)+": "+left + "  | " + right;
 	}
 
 	return out;
