@@ -17,7 +17,14 @@
  */
 
 #include <chrono>
-#include <filesystem>
+#if __GNUC__ < 9
+   #if __cplusplus < 201703L
+      #warning "Your C++ compiler seems to have no support for C++17 standard!"
+   #endif
+   #include <experimental/filesystem>
+#else
+   #include <filesystem>
+#endif
 #include "syslog.h"
 #include "config.h"
 #include "trace.h"
@@ -51,6 +58,9 @@ int Directory::readDir()
 				continue;
 
 			if (path.find("__system/") == string::npos && f.find("__system") != string::npos)
+				continue;
+
+			if (path.find("scripts") != string::npos && p.is_directory())
 				continue;
 
 			count++;

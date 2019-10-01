@@ -58,11 +58,12 @@ TouchPanel::TouchPanel()
 	regCallbackConnected(bind(&TouchPanel::setWebConnect, this, placeholders::_1, placeholders::_2));
 	regCallbackRegister(bind(&TouchPanel::regWebConnect, this, placeholders::_1, placeholders::_2));
 
+	readProject();
+	panType = getProject().projectInfo.panelType;
+	sysl->TRACE("TouchPanel::TouchPanel: Technical name of TP: "+panType);
+
 	if (!isParsed())
-	{
-		readProject();
 		readPages();
-	}
 
 	// Start thread for websocket
 	try
@@ -279,13 +280,13 @@ bool TouchPanel::isRegistered(int channel)
 	if (registration.size() == 0)
 		return false;
 
-	PANELS_T::iterator itr;
+	if (channel > 32000 && channel < 34000)
+		return true;
 
-	for (itr = registration.begin(); itr != registration.end(); ++itr)
-	{
-		if (itr->first == channel && itr->second.status)
+	PANELS_T::iterator itr = registration.find(channel);
+
+	if (itr != registration.end() && itr->second.status)
 			return true;
-	}
 
 	return false;
 }
@@ -339,8 +340,15 @@ bool TouchPanel::delConnection(int id)
 
 	if ((itr = registration.find(id)) != registration.end())
 	{
-		if (itr->second.amxnet != 0)
-			delete itr->second.amxnet;
+		try
+		{
+			if (itr->second.amxnet != 0)
+				delete itr->second.amxnet;
+		}
+		catch(exception& e)
+		{
+			sysl->errlog("TouchPanel::delConnection: Error deleting class AMXNet: "+string(e.what()));
+		}
 
 		registration.erase(itr);
 		return true;
@@ -382,7 +390,7 @@ void TouchPanel::regWebConnect(long pan, int id)
 
 				releaseSlot(itr->first);
 				delConnection(itr->first);
-				cond.notify_one();
+//				cond.notify_one();
 				return;
 			}
 		}
@@ -390,7 +398,7 @@ void TouchPanel::regWebConnect(long pan, int id)
 
 	if (id == -1)
 	{
-		cond.notify_one();
+//		cond.notify_one();
 		return;
 	}
 
@@ -421,7 +429,7 @@ void TouchPanel::regWebConnect(long pan, int id)
 	}
 
 	showContent(pan);
-	cond.notify_one();
+//	cond.notify_one();
 }
 
 bool TouchPanel::newConnection(int id)
@@ -436,7 +444,7 @@ bool TouchPanel::newConnection(int id)
 
 	try
 	{
-		AMXNet *pANet = new AMXNet(getSerialNum());
+		AMXNet *pANet = new AMXNet(getSerialNum(), panType);
 		pANet->setPanelID(id);
 		pANet->setCallback(bind(&TouchPanel::setCommand, this, placeholders::_1));
 
@@ -510,12 +518,20 @@ bool TouchPanel::send(int id, string& msg)
 	DECL_TRACER(string("TouchPanel::send(int id, string& msg) [id=")+to_string(id)+", msg="+msg+"]");
 
 	PANELS_T::iterator itr;
+	string m(msg);
 
-	if ((itr = registration.find(id)) != registration.end())
+	if (id > 32000 && id < 34000)	// Filetransfer: send to all connected panels
 	{
-		string m(msg);
-		return WebSocket::send(m, itr->second.pan);
+		for (itr = registration.begin(); itr != registration.end(); ++itr)
+		{
+			if (itr->second.status)
+				WebSocket::send(m, itr->second.pan);
+		}
+
+		return true;
 	}
+	else if ((itr = registration.find(id)) != registration.end())
+		return WebSocket::send(m, itr->second.pan);
 
 	return false;
 }
@@ -593,6 +609,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 			break;
 
 			case 0x000c:	// Command string
+			{
 				ANET_MSG_STRING msg = bef.data.message_string;
 
 				if (msg.length < strlen((char *)&msg.content))
@@ -605,7 +622,7 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				{
 					amxBuffer.append((char *)&msg.content);
 					setAMXBuffer(bef.device1, amxBuffer);
-					size_t len = (amxBuffer.length() >= sizeof(msg.content)) ? 1499 : amxBuffer.length();
+					size_t len = (amxBuffer.length() >= sizeof(msg.content)) ? (sizeof(msg.content)-1) : amxBuffer.length();
 					strncpy((char *)&msg.content, amxBuffer.c_str(), len);
 					msg.content[len] = 0;
 				}
@@ -616,12 +633,67 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 				com.append("|");
 				com.append(NameFormat::cp1250ToUTF8((char *)&msg.content));
 				send(bef.device1, com);
+			}
+			break;
+
+			case 0x1000:	// Filetransfer
+				ANET_FILETRANSFER ftr = bef.data.filetransfer;
+
+				if (ftr.ftype == 0)
+				{
+					switch(ftr.function)
+					{
+						case 0x0100:	// Syncing directory
+							com = to_string(bef.device1) + ":" + to_string(bef.port1) + "|#FTR-SYNC:0:";
+							com.append((char*)&ftr.data[0]);
+							send(bef.device1, com);
+						break;
+
+						case 0x0104:	// Delete file
+							com = to_string(bef.device1) + ":" + to_string(bef.port1) + "|#FTR-SYNC:"+to_string(bef.count)+":Deleting files ... ("+to_string(bef.count)+"%)";
+							send(bef.device1, com);
+						break;
+
+						case 0x0105:	// start filetransfer
+							com = to_string(bef.device1) + ":" + to_string(bef.port1) + "|#FTR-START";
+							send(bef.device1, com);
+						break;
+					}
+				}
+				else
+				{
+					switch(ftr.function)
+					{
+						case 0x0003:	// Received part of file
+						case 0x0004:	// End of file
+							com = to_string(bef.device1) + ":" + to_string(bef.port1) + "|#FTR-FTRPART:"+to_string(bef.count)+":"+to_string(ftr.info1);
+							send(bef.device1, com);
+						break;
+
+						case 0x0007:	// End of file transfer
+						{
+							string prs = Configuration->getHTTProot()+"/.parsed";
+							remove(prs.c_str());
+							readProject();
+							parsePages();
+							com = to_string(bef.device1) + ":" + to_string(bef.port1) + "|#FTR-END";
+							send(bef.device1, com);
+						}
+						break;
+
+						case 0x0102:	// Receiving file
+							com = to_string(bef.device1) + ":" + to_string(bef.port1) + "|#FTR-FTRSTART:"+to_string(bef.count)+":"+to_string(ftr.info1)+":";
+							com.append((char*)&ftr.data[0]);
+							send(bef.device1, com);
+						break;
+					}
+				}
 			break;
 		}
 	}
 
 	busy = false;
-	cond.notify_one();
+//	cond.notify_one();
 }
 
 /*
@@ -646,7 +718,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 	{
 		if (parts.size() != 2)
 		{
-			cond.notify_one();
+//			cond.notify_one();
 			return;
 		}
 
@@ -675,13 +747,13 @@ void TouchPanel::webMsg(string& msg, long pan)
 				send(as.device, com);
 				com = "0:0|#ERR-No free slots available!";
 				send(as.device, com);
-				cond.notify_one();
+//				cond.notify_one();
 				return;
 			}
 			else if (isRegistered(regID))
 			{
 				sysl->warnlog("TouchPanel::webMsg: Panel with registration ID "+regID+" is already registrated!");
-				cond.notify_one();
+//				cond.notify_one();
 				return;
 			}
 
@@ -694,7 +766,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 				send(as.device, s);
 				s = "0:0|#ERR-No more free slots!";
 				send(as.device, s);
-				cond.notify_one();
+//				cond.notify_one();
 				return;
 			}
 
@@ -707,14 +779,14 @@ void TouchPanel::webMsg(string& msg, long pan)
 				send(as.device, s);
 				s = "0:0|#ERR-Connection error!";
 				send(as.device, s);
-				cond.notify_one();
+//				cond.notify_one();
 				return;
 			}
 
 			sysl->warnlog("TouchPanel::webMsg: Registration with ID: "+regID+" was successfull.");
 			string com = "0:0|#REG-OK,"+to_string(slot)+","+regID;
 			send(slot, com);
-			cond.notify_one();
+//			cond.notify_one();
 			return;
 		}
 		else
@@ -724,7 +796,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 			send(as.device, com);
 			com = "0:0|#ERR-Access denied!";
 			send(as.device, com);
-			cond.notify_one();
+//			cond.notify_one();
 		}
 	}
 	else if (isRegistered(as.device) && msg.find("PUSH:") != string::npos)
@@ -734,7 +806,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog(string("TouchPanel::webMsg: Network connection not found for panel ")+to_string(as.device)+"!");
-			cond.notify_one();
+//			cond.notify_one();
 			return;
 		}
 
@@ -761,7 +833,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog(string("TouchPanel::webMsg: Network connection not found for panel ")+to_string(as.device)+"!");
-			cond.notify_one();
+//			cond.notify_one();
 			return;
 		}
 
@@ -794,7 +866,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog("TouchPanel::webMsg: Network connection not found for panel "+to_string(as.device)+"!");
-			cond.notify_one();
+//			cond.notify_one();
 			return;
 		}
 
@@ -835,7 +907,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog("TouchPanel::webMsg: Network connection not found for panel "+to_string(as.device)+"!");
-			cond.notify_one();
+//			cond.notify_one();
 			return;
 		}
 
@@ -875,7 +947,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 			sysl->warnlog("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!");
 	}
 
-	cond.notify_one();
+//	cond.notify_one();
 }
 
 void TouchPanel::stopClient()
@@ -899,7 +971,7 @@ void TouchPanel::stopClient()
 		registration.erase(itr);
 	}
 
-	cond.notify_one();
+//	cond.notify_one();
 }
 
 int TouchPanel::findPage(const string& name)
@@ -1458,6 +1530,7 @@ bool TouchPanel::parsePages()
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/chameleon.js\"></script>" << endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/resource.js\"></script>" << endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/movie.js\"></script>" << endl;
+	pgFile << "<script type=\"text/javascript\" src=\"scripts/ftransfer.js\"></script>" << endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/keyboard.js\"></script>" << endl << endl;
 
 	for (size_t i = 0; i < stPages.size(); i++)
@@ -1734,7 +1807,7 @@ void TouchPanel::setWebConnect(bool s, long pan)
 			break;
 	}
 
-	cond.notify_one();
+//	cond.notify_one();
 }
 
 void TouchPanel::showContent(long pan)

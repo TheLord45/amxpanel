@@ -24,6 +24,7 @@
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/write.hpp>
+#include <boost/asio/read.hpp>
 #else
 #include <asio/buffer.hpp>
 #include <asio/io_context.hpp>
@@ -31,6 +32,7 @@
 #include <asio/read_until.hpp>
 #include <asio/steady_timer.hpp>
 #include <asio/write.hpp>
+#include <asio/read.hpp>
 #endif
 #include <functional>
 #include <iostream>
@@ -45,11 +47,6 @@
 #include "strings.h"
 #include "config.h"
 #include "amxnet.h"
-#ifdef __APPLE__
-#include <boost/asio/read.hpp>
-#else
-#include <asio/read.hpp>
-#endif
 #include "nameformat.h"
 #include "trace.h"
 #include "str.h"
@@ -115,6 +112,25 @@ AMXNet::AMXNet(const string& sn)
 	init();
 }
 
+AMXNet::AMXNet(const string& sn, const string& nm)
+	: deadline_(io_context),
+	  heartbeat_timer_(io_context),
+	  socket_(io_context),
+	  panName(nm),
+	  serNum(sn)
+{
+	sysl->TRACE(Syslog::ENTRY, "AMXNet::AMXNet(const string& sn)");
+	size_t pos = nm.find(" (TPC)");
+
+	if (pos != string::npos)
+	{
+		panName = nm.substr(0, pos) + "i";
+		sysl->TRACE("AMXNet::AMXNet: Converted TP name: "+panName);
+	}
+
+	init();
+}
+
 AMXNet::~AMXNet()
 {
 	devInfo.clear();
@@ -133,24 +149,37 @@ void AMXNet::init()
 	initSend = false;
 	ready = false;
 	write_busy = false;
-	string version = "v3.01.00";		// A version > 2.0 is needed for file transfer!
+	string version = "v2.01.00";		// A version > 2.0 is needed for file transfer!
+	int devID = 0x0163, fwID = 0x0290;
+
+	if (Configuration->getAMXPanelType().length() > 0)
+		panName = Configuration->getAMXPanelType();
+	else if (panName.empty())
+		panName.assign("TheoSys");
+
+	if (panName.find("MVP") != string::npos && panName.find("5200") != string::npos)
+	{
+		devID = 0x0149;
+		fwID = 0x0310;
+	}
+
 	// Initialize the devive info structure
 	DEVICE_INFO di;
 	// Answer to MC = 0x0017 --> MC = 0x0097
 	di.objectID = 0;
 	di.parentID = 0;
 	di.manufacturerID = 1;
-	di.deviceID = 0x0149;
+	di.deviceID = devID;
 	memset(di.serialNum, 0x20, sizeof(di.serialNum));
 
 	if (!serNum.empty())
 		memcpy(di.serialNum, serNum.c_str(), serNum.length());
 
-	di.firmwareID = 0x7310; // 0x0310;
+	di.firmwareID = fwID;
 	memset(di.versionInfo, 0, sizeof(di.versionInfo));
 	strncpy(di.versionInfo, version.c_str(), version.length());
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
-	strncpy(di.deviceInfo, Configuration->getAMXPanelType().c_str(), ((Configuration->getAMXPanelType().length() < sizeof(di.deviceInfo))?Configuration->getAMXPanelType().length():(sizeof(di.deviceInfo)-1)));
+	strncpy(di.deviceInfo, panName.c_str(), min(panName.length(), sizeof(di.deviceInfo)-1));
 	memset(di.manufacturerInfo, 0, sizeof(di.manufacturerInfo));
 	strncpy(di.manufacturerInfo, "TheoSys", 7);
 	di.format = 2;
@@ -159,7 +188,7 @@ void AMXNet::init()
 	devInfo.push_back(di);
 	// Kernel info
 	di.objectID = 2;
-	di.firmwareID = 0x7311; // 0x0311;
+	di.firmwareID = fwID + 1;
 	memset(di.serialNum, 0x20, sizeof(di.serialNum));
 	memcpy(di.serialNum, "N/A", 3);
 	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
@@ -173,27 +202,6 @@ void AMXNet::init()
 	strncpy(di.versionInfo, "4.00.00", 7);
 #endif
 	devInfo.push_back(di);
-	memset(di.versionInfo, 0, sizeof(di.versionInfo));
-	strncpy(di.versionInfo, version.c_str(), version.length());
-	// Root file system
-/*	di.objectID = 3;
-	di.firmwareID = 0x0312;
-	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
-	strncpy(di.deviceInfo, "Root File System", 16);
-	devInfo.push_back(di);
-	// Bootrom
-	di.objectID = 4;
-	di.firmwareID = 0x0313;
-	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
-	strncpy(di.deviceInfo, "Bootrom", 7);
-	devInfo.push_back(di);
-	// File System
-	di.objectID = 6;
-	di.firmwareID = 0x0315;
-	memset(di.deviceInfo, 0, sizeof(di.deviceInfo));
-	strncpy(di.deviceInfo, "File System", 11);
-	devInfo.push_back(di);
-*/
 }
 
 void AMXNet::start(asio::ip::tcp::resolver::results_type endpoints, int id)
@@ -221,7 +229,7 @@ bool AMXNet::isConnected()
 
 void AMXNet::stop()
 {
-	DECL_TRACER(string("AMXNet::stop: Stopping the client..."));
+	DECL_TRACTHR("AMXNet::stop: Stopping the client...");
 
 	if (stopped_)
 		return;
@@ -238,11 +246,11 @@ void AMXNet::stop()
 		heartbeat_timer_.cancel();
 		socket_.shutdown(asio::socket_base::shutdown_both, ignored_error);
 		socket_.close(ignored_error);
-		sysl->TRACE(string("AMXNet::stop: Client was stopped."));
+		sysl->TRACE(string("AMXNet::stop: Client was stopped."), true);
 	}
 	catch (std::exception& e)
 	{
-		sysl->errlog(string("AMXNet::stop: Error: ")+e.what());
+		sysl->errlogThr(string("AMXNet::stop: Error: ")+e.what());
 	}
 }
 
@@ -250,19 +258,27 @@ void AMXNet::Run()
 {
 	DECL_TRACER("AMXNet::Run()");
 
-	try
+	while (reconCounter < 3)
 	{
-		asio::ip::tcp::resolver r(io_context);
-		start(r.resolve(Configuration->getAMXController(), to_string(Configuration->getAMXPort())), panelID);
-		io_context.run();
-		sysl->TRACE("AMXNet::Run: Thread ended.");
+		try
+		{
+			asio::ip::tcp::resolver r(io_context);
+			start(r.resolve(Configuration->getAMXController(), to_string(Configuration->getAMXPort())), panelID);
+			io_context.run();
+			sysl->TRACE("AMXNet::Run: Thread ended.");
+
+			if (stopped_)
+				break;
+		}
+		catch (std::exception& e)
+		{
+			sysl->errlog("AMXNet::Run: Error connecting to "+Configuration->getAMXController()+":"+to_string(Configuration->getAMXPort())+" ["+e.what()+"]");
+		}
+
+		reconCounter++;
 	}
-	catch (std::exception& e)
-	{
-		sysl->errlog("AMXNet::Run: Error connecting to "+Configuration->getAMXController()+":"+to_string(Configuration->getAMXPort())+"!");
-		sysl->errlog(string("AMXNet::Run: ")+e.what());
-		stopped_ = true;
-	}
+
+	stopped_ = true;
 }
 
 void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpoint_iter)
@@ -280,13 +296,10 @@ void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpo
 		sysl->TRACE("AMXNet::start_connect: Trying "+endpoint_iter->endpoint().address().to_string()+":"+to_string(endpoint_iter->endpoint().port())+" ...");
 
 		// Set a deadline for the connect operation.
-		deadline_.expires_after(chrono::seconds(60));
+		deadline_.expires_after(chrono::seconds(120));
 		stopped_ = false;
-
 		// Start the asynchronous connect operation.
-		socket_.async_connect(endpoint_iter->endpoint(),
-			bind(&AMXNet::handle_connect,
-			this, _1, endpoint_iter));
+		socket_.async_connect(endpoint_iter->endpoint(), bind(&AMXNet::handle_connect, this, _1, endpoint_iter));
 	}
 	else
 	{
@@ -297,7 +310,9 @@ void AMXNet::start_connect(asio::ip::tcp::resolver::results_type::iterator endpo
 
 void AMXNet::handle_connect(const error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter)
 {
-	DECL_TRACER(string("handle_connect(const error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter)"));
+	DECL_TRACTHR("AMXNet::handle_connect(const error_code& error, asio::ip::tcp::resolver::results_type::iterator endpoint_iter)");
+
+	reconCounter = 0;
 
 	if (stopped_)
 		return;
@@ -307,14 +322,14 @@ void AMXNet::handle_connect(const error_code& error, asio::ip::tcp::resolver::re
 	// the timeout handler must have run first.
 	if (!socket_.is_open())
 	{
-		sysl->TRACE(string("Connect timed out"));
+		sysl->TRACE("AMXNet::handle_connect: Connect timed out", true);
 
 		// Try the next available endpoint.
 		start_connect(++endpoint_iter);
     }
 	else if (error)		// Check if the connect operation failed before the deadline expired.
 	{
-		sysl->errlog(string("AMXNet::handle_connect: Connect error: ")+error.message());
+		sysl->errlogThr(string("AMXNet::handle_connect: Connect error: ")+error.message());
 
 		// We need to close the socket used in the previous connection attempt
 		// before starting a new one.
@@ -325,7 +340,7 @@ void AMXNet::handle_connect(const error_code& error, asio::ip::tcp::resolver::re
 	}
 	else
 	{
-		sysl->log(Syslog::INFO, "AMXNet::handle_connect: Connected to "+endpoint_iter->endpoint().address().to_string()+":"+to_string(endpoint_iter->endpoint().port()));
+		sysl->logThr(Syslog::INFO, "AMXNet::handle_connect: Connected to "+endpoint_iter->endpoint().address().to_string()+":"+to_string(endpoint_iter->endpoint().port()));
 
 		try
 		{
@@ -344,20 +359,20 @@ void AMXNet::handle_connect(const error_code& error, asio::ip::tcp::resolver::re
 		}
 		catch (std::exception& e)
 		{
-			sysl->errlog(string("AMXNet::handle_connect: Error: ")+e.what());
+			sysl->errlogThr(string("AMXNet::handle_connect: Error: ")+e.what());
 		}
 	}
 }
 
 void AMXNet::start_read()
 {
-	DECL_TRACER(string("start_read()"));
+	DECL_TRACTHR("start_read()");
 
 	if (!isRunning())
 		return;
 
 	// Set a deadline for the read operation.
-	deadline_.expires_after(chrono::seconds(60));
+	deadline_.expires_after(chrono::seconds(120));
 	protError = false;
 	comm.clear();
 #ifdef __APPLE__
@@ -437,7 +452,7 @@ void AMXNet::start_read()
 
 	if (len > BUF_SIZE)
 	{
-		sysl->errlog("AMXnet::start_read: Length to read is "+to_string(len)+" bytes, but the buffer is only " + to_string(BUF_SIZE) + " bytes!");
+		sysl->errlogThr("AMXnet::start_read: Length to read is "+to_string(len)+" bytes, but the buffer is only " + to_string(BUF_SIZE) + " bytes!");
 		return;
 	}
 
@@ -453,7 +468,7 @@ void AMXNet::handle_read(const system::error_code& error, size_t n, R_TOKEN tk)
 void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 #endif
 {
-	DECL_TRACER("handle_read(const error_code& error, size_t n, R_TOKEN tk)");
+	DECL_TRACTHR("handle_read(const error_code& error, size_t n, R_TOKEN tk)");
 
 	if (!isRunning())
 		return;
@@ -473,13 +488,13 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 	if (!error)
 	{
-		len = (n < 2048) ? n : 2047;
+		len = (n < BUF_SIZE) ? n : BUF_SIZE-1;
 		input_buffer_.assign((char *)&buff_[0], len);
 
 		if (len >= 8)
-			sysl->DebugMsg("AMXNet::handle_read: read:\n"+NameFormat::strToHex(input_buffer_, 8, true, 26)+"\n\t\t\t\t\tToken: "+to_string(tk)+", "+to_string(len)+" bytes");
+			sysl->DebugMsg("AMXNet::handle_read: read:\n"+NameFormat::strToHex(input_buffer_, 8, true, 26)+"\n\t\t\t\t\tToken: "+to_string(tk)+", "+to_string(len)+" bytes", true);
 		else
-			sysl->DebugMsg("AMXNet::handle_read: read: "+NameFormat::strToHex(input_buffer_, 1)+", Token: "+to_string(tk)+", "+to_string(len)+" bytes");
+			sysl->DebugMsg("AMXNet::handle_read: read: "+NameFormat::strToHex(input_buffer_, 1)+", Token: "+to_string(tk)+", "+to_string(len)+" bytes", true);
 
 		switch (tk)
 		{
@@ -521,7 +536,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 				if (protError || !isRunning())
 					break;
 
-				sysl->TRACE("AMXNet::handle_read: Received message type: 0x"+NameFormat::toHex(comm.MC, 4));
+				sysl->TRACE("AMXNet::handle_read: Received message type: 0x"+NameFormat::toHex(comm.MC, 4), true);
 
 				switch (comm.MC)
 				{
@@ -621,8 +636,8 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						memcpy(&comm.data.message_string.content[0], &buff_[9], len);
 						pos = (int)(len + 10);
 						comm.checksum = buff_[pos];
-						cmd.assign((char *)&comm.data.message_string.content[0]);
-						sysl->DebugMsg("AMXNet::handle_read: cmd="+cmd);
+						cmd.assign((char *)&comm.data.message_string.content[0], len);
+						sysl->DebugMsg("AMXNet::handle_read: cmd="+cmd, true);
 
 						if (isCommand(cmd))
 						{
@@ -631,11 +646,10 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 						}
 						else
 						{
-							sysl->DebugMsg("AMXNet::handle_read: Before concatenated ...");
 							oldCmd.append(cmd);
-							sysl->DebugMsg("AMXNet::handle_read: Concatenated cmd="+oldCmd);
+							sysl->DebugMsg("AMXNet::handle_read: Concatenated cmd="+oldCmd, true);
 							memset(&comm.data.message_string.content[0], 0, sizeof(comm.data.message_string.content));
-							memcpy(&comm.data.message_string.content[0], oldCmd.data(), sizeof(comm.data.message_string.content)-1);
+							memcpy(&comm.data.message_string.content[0], oldCmd.c_str(), sizeof(comm.data.message_string.content)-1);
 							comm.data.message_string.length = oldCmd.length();
 							oldCmd.clear();
 						}
@@ -799,7 +813,7 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 
 						sendCommand(s);
 
-						sysl->TRACE(string("AMXNet::handle_read: S/N: ")+(char *)&comm.data.srDeviceInfo.serial[0]+" | "+(char *)&comm.data.srDeviceInfo.info[0]);
+						sysl->TRACE(string("AMXNet::handle_read: S/N: ")+(char *)&comm.data.srDeviceInfo.serial[0]+" | "+(char *)&comm.data.srDeviceInfo.info[0], true);
 					break;
 
 					case 0x00a1:	// request status
@@ -947,14 +961,14 @@ void AMXNet::handle_read(const asio::error_code& error, size_t n, R_TOKEN tk)
 	}
 	else
 	{
-		sysl->errlog(string("AMXNet::handle_read: Error on receive: ")+error.message());
+		sysl->errlogThr(string("AMXNet::handle_read: Error on receive: ")+error.message());
 		stop();
 	}
 }
 
 bool AMXNet::sendCommand (const ANET_SEND& s)
 {
-	DECL_TRACER("AMXNet::sendCommand (const ANET_SEND& s)");
+	DECL_TRACTHR("AMXNet::sendCommand (const ANET_SEND& s)");
 
 	bool status = false;
 	size_t len, size;
@@ -1224,11 +1238,21 @@ bool AMXNet::sendCommand (const ANET_SEND& s)
 
 void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 {
-	DECL_TRACER("AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)");
+	DECL_TRACTHR("AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)");
 
 	int len;
+	ANET_COMMAND ftr;
+	ftr.MC = 0x1000;
+	ftr.device1 = s.device;
+	ftr.device2 = s.device;
+	ftr.port1 = 0;
+	ftr.port2 = 0;
+	ftr.count = 0;
+	ftr.data.filetransfer.ftype = ft.ftype;
+	ftr.data.filetransfer.function = ft.function;
+	ftr.data.filetransfer.data[0] = 0;
 
-	if (ft.ftype == 0 && ft.function == 0x0105)
+	if (ft.ftype == 0 && ft.function == 0x0105)		// Create directory
 	{
 		s.channel = 0;
 		s.level = 0;
@@ -1240,7 +1264,7 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 		s.value1 = 0;				// 1st data byte 0x00
 		s.value2 = 0x10;			// 2nd data byte 0x10
 		string f((char *)&ft.data);
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0000/0x0105: Directory "+f+" exist?");
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0000/0x0105: Directory "+f+" exist?", true);
 
 		if (f.compare(0, 8, "AMXPanel") == 0)
 		{
@@ -1261,6 +1285,15 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 		}
 
 		sendCommand(s);
+
+		if (!receiveSetup)
+		{
+			receiveSetup = true;
+			ftransfer.maxFiles = countFiles();
+
+			if (callback)
+				callback(ftr);
+		}
 	}
 	else if (ft.ftype == 0 && ft.function == 0x0100)	// Request directory
 	{
@@ -1288,7 +1321,12 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 				len = dr.getFileSize(realPath);
 		}
 
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0000/0x0100: Request directory "+fname);
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0000/0x0100: Request directory "+fname, true);
+		snprintf((char *)&ftr.data.filetransfer.data[0], sizeof(ftr.data.filetransfer.data), "Syncing %d files ...", ftransfer.maxFiles);
+
+		if (callback)
+			callback(ftr);
+
 		s.channel = 0;
 		s.level = 0;
 		s.port = 0;
@@ -1325,7 +1363,7 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 	}
 	else if (ft.ftype == 4 && ft.function == 0x0100)	// Have more files to send.
 	{
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0100: Have more files to send.");
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0100: Have more files to send.", true);
 		s.channel = 0;
 		s.level = 0;
 		s.port = 0;
@@ -1361,16 +1399,37 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 
 		if (!rcvFile)
 		{
-			sysl->errlog("AMXNet::handleFTransfer: Error creating file "+rcvFileName);
+			sysl->errlogThr("AMXNet::handleFTransfer: Error creating file "+rcvFileName);
 			isOpenRcv = false;
 		}
 		else
 			isOpenRcv = true;
 
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0102: Controller will send file "+f);
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0102: Controller will send file "+rcvFileName, true);
+		ftransfer.actFileNum++;
+		ftransfer.lengthFile = ft.unk;
+
+		if (ftransfer.actFileNum > ftransfer.maxFiles)
+			ftransfer.maxFiles = ftransfer.actFileNum;
+
+		ftransfer.percent = (int)(100.0 / (double)ftransfer.maxFiles * (double)ftransfer.actFileNum);
+		pos = rcvFileName.find_last_of("/");
+		string shfn;
+
+		if (pos != string::npos)
+			shfn = NameFormat::cp1250ToUTF8(rcvFileName.substr(pos+1));
+		else
+			shfn = NameFormat::cp1250ToUTF8(rcvFileName);
+
+		snprintf((char*)&ftr.data.filetransfer.data[0], sizeof(ftr.data.filetransfer.data), "[%d/%d]&nbsp;%s", ftransfer.actFileNum, ftransfer.maxFiles, shfn.c_str());
+		ftr.count = ftransfer.percent;
+		ftr.data.filetransfer.info1 = 0;
+
+		if (callback)
+			callback(ftr);
+
 		posRcv = 0;
 		lenRcv = ft.unk;
-
 		s.channel = 0;
 		s.level = 0;
 		s.port = 0;
@@ -1380,25 +1439,6 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 		s.type = 0x0103;   			// function: ready for receiving file
 		s.value1 = MAX_CHUNK;		// Maximum length of a chunk
 		s.value2 = ft.unk1;			// ID?
-		sendCommand(s);
-	}
-	else if (ft.ftype == 4 && ft.function == 0x0103)	// File or part of a file
-	{
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0103: Reveiving file or part of file");
-
-		if (isOpenRcv)
-		{
-			fwrite(ft.data, 1, ft.unk, rcvFile);
-			posRcv += ft.unk;
-		}
-
-		s.channel = 0;
-		s.level = 0;
-		s.port = 0;
-		s.value = 0;
-		s.MC = 0x0204;
-		s.dtype = 4;				// ftype --> function type
-		s.type = 0x0002;   			// function: request next chunk
 		sendCommand(s);
 	}
 	else if (ft.ftype == 0 && ft.function == 0x0104)	// Delete file <name>
@@ -1415,7 +1455,7 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 		if ((pos = f.find("AMXPanel/")) == string::npos)
 			pos = f.find("__system/");
 
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0000/0x0104: Delete file "+f);
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0000/0x0104: Delete file "+f, true);
 
 		if (pos != string::npos)
 			f = Configuration->getHTTProot()+"/"+f.substr(pos+9);
@@ -1430,10 +1470,11 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 		}
 		else	// Send: file was deleted although it does not exist.
 		{
+			sysl->errlogThr("AMXNet::handleFTransfer: [DELETE] File "+f+" not found!");
 			s.dtype = 0;				// ftype --> function type
 			s.type = 0x0002;   			// function: yes file exists
 		}
-/*		else	// FIXME: Following is only an assumption!
+/*		else	// Following will stop the transfer immediately.
 		{
 			sysl->errlog("AMXNet::handleFTransfer: File "+f+" not found!");
 			s.dtype = 0;				// ftype --> function type
@@ -1443,6 +1484,30 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 		}
 */
 		sendCommand(s);
+
+		if (ftransfer.actDelFile == 0)
+		{
+			ftransfer.actDelFile++;
+			ftransfer.percent = (int)(100.0 / (double)ftransfer.maxFiles * (double)ftransfer.actDelFile);
+			ftr.count = ftransfer.percent;
+
+			if (callback)
+				callback(ftr);
+		}
+		else
+		{
+			ftransfer.actDelFile++;
+			int prc = (int)(100.0 / (double)ftransfer.maxFiles * (double)ftransfer.actDelFile);
+
+			if (prc != ftransfer.percent)
+			{
+				ftransfer.percent = prc;
+				ftr.count = prc;
+
+				if (callback)
+					callback(ftr);
+			}
+		}
 	}
 	else if (ft.ftype == 4 && ft.function == 0x0104)	// request a file
 	{
@@ -1450,7 +1515,7 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 		size_t pos;
 		len = 0;
 		sndFileName.assign(Configuration->getHTTProot());
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0104: Request file "+f);
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0104: Request file "+f, true);
 
 		if (f.find("AMXPanel") != string::npos)
 		{
@@ -1477,7 +1542,7 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 		else
 			len = 0;
 
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0104: ("+to_string(len)+") File: "+sndFileName);
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0104: ("+to_string(len)+") File: "+sndFileName, true);
 
 		s.channel = 0;
 		s.level = 0;
@@ -1492,7 +1557,7 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 	}
 	else if (ft.ftype == 4 && ft.function == 0x0106)	// Controller is ready for receiving file
 	{
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0106: Controller is ready for receiving file.");
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0106: Controller is ready for receiving file.", true);
 
 		if (!access(sndFileName.c_str(), R_OK))
 		{
@@ -1505,7 +1570,7 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 
 			if (!sndFile)
 			{
-				sysl->errlog("AMXNet::handleFTransfer: Error reading file "+sndFileName);
+				sysl->errlogThr("AMXNet::handleFTransfer: Error reading file "+sndFileName);
 				len = 0;
 				isOpenSnd = false;
 			}
@@ -1551,7 +1616,7 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 	}
 	else if (ft.ftype == 4 && ft.function == 0x0002)	// request next part of file
 	{
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0002: Request next part of file.");
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0002: Request next part of file.", true);
 		s.channel = 0;
 		s.level = 0;
 		s.port = 0;
@@ -1588,13 +1653,16 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 	}
 	else if (ft.ftype == 4 && ft.function == 0x0003)	// File content
 	{
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0003: Received (part of) file.");
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0003: Received (part of) file.", true);
 		len = ft.unk;
 
 		if (isOpenRcv)
+		{
 			fwrite(ft.data, 1, len, rcvFile);
+			posRcv += ft.unk;
+		}
 		else
-			sysl->warnlog("AMXNet::handleFTransfer: No open file to write to!");
+			sysl->warnlogThr("AMXNet::handleFTransfer: No open file to write to!");
 
 		s.channel = 0;
 		s.level = 0;
@@ -1604,10 +1672,21 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 		s.dtype = 4;				// ftype --> function type
 		s.type = 0x0002;   			// function: Request next part of file
 		sendCommand(s);
+
+		int prc = (int)(100.0 / (double)ftransfer.lengthFile * (double)posRcv);
+
+		if (prc != ftr.data.filetransfer.info1)
+		{
+			ftr.data.filetransfer.info1 = (int)(100.0 / (double)ftransfer.lengthFile * (double)posRcv);
+			ftr.count = ftransfer.percent;
+
+			if (callback)
+				callback(ftr);
+		}
 	}
 	else if (ft.ftype == 4 && ft.function == 0x0004)	// End of file
 	{
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0004: End of file.");
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0004: End of file.", true);
 
 		if (isOpenRcv)
 		{
@@ -1617,6 +1696,7 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 			fclose(rcvFile);
 			isOpenRcv = false;
 			rcvFile = nullptr;
+			posRcv = 0;
 
 			if (buf[0] == 0x1f && buf[1] == 0x8b)	// GNUzip compressed?
 			{
@@ -1624,6 +1704,12 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 				exp.unzip();
 			}
 		}
+
+		ftr.count = ftransfer.percent;
+		ftr.data.filetransfer.info1 = 100;
+
+		if (callback)
+			callback(ftr);
 
 		s.channel = 0;
 		s.level = 0;
@@ -1636,28 +1722,34 @@ void AMXNet::handleFTransfer (ANET_SEND &s, ANET_FILETRANSFER &ft)
 	}
 	else if (ft.ftype == 4 && ft.function == 0x0005)	// ACK, controller received file, no answer
 	{
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0005: Controller received file.");
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0005: Controller received file.", true);
 		posSnd = 0;
 		lenSnd = 0;
 
 		if (isOpenSnd && sndFile != nullptr)
 			fclose(sndFile);
 
+		ftransfer.lengthFile = 0;
 		sndFile = nullptr;
 	}
 	else if (ft.ftype == 4 && ft.function == 0x0006)	// End of directory transfer ACK
 	{
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0006: End of directory transfer.");
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0006: End of directory transfer.", true);
 	}
 	else if (ft.ftype == 4 && ft.function == 0x0007)	// End of file transfer
 	{
-		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0007: End of file transfer.");
+		sysl->TRACE("AMXNet::handleFTransfer: 0x0004/0x0007: End of file transfer.", true);
+
+		if (callback)
+			callback(ftr);
+
+		receiveSetup = false;
 	}
 }
 
 int AMXNet::msg97fill(ANET_COMMAND *com)
 {
-	DECL_TRACER("AMXNet::msg97fill(ANET_COMMAND *com)");
+	DECL_TRACTHR("AMXNet::msg97fill(ANET_COMMAND *com)");
 
 	int pos = 0;
 	unsigned char buf[512];
@@ -1711,7 +1803,7 @@ int AMXNet::msg97fill(ANET_COMMAND *com)
 
 void AMXNet::start_write()
 {
-	DECL_TRACER(string("AMXNet::start_write()"));
+	DECL_TRACTHR("AMXNet::start_write()");
 
 	if (!isRunning())
 		return;
@@ -1729,7 +1821,7 @@ void AMXNet::start_write()
 
 		if (buf == 0)
 		{
-			sysl->errlog(string("AMXNet::start_write: Error creating a buffer! Token number: ")+to_string(send.MC));
+			sysl->errlogThr("AMXNet::start_write: Error creating a buffer! Token number: "+to_string(send.MC));
 			continue;
 		}
 
@@ -1742,7 +1834,7 @@ void AMXNet::start_write()
 
 void AMXNet::handle_write(const error_code& error)
 {
-	DECL_TRACER("handle_write(const error_code& error)");
+	DECL_TRACTHR("AMXNet::handle_write(const error_code& error)");
 
 	if (!isRunning())
 		return;
@@ -1756,14 +1848,14 @@ void AMXNet::handle_write(const error_code& error)
 	}
 	else
 	{
-		sysl->errlog("AMXNet::handle_write: Error on heartbeat: "+error.message());
+		sysl->errlogThr("AMXNet::handle_write: Error on heartbeat: "+error.message());
 		stop();
 	}
 }
 
 void AMXNet::check_deadline()
 {
-	DECL_TRACER(string("check_deadline()"));
+	DECL_TRACTHR("AMXNet::check_deadline()");
 
 	if (!isRunning())
 		return;
@@ -1775,7 +1867,8 @@ void AMXNet::check_deadline()
 	{
 		// The deadline has passed. The socket is closed so that any outstanding
 		// asynchronous operations are cancelled.
-		socket_.close();
+		if (socket_.is_open())
+			socket_.close();
 
 		// There is no longer an active deadline. The expiry is set to the
 		// maximum time point so that the actor takes no action until a new
@@ -1803,14 +1896,14 @@ uint32_t AMXNet::swapDWord(uint32_t dw)
 
 unsigned char AMXNet::calcChecksum(const unsigned char* buffer, size_t len)
 {
-	DECL_TRACER("AMXNet::calcChecksum(const unsigned char* buffer, size_t len)");
+	DECL_TRACTHR("AMXNet::calcChecksum(const unsigned char* buffer, size_t len)");
 	unsigned long sum = 0;
 
 	for (size_t i = 0; i < len; i++)
 		sum += (unsigned long)(*(buffer+i)) & 0x000000ff;
 
 	sum &= 0x000000ff;
-	sysl->TRACE("AMXNet::calcChecksum: Checksum="+NameFormat::toHex((int)sum, 2)+", #bytes="+to_string(len)+" bytes.");
+	sysl->TRACE("AMXNet::calcChecksum: Checksum="+NameFormat::toHex((int)sum, 2)+", #bytes="+to_string(len)+" bytes.", true);
 	return (unsigned char)sum;
 }
 
@@ -1826,7 +1919,7 @@ uint32_t AMXNet::makeDWord ( unsigned char b1, unsigned char b2, unsigned char b
 
 bool AMXNet::isCommand(const string& cmd)
 {
-	DECL_TRACER("AMXNet::isCommand(string& cmd)");
+	DECL_TRACTHR("AMXNet::isCommand(string& cmd)");
 
 	int i = 0;
 
@@ -1843,7 +1936,7 @@ bool AMXNet::isCommand(const string& cmd)
 
 unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 {
-	DECL_TRACER("AMXNet::makeBuffer (const ANET_COMMAND& s)");
+	DECL_TRACTHR("AMXNet::makeBuffer (const ANET_COMMAND& s)");
 
 	int pos = 0;
 	int len;
@@ -1857,7 +1950,7 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 	}
 	catch(std::exception& e)
 	{
-		sysl->errlog(string("AMXNet::makeBuffer: Error allocating memory: ")+e.what());
+		sysl->errlogThr(string("AMXNet::makeBuffer: Error allocating memory: ")+e.what());
 		return 0;
 	}
 
@@ -2308,7 +2401,7 @@ unsigned char *AMXNet::makeBuffer (const ANET_COMMAND& s)
 	}
 
 	string b((char *)buf, s.hlen+4);
-	sysl->TRACE("AMXNet::makeBuffer:\n"+NameFormat::strToHex(b, 8, true, 26));
+	sysl->TRACE("AMXNet::makeBuffer:\n"+NameFormat::strToHex(b, 8, true, 26), true);
 	return buf;
 }
 
@@ -2321,4 +2414,32 @@ void AMXNet::setSerialNum(const string& sn)
 
 	for (size_t i = 0; i < devInfo.size(); i++)
 		memcpy(devInfo[i].serialNum, sn.c_str(), len);
+}
+
+int AMXNet::countFiles()
+{
+	DECL_TRACTHR("AMXNet::countFiles()");
+
+	int count = 0;
+	ifstream in;
+
+	try
+	{
+		in.open(Configuration->getHTTProot()+"/manifest.xma", fstream::in);
+
+		if (!in)
+			return 0;
+
+		for (string line; getline(in, line);)
+			count++;
+
+		in.close();
+	}
+	catch(exception& e)
+	{
+		sysl->errlogThr(string("AMXNet::countFiles: ")+e.what());
+		return 0;
+	}
+
+	return count;
 }

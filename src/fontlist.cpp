@@ -131,7 +131,7 @@ string amx::FontList::getFontStyles()
 	DECL_TRACER("FontList::getFontStyles()");
 
 	string styles;
-	fontFaces.clear();
+	vector<string> ff;
 
 	// Fixed system fonts first
 	styles += "@font-face {\n";
@@ -163,9 +163,9 @@ string amx::FontList::getFontStyles()
 
 		string name = fontList[i].name+","+fontList[i].subfamilyName;
 
-		if (fontFaces.size() == 0 || !exist(name))
+		if (ff.size() == 0 || !exist(ff, name))
 		{
-			fontFaces.push_back(name);
+			ff.push_back(name);
 			styles += "@font-face {\n";
 			styles += "  font-family: \""+fontList[i].name+"\";\n";
 			styles += "  src: url(fonts/"+NameFormat::toURL(fontList[i].file)+");\n";
@@ -233,13 +233,13 @@ FONT_T& FontList::findFont(int idx)
 	return emptyFont;
 }
 
-bool amx::FontList::exist(const string& ff)
+bool FontList::exist(vector<string>& list, const string& ff)
 {
-	DECL_TRACER("FontList::exist(const string& ff)");
+	DECL_TRACER("FontList::exist(vector<string>& list, const string& ff)");
 
-	for (size_t i = 0; i < fontFaces.size(); i++)
+	for (size_t i = 0; i < list.size(); i++)
 	{
-		if (fontFaces[i].compare(ff) == 0)
+		if (list[i].compare(ff) == 0)
 			return true;
 	}
 

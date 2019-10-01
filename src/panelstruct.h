@@ -215,6 +215,35 @@ namespace amx
 		std::vector<RESOURCE_LIST_T> resourceLists;
 		std::vector<FEATURE_T> fwFeatureList;
 		std::vector<PALETTE_T> paletteList;
+
+/*		PROJECT& operator= (const PROJECT& prj)
+		{
+			version.designVersion = prj.version.designVersion;
+			version.graphicsVersion = prj.version.graphicsVersion;
+			version.fileVersion = prj.version.fileVersion;
+			version.designVersion = prj.version.designVersion;
+
+			projectInfo.protection = prj.projectInfo.protection;
+			projectInfo.encrypted = prj.projectInfo.encrypted;
+			projectInfo.password.assign(prj.projectInfo.password);
+			projectInfo.panelType.assign(prj.projectInfo.panelType);
+			projectInfo.fileRevision.assign(prj.projectInfo.fileRevision);
+			projectInfo.dealerID.assign(prj.projectInfo.dealerID);
+			projectInfo.jobName.assign(prj.projectInfo.jobName);
+			projectInfo.salesOrder.assign(prj.projectInfo.salesOrder);
+			projectInfo.purchaseOrder.assign(prj.projectInfo.purchaseOrder);
+			projectInfo.jobComment.assign(prj.projectInfo.jobComment);
+			projectInfo.designerID.assign(prj.projectInfo.designerID);
+//			projectInfo.creationDate = prj.projectInfo.creationDate;
+//			projectInfo.revisionDate = prj.projectInfo.revisionDate;
+//			projectInfo.lastSaveDate = prj.projectInfo.lastSaveDate;
+			projectInfo.fileName.assign(prj.projectInfo.fileName);
+			projectInfo.colorChoice.assign(prj.projectInfo.colorChoice);
+			projectInfo.specifyPortCount = prj.projectInfo.specifyPortCount;
+			projectInfo.specifyChanCount = prj.projectInfo.specifyChanCount;
+
+			return *this;
+		} */
 	}PROJECT_T;
 
 	enum TEXT_ORIENTATION

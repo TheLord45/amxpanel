@@ -182,7 +182,8 @@ var cmdArray = {
         { "cmd": "OFF-", "call": setOFF },
         { "cmd": "LEVEL-", "call": setLEVEL },
         { "cmd": "#REG-", "call": doREG },
-        { "cmd": "#ERR-", "call": doERR },
+		{ "cmd": "#ERR-", "call": doERR },
+		{ "cmd": "#FTR-", "call": doFTR },
         { "cmd": "#PONG-", "call": unsupported }
     ]
 };
@@ -1088,9 +1089,7 @@ function showPopupOnPage(name, pg)
 function hidePopupOnPage(name, pg)
 {
     var pID = findPopupNumber(name, pg);
-//    var group = findPageGroup(name);
     var pname = "Page_" + pID;
-//    hideGroup(group);
 
     try
     {
@@ -4641,7 +4640,7 @@ function parseMessage(msg)
     TRACE("parseMessage: " + msg);
     var pID = splittCmd(msg);
 
-    if (pID != panelID)
+    if ((pID <= 32000 || pID >= 34000) && pID != panelID)
         return;
 
     for (var i in cmdArray.commands)
@@ -4650,7 +4649,9 @@ function parseMessage(msg)
         {
             if (curCommand.indexOf(cmdArray.commands[i].cmd) >= 0)
             {
-                cmdArray.commands[i].call(curCommand);
+				if (!_BLOCK_ALL || cmdArray.commands[i].cmd == "#FTR-")
+					cmdArray.commands[i].call(curCommand);
+
                 break;
             }
         }

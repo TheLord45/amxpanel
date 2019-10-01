@@ -100,7 +100,7 @@ string PushButton::getWebCode()
 				mi_height = 0;
 			}
 
-			if (button.sr[i].bm.length() > 0)
+			if (button.sr[i].bm.length() > 0 && !button.sr[i].dynamic)
 				getImageDimensions(Configuration->getHTTProot()+"/images/"+button.sr[i].bm, &bm_width, &bm_height);
 			else
 			{

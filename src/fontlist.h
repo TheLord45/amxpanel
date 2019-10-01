@@ -50,11 +50,10 @@ namespace amx
 			bool serializeToJson();
 
 		private:
-			bool exist(const std::string& ff);
+			bool exist(std::vector<std::string>& list, const std::string& ff);
             void fillSysFonts();
 
 			std::vector<FONT_T> fontList;
-			std::vector<std::string> fontFaces;
 			FONT_T emptyFont;
 			bool status;
 	};

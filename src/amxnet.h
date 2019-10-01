@@ -285,11 +285,21 @@ namespace amx
 		unsigned char addr[8];		// Extended address as indicated by the type and length of the extended address.
 	}DEVICE_INFO;
 
+	typedef struct FTRANSFER
+	{
+		int percent{0};				// Status indicating the percent done
+		int maxFiles{0};			// Total available files
+		int lengthFile{0};			// Total length of currently transfered file
+		int actFileNum{0};			// Number of currently transfered file.
+		int actDelFile{0};			// Number of currently deleted file.
+	}FTRANSFER;
+
 	class AMXNet
 	{
 		public:
 			AMXNet();
 			explicit AMXNet(const std::string& sn);
+			explicit AMXNet(const std::string& sn, const std::string& nm);
 			~AMXNet();
 
 			void Run();
@@ -303,6 +313,8 @@ namespace amx
 			void setPanelID(int id) { panelID = id; }
 			void setSerialNum(const std::string& sn);
 			asio::ip::tcp::socket& getSocket() { return socket_; }
+			bool setupStatus() { return receiveSetup; }
+			void setPanName(const std::string& nm) { panName.assign(nm); }
 
 		private:
 			enum R_TOKEN
@@ -346,6 +358,7 @@ namespace amx
 			int msg97fill(ANET_COMMAND *com);
 			bool isCommand(const std::string& cmd);
 			bool isRunning() { return !(stopped_ || killed); }
+			int countFiles();
 
 			asio::io_context io_context;
 			asio::steady_timer deadline_;
@@ -358,7 +371,9 @@ namespace amx
 			unsigned char buff_[BUF_SIZE];
 			std::function<void(const ANET_COMMAND&)> callback;
 			std::function<bool(AMXNet *)> cbWebConn;
+			std::string panName;		// The technical name of the panel
 			bool protError{false};		// true = error on receive --> disconnect
+			std::atomic<int> reconCounter{0};	// Reconnect counter
 			uint16_t reqDevStatus{0};
 			ANET_COMMAND comm;			// received command
 			ANET_COMMAND send;			// answer / request
@@ -371,7 +386,7 @@ namespace amx
 			std::string oldCmd;
 			int panelID{0};				// Panel ID of currently legalized panel.
 			std::string serNum;
-			bool receiveSetup{false};
+			std::atomic<bool> receiveSetup{false};
 			std::string sndFileName;
 			std::string rcvFileName;
 			FILE *rcvFile{nullptr};
@@ -382,6 +397,7 @@ namespace amx
 			size_t lenRcv{0};
 			size_t posSnd{0};
 			size_t lenSnd{0};
+			FTRANSFER ftransfer;
 	};
 }
 

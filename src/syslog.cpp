@@ -71,6 +71,34 @@ void Syslog::log(Syslog::Level l, const std::string& str) const
 	my->log(l, str);
 }
 
+void Syslog::logThr(Level l, const std::string& str)
+{
+	std::lock_guard<std::mutex> lock(mut);
+
+	if (debug && l == IDEBUG && !LogFile.empty())
+	{
+		writeToFile(str);
+		return;
+	}
+	else if (!LogFile.empty())
+		appendToFile(l, str);
+
+	if (!fflag)
+	{
+		openlog(pname.c_str(), option, priority);
+		fflag = true;
+	}
+
+	syslog(l, "%s", str.c_str());
+	close();
+}
+
+void Syslog::logThr(Syslog::Level l, const std::string& str) const
+{
+	Syslog *my = const_cast<Syslog *>(this);
+	my->logThr(l, str);
+}
+
 void Syslog::errlog(const std::string& str)
 {
 	if (!fflag)
@@ -88,6 +116,27 @@ void Syslog::errlog(const std::string& str) const
 {
 	Syslog *my = const_cast<Syslog *>(this);
 	my->errlog(str);
+}
+
+void Syslog::errlogThr(const std::string& str)
+{
+	std::lock_guard<std::mutex> lock(mut);
+
+	if (!fflag)
+	{
+		openlog(pname.c_str(), option, priority);
+		fflag = true;
+	}
+
+	appendToFile(ERR, str);
+	syslog(LOG_ERR, "%s", str.c_str());
+	close();
+}
+
+void Syslog::errlogThr(const std::string& str) const
+{
+	Syslog *my = const_cast<Syslog *>(this);
+	my->errlogThr(str);
 }
 
 void Syslog::warnlog(const std::string& str)
@@ -109,12 +158,33 @@ void Syslog::warnlog(const std::string& str) const
 	my->warnlog(str);
 }
 
+void Syslog::warnlogThr(const std::string& str)
+{
+	std::lock_guard<std::mutex> lock(mut);
+
+	if (!fflag)
+	{
+		openlog(pname.c_str(), option, priority);
+		fflag = true;
+	}
+
+	appendToFile(WARNING, str);
+	syslog(LOG_WARNING, "%s", str.c_str());
+	close();
+}
+
+void Syslog::warnlogThr(const std::string& str) const
+{
+	Syslog *my = const_cast<Syslog *>(this);
+	my->warnlogThr(str);
+}
+
 void Syslog::log_serial(Level l, const std::string& str)
 {
 	if (!debug && l == IDEBUG)
 		return;
 
-	if (!fflag)
+	if (!fflag && LogFile.empty())
 	{
 		openlog(pname.c_str(), option, priority);
 		fflag = true;
@@ -202,8 +272,13 @@ void Syslog::appendToFile(Level l, const std::string& str)
 	}
 }
 
-void Syslog::TRACE(FUNCTION f, const std::string& msg)
+void Syslog::TRACE(FUNCTION f, const std::string& msg, bool thr)
 {
+	std::unique_lock<std::mutex> lock(mut);
+
+	if (!thr)
+		lock.unlock();
+
 	std::string s;
 
 	if (f == EXIT && deep > 0)

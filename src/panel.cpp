@@ -97,6 +97,15 @@ void Panel::readProject()
 	uri.append("/prj.xma");
 	sysl->TRACE("Panel::readProject: Reading from file: "+uri);
 
+	if (Project.fwFeatureList.size() > 0 || Project.pageLists.size() > 0 ||
+		Project.paletteList.size() > 0 || Project.resourceLists.size() > 0)
+	{
+		Project.fwFeatureList.clear();
+		Project.pageLists.clear();
+		Project.paletteList.clear();
+		Project.resourceLists.clear();
+	}
+
 	try
 	{
 		TextReader reader(uri);

@@ -38,7 +38,7 @@
 #include "fontlist.h"
 #include "atomicvector.h"
 
-#define VERSION		"1.1.0"
+#define VERSION		"1.2.0"
 #define PAIR(ID, REG)	std::pair<int, REGISTRATION_T>(ID, REG)
 
 namespace amx
@@ -74,37 +74,28 @@ namespace amx
 		long pan{0};						// The handle to the connection to the internet browser
 		bool status{false};
 		std::string amxBuffer;				// Individual buffer for inclomplete commands
-
-		REGISTRATION_T& operator= (REGISTRATION_T& reg) {
-			channel = reg.channel;
-			regID = reg.regID;
-			amxnet = reg.amxnet;
-			pan = reg.pan;
-			status = reg.status;
-			amxBuffer = reg.amxBuffer;
-			return reg;
-		}
 	}REGISTRATION_T;
 
 	typedef std::map<int, REGISTRATION_T> PANELS_T;
 
 	class TouchPanel : public Panel, WebSocket
 	{
-		PANELS_T registration{};
-		std::string scrBuffer{""};
-		std::string scrStart{""};
-		std::string scBtArray{""};
-		std::string sBargraphs{""};
-		std::vector<ST_PAGE> stPages{};
-		std::vector<ST_POPUP> stPopups{};
-		std::vector<PAGE_T> pageList{};
-		std::atomic<bool> busy{};
-		std::string none{""};
+		PANELS_T registration;
+		std::string scrBuffer;
+		std::string scrStart;
+		std::string scBtArray;
+		std::string sBargraphs;
+		std::vector<ST_PAGE> stPages;
+		std::vector<ST_POPUP> stPopups;
+		std::vector<PAGE_T> pageList;
+		std::atomic<bool> busy{false};
+		std::string none;
 		long serNum{0};
+		std::string panType;
 
-		AtomicVector<ANET_COMMAND> commands{};		// Commands from controller
-		std::mutex mut{};
-		std::condition_variable cond{};
+		AtomicVector<ANET_COMMAND> commands;		// Commands from controller
+		std::mutex mut;
+//		std::condition_variable cond;
 
 		public:
 			TouchPanel();

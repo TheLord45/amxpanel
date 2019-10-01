@@ -34,16 +34,16 @@ namespace amx
 {
 	typedef struct PAN_ID_T
 	{
-		int channel;
-		long ID;
+		int channel{0};
+		long ID{0};
 		std::string ip;
 
-		PAN_ID_T& operator= (PAN_ID_T& pid) {
+/*		PAN_ID_T& operator= (PAN_ID_T& pid) {
 			channel = pid.channel;
 			ID = pid.ID;
 			ip = pid.ip;
 			return pid;
-		}
+		}*/
 	}PAN_ID_T;
 
 	typedef std::map<websocketpp::connection_hdl, PAN_ID_T, std::owner_less<websocketpp::connection_hdl> > REG_DATA_T;

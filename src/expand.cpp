@@ -18,7 +18,14 @@
 
 #include <iostream>
 #include <fstream>
-#include <filesystem>
+#if __GNUC__ < 9
+   #if __cplusplus < 201703L
+      #warning "Your C++ compiler seems to have no support for C++17 standard!"
+   #endif
+   #include <experimental/filesystem>
+#else
+   #include <filesystem>
+#endif
 #include "expand.h"
 #include <assert.h>
 

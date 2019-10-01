@@ -39,11 +39,7 @@ Config::Config()
 	sysl->TRACE(Syslog::ENTRY, string("Config::Config()"));
 	this->fflag = false;
 	initialized = false;
-	sFileName.clear();
-	sPidFile.clear();
 	Debug = false;
-	AMXPanelType.clear();
-	AMXController.clear();
 
 	init();
 
@@ -105,7 +101,7 @@ void Config::init()
 	LogFile = "";
 	FontPath = "/usr/share/amxpanel/fonts";
 	web_location = "/amxpanel";
-	AMXPanelType = "MVS5200i";
+//	AMXPanelType = "MVS-5200i";
 	AMXController = "0.0.0.0";
 	AMXPort = 1319;
 	AMXChanel = 0;

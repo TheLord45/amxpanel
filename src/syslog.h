@@ -23,6 +23,7 @@
 #include <string>
 #include <sstream>
 #include <syslog.h>
+#include <mutex>
 
 class Syslog
 {
@@ -86,10 +87,16 @@ class Syslog
 
 		void log(Level l, const std::string& str);
 		void log(Level l, const std::string& str) const;
+		void logThr(Level l, const std::string& str);
+		void logThr(Level l, const std::string& str) const;
 		void errlog(const std::string& str);
 		void errlog(const std::string& str) const;
 		void warnlog(const std::string& str);
 		void warnlog(const std::string& str) const;
+		void errlogThr(const std::string& str);
+		void errlogThr(const std::string& str) const;
+		void warnlogThr(const std::string& str);
+		void warnlogThr(const std::string& str) const;
 		void log_serial(Level l, const std::string& str);
 		void log_serial(Level l, const std::string& str) const;
 		void setPriority(Priority p);
@@ -97,14 +104,19 @@ class Syslog
 		void setDebug(bool d) { debug = d; }
 		void setLogFile(const std::string& lf) { LogFile = lf; }
 
-		void DebugMsg(const std::string& msg)
+		void DebugMsg(const std::string& msg, bool thr = false)
 		{
 			if (debug)
-				log(IDEBUG, msg);
+			{
+				if (thr)
+					logThr(IDEBUG, msg);
+				else
+					log(IDEBUG, msg);
+			}
 		}
 
-		void TRACE(FUNCTION f, const std::string& msg);
-		void TRACE(const std::string& msg) { TRACE(MESSAGE, msg); }
+		void TRACE(FUNCTION f, const std::string& msg, bool thr = false);
+		void TRACE(const std::string& msg, bool thr = false) { TRACE(MESSAGE, msg, thr); }
 
 	private:
 		void writeToFile(const std::string& str);
@@ -120,6 +132,7 @@ class Syslog
 		std::ostringstream _ibuf;
 		int deep;
 		bool lastFileError;
+		std::mutex mut;
 };
 
 #endif

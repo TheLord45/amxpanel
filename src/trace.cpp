@@ -25,7 +25,7 @@ extern Syslog *sysl;
 
 using namespace std;
 
-Trace::Trace(const std::string& msg, const char* fname, const int line)
+Trace::Trace(const std::string& msg, const char* fname, const int line, bool thr)
 			: message(msg),
 			  mFileName(fname),
 			  mLine(line)

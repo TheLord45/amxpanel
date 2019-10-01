@@ -24,13 +24,16 @@
 #define DECL_TRACER(msg)\
 	Trace _hidden_tracer(msg, __FILE__, __LINE__);
 
+#define DECL_TRACTHR(msg)\
+	Trace _hidden_tracer(msg, __FILE__, __LINE__, true);
+
 #define TRACER(msg)\
 	sysl->TRACE(msg);
 
 class Trace
 {
 	public:
-		Trace(const std::string& msg, const char *fname, const int line);
+		Trace(const std::string& msg, const char *fname, const int line, bool thr = false);
 		~Trace();
 
 	private:

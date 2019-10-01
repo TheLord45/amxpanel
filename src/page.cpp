@@ -410,7 +410,7 @@ bool amx::Page::parsePage()
 							page.buttons.back().sr.back().dynamic = true;
 					}
 
-					if (!bm.empty())
+					if (!bm.empty() && !page.buttons.back().sr.back().dynamic)
 					{
 						int width, height;
 
@@ -523,7 +523,7 @@ bool amx::Page::parsePage()
 							page.sr.back().dynamic = true;
 					}
 
-					if (!bm.empty())
+					if (!bm.empty() && !page.sr.back().dynamic)
 					{
 						int width, height;
 
