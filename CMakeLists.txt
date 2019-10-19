@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-project(hvl)
+project(amxpanel)
 
 FIND_PACKAGE( Boost 1.62 COMPONENTS system REQUIRED )
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )

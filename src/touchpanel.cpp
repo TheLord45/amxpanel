@@ -345,7 +345,7 @@ bool TouchPanel::delConnection(int id)
 			if (itr->second.amxnet != 0)
 				delete itr->second.amxnet;
 		}
-		catch(exception& e)
+		catch(std::exception& e)
 		{
 			sysl->errlog("TouchPanel::delConnection: Error deleting class AMXNet: "+string(e.what()));
 		}

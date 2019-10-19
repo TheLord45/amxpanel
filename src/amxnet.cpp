@@ -1815,6 +1815,13 @@ void AMXNet::start_write()
 
 	while (comStack.size() > 0)
 	{
+		if (!isRunning())
+		{
+			comStack.clear();
+			write_busy = false;
+			return;
+		}
+
 		send = comStack.at(0);
 		comStack.erase(comStack.begin());	// delete oldest element
 		unsigned char *buf = makeBuffer(send);

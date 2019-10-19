@@ -22,6 +22,7 @@
 #include <websocketpp/config/asio.hpp>
 #include <websocketpp/server.hpp>
 #include <atomic>
+#include <map>
 
 typedef websocketpp::server<websocketpp::config::asio_tls> server;
 typedef websocketpp::server<websocketpp::config::asio> server_ws;
@@ -37,13 +38,6 @@ namespace amx
 		int channel{0};
 		long ID{0};
 		std::string ip;
-
-/*		PAN_ID_T& operator= (PAN_ID_T& pid) {
-			channel = pid.channel;
-			ID = pid.ID;
-			ip = pid.ip;
-			return pid;
-		}*/
 	}PAN_ID_T;
 
 	typedef std::map<websocketpp::connection_hdl, PAN_ID_T, std::owner_less<websocketpp::connection_hdl> > REG_DATA_T;
@@ -62,7 +56,7 @@ namespace amx
 			bool send(std::string& msg, long pan);
 			server& getServer() { return sock_server; }
 			server_ws& getServer_ws() { return sock_server_ws; }
-			void setConStatus(bool s, long pan);
+			void setConStatus(bool s, long pan, std::unique_lock<std::mutex>& mut);
 			std::string getIP(int pan);
 
 			enum tls_mode
@@ -85,19 +79,21 @@ namespace amx
 			long getPanelID(websocketpp::connection_hdl hdl);
 			std::string cutIpAddress(std::string& addr);
 
+			std::mutex mut;
 			server sock_server;
 			server_ws sock_server_ws;
 			websocketpp::connection_hdl server_hdl;
 			pthread_rwlock_t websocketsLock;
+			std::atomic<int> repeatCount{0};
 
-			bool cbInit;
-			bool cbInitStop;
-			bool cbInitCon;
-			bool cbInitRegister;
-			std::function<void(std::string&, long)> fcall;
-			std::function<void()> fcallStop;
-			std::function<void(bool, long)> fcallConn;
-			std::function<void(long, int)> fcallRegister;
+			bool cbInit{false};
+			bool cbInitStop{false};
+			bool cbInitCon{false};
+			bool cbInitRegister{false};
+			std::function<void(std::string&, long)> fcall{nullptr};
+			std::function<void()> fcallStop{nullptr};
+			std::function<void(bool, long)> fcallConn{nullptr};
+			std::function<void(long, int)> fcallRegister{nullptr};
 			REG_DATA_T __regs;
 	};
 }
