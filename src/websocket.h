@@ -19,6 +19,9 @@
 #ifndef __WEBSOCKET_H__
 #define __WEBSOCKET_H__
 
+#define _WEBSOCKETPP_CPP11_STL_
+#define _WEBSOCKETPP_CPP11_THREAD_
+
 #include <websocketpp/config/asio.hpp>
 #include <websocketpp/server.hpp>
 #include <atomic>
@@ -66,11 +69,10 @@ namespace amx
 			};
 
 		private:
-			void on_http(server* s, websocketpp::connection_hdl hdl);
+			bool on_validate(websocketpp::connection_hdl hdl);
 			void on_fail(server* s, websocketpp::connection_hdl hdl);
 			void on_close (websocketpp::connection_hdl hdl);
 			void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg);
-			void on_http_ws(server_ws* s, websocketpp::connection_hdl hdl);
 			void on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl);
 			void on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg);
 			context_ptr on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl);
@@ -85,6 +87,7 @@ namespace amx
 			websocketpp::connection_hdl server_hdl;
 			pthread_rwlock_t websocketsLock;
 			std::atomic<int> repeatCount{0};
+			std::atomic<bool> bOnClose{false};
 
 			bool cbInit{false};
 			bool cbInitStop{false};

@@ -61,7 +61,7 @@ int main(int /* argc */, const char **argv)
 	sysl->log(Syslog::INFO, pName + " v" + VERSION + ": Startup finished. All components should run now.");
 	// Create the panel
 	pTouchPanel = new amx::TouchPanel();
-	pTouchPanel->parsePages();
+//	pTouchPanel->parsePages();
 	// Start thread for AMX communication
 	while (!killed)
 	{
@@ -70,6 +70,7 @@ int main(int /* argc */, const char **argv)
 
 	// Upon the previous function exits, clean up end exit.
 	sysl->TRACE(Syslog::EXIT, "main(int /* argc */, const char **argv)");
+	delete pTouchPanel;
 	delete sysl;
 	delete Configuration;
 	return 0;

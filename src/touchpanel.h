@@ -95,7 +95,6 @@ namespace amx
 
 		AtomicVector<ANET_COMMAND> commands;		// Commands from controller
 		std::mutex mut;
-//		std::condition_variable cond;
 
 		public:
 			TouchPanel();

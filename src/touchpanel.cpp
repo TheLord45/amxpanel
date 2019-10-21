@@ -47,6 +47,7 @@ using namespace std;
 
 extern Config *Configuration;
 extern Syslog *sysl;
+extern atomic<bool> killed;
 
 TouchPanel::TouchPanel()
 {
@@ -63,13 +64,19 @@ TouchPanel::TouchPanel()
 	sysl->TRACE("TouchPanel::TouchPanel: Technical name of TP: "+panType);
 
 	if (!isParsed())
+	{
 		readPages();
+		parsePages();
+	}
 
 	// Start thread for websocket
 	try
 	{
-		thread thr = thread([=] { run(); });
-		thr.detach();
+		while (!killed)
+		{
+			thread thr = thread([=] { run(); });
+			thr.join();
+		}
 	}
 	catch (std::exception &e)
 	{
@@ -79,7 +86,7 @@ TouchPanel::TouchPanel()
 
 TouchPanel::~TouchPanel()
 {
-	sysl->TRACE(Syslog::EXIT, "TouchPanel::TouchPanel()");
+	sysl->TRACE(Syslog::EXIT, "TouchPanel::~TouchPanel()");
 }
 
 bool TouchPanel::haveFreeSlot()
@@ -221,14 +228,14 @@ bool TouchPanel::registerSlot (int channel, string& regID, long pan)
 
 bool TouchPanel::releaseSlot (int channel)
 {
-	DECL_TRACER(string("TouchPanel::releaseSlot (int channel)"));
+	DECL_TRACER("TouchPanel::releaseSlot (int channel)");
 
 	PANELS_T::iterator itr;
 
 	if ((itr = registration.find(channel)) != registration.end())
 	{
 		itr->second.status = false;
-		sysl->DebugMsg(string("TouchPanel::registerSlot: Unregistered channel ")+to_string(channel)+" with registration ID "+itr->second.regID+".");
+		sysl->DebugMsg("TouchPanel::registerSlot: Unregistered channel "+to_string(channel)+" with registration ID "+itr->second.regID+".");
 		return true;
 	}
 
@@ -390,17 +397,13 @@ void TouchPanel::regWebConnect(long pan, int id)
 
 				releaseSlot(itr->first);
 				delConnection(itr->first);
-//				cond.notify_one();
 				return;
 			}
 		}
 	}
 
 	if (id == -1)
-	{
-//		cond.notify_one();
 		return;
-	}
 
 	// Add the data
 	REGISTRATION_T reg;
@@ -429,7 +432,6 @@ void TouchPanel::regWebConnect(long pan, int id)
 	}
 
 	showContent(pan);
-//	cond.notify_one();
 }
 
 bool TouchPanel::newConnection(int id)
@@ -693,7 +695,6 @@ void TouchPanel::setCommand(const ANET_COMMAND& cmd)
 	}
 
 	busy = false;
-//	cond.notify_one();
 }
 
 /*
@@ -717,10 +718,7 @@ void TouchPanel::webMsg(string& msg, long pan)
 	if (msg.find("REGISTER:") != string::npos)
 	{
 		if (parts.size() != 2)
-		{
-//			cond.notify_one();
 			return;
-		}
 
 		string regID = parts[1].substr(0, parts[1].length()-1);
 		sysl->warnlog("TouchPanel::webMsg: Try to registrate with ID: "+regID+" ...");
@@ -747,13 +745,11 @@ void TouchPanel::webMsg(string& msg, long pan)
 				send(as.device, com);
 				com = "0:0|#ERR-No free slots available!";
 				send(as.device, com);
-//				cond.notify_one();
 				return;
 			}
 			else if (isRegistered(regID))
 			{
 				sysl->warnlog("TouchPanel::webMsg: Panel with registration ID "+regID+" is already registrated!");
-//				cond.notify_one();
 				return;
 			}
 
@@ -766,7 +762,6 @@ void TouchPanel::webMsg(string& msg, long pan)
 				send(as.device, s);
 				s = "0:0|#ERR-No more free slots!";
 				send(as.device, s);
-//				cond.notify_one();
 				return;
 			}
 
@@ -779,14 +774,12 @@ void TouchPanel::webMsg(string& msg, long pan)
 				send(as.device, s);
 				s = "0:0|#ERR-Connection error!";
 				send(as.device, s);
-//				cond.notify_one();
 				return;
 			}
 
 			sysl->warnlog("TouchPanel::webMsg: Registration with ID: "+regID+" was successfull.");
 			string com = "0:0|#REG-OK,"+to_string(slot)+","+regID;
 			send(slot, com);
-//			cond.notify_one();
 			return;
 		}
 		else
@@ -796,7 +789,6 @@ void TouchPanel::webMsg(string& msg, long pan)
 			send(as.device, com);
 			com = "0:0|#ERR-Access denied!";
 			send(as.device, com);
-//			cond.notify_one();
 		}
 	}
 	else if (isRegistered(as.device) && msg.find("PUSH:") != string::npos)
@@ -806,7 +798,6 @@ void TouchPanel::webMsg(string& msg, long pan)
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog(string("TouchPanel::webMsg: Network connection not found for panel ")+to_string(as.device)+"!");
-//			cond.notify_one();
 			return;
 		}
 
@@ -833,7 +824,6 @@ void TouchPanel::webMsg(string& msg, long pan)
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog(string("TouchPanel::webMsg: Network connection not found for panel ")+to_string(as.device)+"!");
-//			cond.notify_one();
 			return;
 		}
 
@@ -866,7 +856,6 @@ void TouchPanel::webMsg(string& msg, long pan)
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog("TouchPanel::webMsg: Network connection not found for panel "+to_string(as.device)+"!");
-//			cond.notify_one();
 			return;
 		}
 
@@ -907,7 +896,6 @@ void TouchPanel::webMsg(string& msg, long pan)
 		if ((amxnet = getConnection(as.device)) == 0)
 		{
 			sysl->errlog("TouchPanel::webMsg: Network connection not found for panel "+to_string(as.device)+"!");
-//			cond.notify_one();
 			return;
 		}
 
@@ -946,8 +934,6 @@ void TouchPanel::webMsg(string& msg, long pan)
 		else
 			sysl->warnlog("TouchPanel::webMsg: Class to talk with an AMX controller was not initialized!");
 	}
-
-//	cond.notify_one();
 }
 
 void TouchPanel::stopClient()
@@ -970,8 +956,6 @@ void TouchPanel::stopClient()
 
 		registration.erase(itr);
 	}
-
-//	cond.notify_one();
 }
 
 int TouchPanel::findPage(const string& name)
@@ -1806,8 +1790,6 @@ void TouchPanel::setWebConnect(bool s, long pan)
 		if (i >= registration.size())
 			break;
 	}
-
-//	cond.notify_one();
 }
 
 void TouchPanel::showContent(long pan)
