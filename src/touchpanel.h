@@ -38,7 +38,7 @@
 #include "fontlist.h"
 #include "atomicvector.h"
 
-#define VERSION		"1.2.1"
+#define VERSION		"1.2.2"
 #define PAIR(ID, REG)	std::pair<int, REGISTRATION_T>(ID, REG)
 
 namespace amx
@@ -117,10 +117,10 @@ namespace amx
 			void writeBtArray(std::fstream& pgFile);
 			void writeIconTable(std::fstream& pgFile);
 			void writeBargraphs(std::fstream& pgFile);
-			bool isPresent(const std::vector<std::string>& vs, const std::string& str);
 			bool isParsed();
 			bool haveFreeSlot();
 			int getFreeSlot();
+			int getSlot(const std::string& regID);
 			bool isRegistered(const std::string& regID);
 			bool isRegistered(int channel);
 			bool registerSlot(int channel, std::string& regID, long pan);

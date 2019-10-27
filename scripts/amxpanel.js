@@ -5061,61 +5061,61 @@ function writeTextOut(msg)
 
 function handleStandby()
 {
-    window.addEventListener('focus', function() {
-        TRACE("handleStandby: Got focus");
-        isBackground = false;
-        isStandby = false;
+	window.addEventListener('focus', function() {
+		TRACE("handleStandby: Got focus");
+		isBackground = false;
+		isStandby = false;
 
-        if (hdOffTimer !== null)
-        {
-            clearTimeout(hdOffTimer);
-            hdOffTimer = null;
-        }
+		if (hdOffTimer !== null)
+		{
+			clearTimeout(hdOffTimer);
+			hdOffTimer = null;
+		}
 
-        if (wsocket.readyState == WebSocket.CLOSED)
-            connect();
-    }, false);
+		if (wsocket.readyState == WebSocket.CLOSED)
+			connect();
+	}, false);
 
-    window.addEventListener('blur', function() {
-        TRACE("handleStandby: Lost focus");
-        isBackground = true;
+	window.addEventListener('blur', function() {
+		TRACE("handleStandby: Lost focus");
+		isBackground = true;
 
-		if (hdOffTimer === null && (isAndroid() || isIOS()))
-			hdOffTimer = setTimeout(setOffline, 20000);
-    }, false);
+//		if (hdOffTimer === null && (isAndroid() || isIOS()))
+//			hdOffTimer = setTimeout(setOffline, 20000);
+	}, false);
 
-    window.addEventListener('online', function() {
-        TRACE("handleStandby: We're online");
-        isStandby = false;
+	window.addEventListener('online', function() {
+		TRACE("handleStandby: We're online");
+		isStandby = false;
 
-        if (hdOffTimer !== null)
-        {
-            clearTimeout(hdOffTimer);
-            hdOffTimer = null;
-        }
+		if (hdOffTimer !== null)
+		{
+			clearTimeout(hdOffTimer);
+			hdOffTimer = null;
+		}
 
-        if (wsocket.readyState == WebSocket.CLOSED)
-            connect();
-    }, false);
+		if (wsocket.readyState == WebSocket.CLOSED)
+			connect();
+	}, false);
 
-    window.addEventListener('offline', function() {
-        TRACE("handleStandby: We're offline");
-        setOffline();
-    }, false);
+	window.addEventListener('offline', function() {
+		TRACE("handleStandby: We're offline");
+		setOffline();
+	}, false);
 
-    window.addEventListener('resume', function() {
-        TRACE("handleStandby: We resume");
-        if (wsocket.readyState == WebSocket.CLOSED && !isStandby)
-        {
-            if (hdOffTimer !== null)
-            {
-                clearTimeout(hdOffTimer);
-                hdOffTimer = null;
-            }
+	window.addEventListener('resume', function() {
+		TRACE("handleStandby: We resume");
+		if (wsocket.readyState == WebSocket.CLOSED && !isStandby)
+		{
+			if (hdOffTimer !== null)
+			{
+				clearTimeout(hdOffTimer);
+				hdOffTimer = null;
+			}
 
-            connect();
-        }
-    }, false);
+			connect();
+		}
+	}, false);
 }
 
 function setOffline()

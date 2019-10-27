@@ -152,6 +152,27 @@ int TouchPanel::getFreeSlot()
 	return 0;
 }
 
+int TouchPanel::getSlot(const string& regID)
+{
+	DECL_TRACER("TouchPanel::getSlot(const string& regID)");
+
+	for (size_t i = 0; i < registration.size(); i++)
+	{
+		if (registration[i].regID.compare(regID) == 0)
+		{
+			vector<int>& Slots = Configuration->getAMXChannels();
+
+			for (size_t j = 0; j < Slots.size(); j++)
+			{
+				if (Slots[j] == registration[i].channel)
+					return Slots[j];
+			}
+		}
+	}
+
+	return 0;
+}
+
 bool TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)
 {
 	DECL_TRACER("TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)");
@@ -169,7 +190,15 @@ bool TouchPanel::replaceSlot(PANELS_T::iterator key, REGISTRATION_T& reg)
 		ptr = registration.insert(PAIR(id, reg));
 
 		if (!ptr.second)
-			sysl->warnlog(string("TouchPanel::replaceSlot: Key ")+to_string(id)+" was not inserted again!");
+		{
+			sysl->warnlog("TouchPanel::replaceSlot: Key "+to_string(id)+" was not inserted again!");
+			PANELS_T::iterator k = registration.find(id);
+
+			if (k != registration.end())
+				k->second = reg;
+			else
+				sysl->warnlog("TouchPanel::replaceSlot: Entry with ID "+to_string(id)+" is not in chain!");
+		}
 	}
 	else
 		registration[key->first] = reg;
@@ -724,19 +753,9 @@ void TouchPanel::webMsg(string& msg, long pan)
 		sysl->warnlog("TouchPanel::webMsg: Try to registrate with ID: "+regID+" ...");
 		vector<string> ht;
 
-		try
-		{
-			ht = Configuration->getHashTable(Configuration->getHashTablePath());
-		}
-		catch (std::exception& e)
-		{
-			sysl->warnlog("TouchPanel::webMsg: No hashtable found!");
-			ht.clear();
-		}
-
 		string ip = getIP(pan);
 
-		if ((ip.length() > 0 && Configuration->isAllowedNet(ip)) || isPresent(ht, regID))
+		if ((ip.length() > 0 && Configuration->isAllowedNet(ip)))
 		{
 			if (!haveFreeSlot() && !isRegistered(regID))
 			{
@@ -750,6 +769,14 @@ void TouchPanel::webMsg(string& msg, long pan)
 			else if (isRegistered(regID))
 			{
 				sysl->warnlog("TouchPanel::webMsg: Panel with registration ID "+regID+" is already registrated!");
+				int slot = getSlot(regID);
+
+				if (slot != 0)
+				{
+					string com = "0:0|#REG-OK,"+to_string(slot)+","+regID;
+					send(slot, com);
+				}
+
 				return;
 			}
 
@@ -1605,19 +1632,6 @@ bool TouchPanel::parsePages()
 	}
 
 	return true;
-}
-
-bool TouchPanel::isPresent(const vector<string>& vs, const string& str)
-{
-	DECL_TRACER(string("TouchPanel::isPresent(const vector<string>& vs, const string& str)"));
-
-	for (size_t i = 0; i < vs.size(); i++)
-	{
-		if (str.compare(vs[i]) == 0)
-			return true;
-	}
-
-	return false;
 }
 
 void TouchPanel::writeGroups (fstream& pgFile)

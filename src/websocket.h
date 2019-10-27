@@ -59,7 +59,7 @@ namespace amx
 			bool send(std::string& msg, long pan);
 			server& getServer() { return sock_server; }
 			server_ws& getServer_ws() { return sock_server_ws; }
-			void setConStatus(bool s, long pan, std::unique_lock<std::mutex>& mut);
+			void setConStatus(bool s, long pan);
 			std::string getIP(int pan);
 
 			enum tls_mode
@@ -69,7 +69,6 @@ namespace amx
 			};
 
 		private:
-			bool on_validate(websocketpp::connection_hdl hdl);
 			void on_fail(server* s, websocketpp::connection_hdl hdl);
 			void on_close (websocketpp::connection_hdl hdl);
 			void on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg);
@@ -87,7 +86,6 @@ namespace amx
 			websocketpp::connection_hdl server_hdl;
 			pthread_rwlock_t websocketsLock;
 			std::atomic<int> repeatCount{0};
-			std::atomic<bool> bOnClose{false};
 
 			bool cbInit{false};
 			bool cbInitStop{false};
