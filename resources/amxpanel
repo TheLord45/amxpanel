@@ -1,0 +1,14 @@
+#
+# This is for apache WEB server!
+# This configuration file allows amxpanel to be at
+# https://localhost/amxpanel
+#
+Alias /amxpanel/ /usr/share/amxpanel/
+
+<Directory /usr/share/amxpanel/>
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+    Require all granted
+</Directory>
+

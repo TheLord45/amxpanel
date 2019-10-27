@@ -33,3 +33,8 @@ if (APPLE)
 endif(APPLE)
 
 add_subdirectory(src)
+install(DIRECTORY scripts/ DESTINATION /usr/share/amxpanel)
+install(FILES resources/amxpanel.service DESTINATION /lib/systemd/system)
+install(FILES resources/amxpanel DESTINATION /etc/apache2/sites-available)
+install(FILES resources/amxpanel.conf DESTINATION /etc/amxpanel)
+

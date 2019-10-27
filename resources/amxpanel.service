@@ -1,0 +1,10 @@
+[Unit]
+Description=AMXPanel communication daemon
+After=network.target auditd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/amxpanel
+
+[Install]
+WantedBy=multi-user.target
