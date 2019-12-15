@@ -183,36 +183,3 @@ function isWindows()
 
     return false;
 }
-function getBrowser()
-{
-	if (BR_TYPE == BROWSER.BR_UNDEFINED && OSTYPE == OPSYS.OS_UNDEFINED)
-		__detectBrowser();
-
-	switch(BR_TYPE)
-	{
-		case BROWSER.BR_CHROME: 	return "Chrome"; break;
-		case BROWSER.BR_FIREFOX:	return "Firefox"; break;
-		case BROWSER.BR_IE:			return "IE"; break;
-		case BROWSER.BR_OPERA:		return "Opera"; break;
-		case BROWSER.BR_SAFARI:		return "Safari"; break;
-		default:
-			return "Undefined";
-	}
-}
-function getOS()
-{
-	if (BR_TYPE == BROWSER.BR_UNDEFINED && OSTYPE == OPSYS.OS_UNDEFINED)
-		__detectBrowser();
-
-	switch(OSTYPE)
-	{
-		case OPSYS.OS_ANDROID:		return "Android"; break;
-		case OPSYS.OS_IOS:			return "iOS"; break;
-		case OPSYS.OS_LINUX:		return "Linux"; break;
-		case OPSYS.OS_MAC:			return "Mac"; break;
-		case OPSYS.OS_UNIX:			return "Unix"; break;
-		case OPSYS.OS_WINDOWS:		return "Windows"; break;
-		default:
-			return "Unknown";
-	}
-}

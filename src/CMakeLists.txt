@@ -36,6 +36,10 @@ endif(APPLE)
 
 add_definitions(-pedantic -fexceptions -Wextra)
 
+if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+	target_link_libraries(amxpanel stdc++fs)
+endif()
+
 target_link_libraries(amxpanel m pthread ssl crypto gd png z jpeg freetype cidr ${LIBS} ${Boost_LIBRARIES})
 
 install(TARGETS amxpanel RUNTIME DESTINATION usr)

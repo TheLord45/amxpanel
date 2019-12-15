@@ -1586,11 +1586,10 @@ bool TouchPanel::parsePages()
 	// This is the "main" program
 	PROJECT_T prg = getProject();
 	pgFile << "function main()\n{\n";
-//	pgFile << "\tif (isIOS() || (isFirefox() && isAndroid()))\n\t{" << endl;
-	pgFile << "\tif (isFirefox() && isAndroid())\n\t{" << endl;
+	pgFile << "\tif (isIOS() || (isFirefox() && isAndroid()))\n\t{" << endl;
 	pgFile << "\t\tEVENT_DOWN = \"touchstart\";\n\t\tEVENT_UP = \"touchend\";\n\t\tEVENT_MOVE = \"touchmove\";" << endl;
 	pgFile << "\t\tTRACE(\"main: Events were set to TOUCH...\");\n\t}" << endl;
-	pgFile << "\telse if (isIOS() || isFirefox() || isSafari() || isMacOS())" << endl;
+	pgFile << "\telse if (isFirefox() || isSafari() || isMacOS())" << endl;
 	pgFile << "\t{\n\t\tEVENT_DOWN = \"mousedown\";\n\t\tEVENT_UP = \"mouseup\";\n\t\tEVENT_MOVE = \"mousemove\";" << endl;
 	pgFile << "\t\tTRACE(\"main: Events were set to MOUSE...\");\n\t}\n" << endl;
 	pgFile << "\thandleStandby();" << endl;

@@ -17,7 +17,6 @@
  */
 
 #include <iostream>
-#include "datetime.h"
 #include "config.h"
 #include "syslog.h"
 #include "websocket.h"
@@ -94,7 +93,11 @@ void WebSocket::setConStatus(bool s, long pan)
 	DECL_TRACER(string("WebSocket::setConStatus(bool s, long pan) [")+((s)?"TRUE":"FALSE")+"]");
 
 	if (cbInitCon)
+	{
+//		mut.unlock();
 		fcallConn(s, pan);
+//		mut.lock();
+	}
 	else
 		sysl->warnlog("WebSocket::setConStatus: Callback function to indicate connection status was not set!");
 }
@@ -178,6 +181,7 @@ void WebSocket::run()
 WebSocket::~WebSocket()
 {
 	websocketpp::lib::error_code ec;
+//	std::unique_lock<std::mutex> lock(mut);
 
 	if (Configuration->getWSStatus())
 		sock_server.stop_listening(ec);
@@ -233,6 +237,7 @@ WebSocket::~WebSocket()
 
 bool WebSocket::send(string& msg, long pan)
 {
+//	std::unique_lock<std::mutex> lock(mut);
 	DECL_TRACER("WebSocket::send(strings::String& msg, long pan)");
 
 	REG_DATA_T::iterator itr;
@@ -281,6 +286,7 @@ bool WebSocket::send(string& msg, long pan)
 
 void WebSocket::tcp_post_init(connection_hdl hdl)
 {
+//	std::unique_lock<std::mutex> lock(mut);
 	DECL_TRACER("WebSocket::tcp_post_init(websocketpp::connection_hdl hdl)");
 	server_hdl = hdl;
 
@@ -306,6 +312,7 @@ void WebSocket::tcp_post_init(connection_hdl hdl)
 
 		__regs.insert(pair<websocketpp::connection_hdl, PAN_ID_T>(hdl, pid));
 		sysl->DebugMsg("WebSocket::tcp_post_init: Registering pan "+to_string(pid.ID)+" for remote "+pid.ip);
+//		lock.unlock();
 		fcallRegister(pid.ID, 0);
 	}
 	catch (websocketpp::exception const& s)
@@ -321,6 +328,7 @@ void WebSocket::tcp_post_init(connection_hdl hdl)
 // Define a callback to handle incoming messages
 void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 {
+//	std::unique_lock<std::mutex> lock(mut);
 	DECL_TRACER("WebSocket::on_message(server* s, websocketpp::connection_hdl hdl, message_ptr msg)");
 
 	try
@@ -349,14 +357,6 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 		sysl->TRACE("WebSocket::on_message: Called with hdl: message: "+send);
 		int id = 0;
 		long pan = 0;
-		size_t pos;
-
-		if ((pos = send.find("DEBUG:")) != string::npos)
-		{
-			string text = send.substr(pos + 6);
-			appendToFile(text);
-			return;
-		}
 
 		if (send.find("REGISTER:") == string::npos)
 		{
@@ -379,7 +379,9 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 			reg.ID = random();
 			__regs.insert(pair<connection_hdl, PAN_ID_T>(hdl, reg));
 			sysl->DebugMsg("WebSocket::on_message: Registering id "+to_string(id)+" for pan "+to_string(reg.ID));
+//			lock.unlock();
 			fcallRegister(reg.ID, id);
+//			lock.lock();
 			pan = reg.ID;
 		}
 		else if (validKey && id >= 10000 && id <= 11000 && key->second.channel == 0)
@@ -394,6 +396,7 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 		if (send.find("PANEL:") != string::npos)
 			return;
 
+//		lock.unlock();
 		fcall(send, pan);
 	}
 	catch (websocketpp::exception const& s)
@@ -408,6 +411,7 @@ void WebSocket::on_message(server* s, connection_hdl hdl, message_ptr msg)
 
 void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 {
+//	std::unique_lock<std::mutex> lock(mut);
 	DECL_TRACER("WebSocket::on_message_ws(server_ws* s, websocketpp::connection_hdl hdl, message_ptr msg)");
 
 	try
@@ -436,14 +440,6 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 		sysl->TRACE("WebSocket::on_message_ws: Called with hdl: message: "+send);
 		int id = 0;
 		long pan = 0;
-		size_t pos;
-
-		if ((pos = send.find("DEBUG:")) != string::npos)
-		{
-			string text = send.substr(pos + 6);
-			appendToFile(text);
-			return;
-		}
 
 		if (send.find_first_of("REGISTER:") == string::npos)
 		{
@@ -466,7 +462,9 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 			reg.ID = random();
 			__regs.insert(pair<connection_hdl, PAN_ID_T>(hdl, reg));
 			sysl->DebugMsg("WebSocket::on_message_ws: Registering id "+to_string(id)+" for pan "+to_string(reg.ID));
+//			lock.unlock();
 			fcallRegister(reg.ID, id);
+//			lock.lock();
 			pan = reg.ID;
 		}
 		else if (validKey && id >= 10000 && id <= 11000 && key->second.channel == 0)
@@ -481,6 +479,7 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 		if (send.find("PANEL:") != string::npos)
 			return;
 
+//		lock.unlock();
 		fcall(send, pan);
 	}
 	catch (websocketpp::exception const& s)
@@ -495,6 +494,7 @@ void WebSocket::on_message_ws(server_ws* s, connection_hdl hdl, message_ptr msg)
 
 void WebSocket::on_fail(server* s, connection_hdl hdl)
 {
+//	std::unique_lock<std::mutex> lock(mut);
 	DECL_TRACER("WebSocket::on_fail(server* s, websocketpp::connection_hdl hdl)");
 	server_hdl = hdl;
 	long pan = 0;
@@ -516,6 +516,7 @@ void WebSocket::on_fail(server* s, connection_hdl hdl)
 		if (key != __regs.end())
 			__regs.erase(key);
 
+//		lock.unlock();
 		fcallRegister(pan, -1);
 	}
 	catch (websocketpp::exception const& s)
@@ -530,6 +531,7 @@ void WebSocket::on_fail(server* s, connection_hdl hdl)
 
 void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
 {
+//	std::unique_lock<std::mutex> lock(mut);
 	DECL_TRACER("WebSocket::on_fail_ws(server_ws* s, websocketpp::connection_hdl hdl)");
 	server_hdl = hdl;
 
@@ -550,6 +552,7 @@ void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
 		if (key != __regs.end())
 			__regs.erase(key);
 
+//		lock.unlock();
 		fcallRegister(pan, -1);
 	}
 	catch (websocketpp::exception const& s)
@@ -564,6 +567,7 @@ void WebSocket::on_fail_ws(server_ws* s, connection_hdl hdl)
 
 void WebSocket::on_close(connection_hdl hdl)
 {
+//	std::unique_lock<std::mutex> lock(mut);
 	DECL_TRACER("WebSocket::on_close(websocketpp::connection_hdl)");
 	server_hdl = hdl;
 	long pan = getPanelID(hdl);
@@ -585,6 +589,7 @@ void WebSocket::on_close(connection_hdl hdl)
 		if (key != __regs.end())
 			__regs.erase(key);
 
+//		lock.unlock();
 		fcallRegister(pan, -1);
 		sysl->TRACE("WebSocket::on_close: Connection for pan "+to_string(pan)+" terminated.", true);
 	}
@@ -600,6 +605,7 @@ void WebSocket::on_close(connection_hdl hdl)
 
 context_ptr WebSocket::on_tls_init(tls_mode mode, connection_hdl hdl)
 {
+//	std::lock_guard<std::mutex> lock(mut);
 	DECL_TRACER("WebSocket::on_tls_init(tls_mode mode, websocketpp::connection_hdl hdl)");
 	namespace asio = websocketpp::lib::asio;
 	server_hdl = hdl;
@@ -668,6 +674,7 @@ context_ptr WebSocket::on_tls_init(tls_mode mode, connection_hdl hdl)
 
 string WebSocket::getPassword()
 {
+//	std::lock_guard<std::mutex> lock(mut);
 	DECL_TRACER("WebSocket::getPassword()");
 	return Configuration->getSSHPassword();
 }
@@ -715,24 +722,3 @@ string WebSocket::cutIpAddress(string& addr)
 	return ip;
 }
 
-void WebSocket::appendToFile(const std::string& str)
-{
-	if (Configuration->getClientLog().length() == 0)
-		return;
-
-	DateTime dt;
-	std::fstream file;
-	std::string lvl;
-
-	try
-	{
-		file.open(Configuration->getClientLog(), std::ios::out | std::ios::app);
-		file << dt.toString() << ": " << str << std::endl;
-		file.close();
-	}
-	catch (std::exception& e)
-	{
-		std::string err = e.what();
-		sysl->errlog("WebSocket::appendToFile: "+err);
-	}
-}

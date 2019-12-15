@@ -23,14 +23,15 @@
       #warning "Your C++ compiler seems to have no support for C++17 standard!"
    #endif
    #include <experimental/filesystem>
+   namespace fs = std::experimental::filesystem;
 #else
    #include <filesystem>
+   namespace fs = std::filesystem;
 #endif
 #include "expand.h"
 #include <assert.h>
 
 using namespace std;
-namespace fs = std::filesystem;
 
 void Expand::setFileName (const string &fn)
 {

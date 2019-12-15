@@ -22,8 +22,10 @@
       #warning "Your C++ compiler seems to have no support for C++17 standard!"
    #endif
    #include <experimental/filesystem>
+   namespace fs = std::experimental::filesystem;
 #else
    #include <filesystem>
+   namespace fs = std::filesystem;
 #endif
 #include "syslog.h"
 #include "config.h"
@@ -32,7 +34,6 @@
 
 using namespace std;
 using namespace dir;
-namespace fs = std::filesystem;
 using namespace chrono_literals;
 
 extern Syslog *sysl;
@@ -59,19 +60,34 @@ int Directory::readDir()
 
 			if (path.find("__system/") == string::npos && f.find("__system") != string::npos)
 				continue;
-
+#if __GNUC__ < 9
+			if (path.find("scripts") != string::npos && fs::is_directory(p.path()))
+#else
 			if (path.find("scripts") != string::npos && p.is_directory())
+#endif
 				continue;
 
 			count++;
 			dr.count = count;
+#if __GNUC__ < 9
+			time_t ti = fs::last_write_time(p.path()).time_since_epoch().count();
+#else
 			time_t ti = p.last_write_time().time_since_epoch().count();
+#endif
 			dr.date = (ti / 1000000000) + 6437664000;
 
+#if __GNUC__ < 9
+			if (fs::is_directory(p.path()))
+#else
 			if (p.is_directory())
+#endif
 				dr.size = 0;
 			else
+#if __GNUC__ < 9
+				dr.size = fs::file_size(p.path());
+#else
 				dr.size = p.file_size();
+#endif
 
 			if (strip)
 				dr.name = f;
@@ -80,9 +96,17 @@ int Directory::readDir()
 
 			dr.attr = 0;
 
+#if __GNUC__ < 9
+			if (fs::is_directory(p.path()))
+#else
 			if (p.is_directory())
+#endif
 				dr.attr = dr.attr | ATTR_DIRECTORY;
+#if __GNUC__ < 9
+			else if (fs::is_regular_file(p.path()))
+#else
 			else if (p.is_regular_file())
+#endif
 			{
 				if (dr.name.find(".png") != string::npos || dr.name.find(".PNG") != string::npos ||
 						dr.name.find(".jpg") != string::npos || dr.name.find(".JPG") != string::npos)
@@ -94,7 +118,11 @@ int Directory::readDir()
 					dr.attr = dr.attr | ATTR_TEXT;
 			}
 
+#if __GNUC__ < 9
+			if (fs::is_symlink(p.path()))
+#else
 			if (p.is_symlink())
+#endif
 				dr.attr |= ATTR_LINK;
 
 			entries.push_back(dr);

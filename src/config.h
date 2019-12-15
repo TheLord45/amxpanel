@@ -57,7 +57,6 @@ class Config
 		std::vector<std::string>& getHashTable(const std::string& path);
 		bool isAllowedNet(std::string& net);
 		bool getWSStatus() { return wsStatus; }
-		std::string getClientLog() { return ClientLog; }
 
 		void setHOME(const std::string& hm) { HOME = hm.data(); }
 
@@ -76,7 +75,6 @@ class Config
 		std::string sHTTProot;
 		bool Debug;
 		std::string LogFile;
-		std::string ClientLog;
 		std::string FontPath;
 		std::string web_location;
 		std::string AMXPanelType;
