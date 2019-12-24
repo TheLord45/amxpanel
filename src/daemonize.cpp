@@ -76,22 +76,31 @@ void Daemonize::daemon_start (bool ignsigcld)
 #ifdef SIGTSTP
 	signal (SIGTSTP, SIG_IGN);
 #endif
+	sysl->TRACE("Daemonize::daemon_start: forking ...");
 
 	if ((childpid = fork ()) < 0)
 		sysl->errlog(string("Can't fork this child"));
 	else if (childpid > 0)
+	{
+		sysl->TRACE("Daemonize::daemon_start: Parent exit!");
 		exit (0);            /* Parent */
+	}
 
-    if (setpgrp () == -1)
+	sysl->TRACE("Daemonize::daemon_start: Child goes on ...");
+
+	if (setpgrp () == -1)
         sysl->errlog(string("Can't change process group"));
 
-    signal (SIGHUP, SIG_IGN);
-
+	signal (SIGHUP, SIG_IGN);
+/*
 	if ((childpid = fork ()) < 0)
 		sysl->errlog (string("Can't fork second child"));
 	else if (childpid > 0)
-		exit (0);            /* first child */
-
+	{
+		sysl->TRACE("Daemonize::daemon_start: First child exit!");
+		exit (0);            // first child
+	}
+*/
 	/* second child */
 out:
 
@@ -145,9 +154,7 @@ void Daemonize::changeToUser(const std::string &usr, const std::string &grp)
 
 		if (!grp.empty() && (usergrp = getgrnam(grp.c_str())) == NULL)
 		{
-			if (!grp.empty())
-				sysl->errlog("no such group: "+grp);
-
+			sysl->errlog("no such group: "+grp);
 			gr_gid = userpwd->pw_gid;
 		}
 		else if (usergrp != NULL)
@@ -155,34 +162,41 @@ void Daemonize::changeToUser(const std::string &usr, const std::string &grp)
 		else
 			gr_gid = userpwd->pw_gid;
 
-		if (setgid(gr_gid) == -1)
+		sysl->TRACE("Daemonize::changeToUser: GID="+to_string(gr_gid));
+
+		if (setegid(gr_gid) == -1)
 		{
 			sysl->errlog("cannot setgid of user "+usr+": "+std::string(strerror(errno)));
-			return;
+//			return;
 //			exit(EXIT_FAILURE);
 		}
+
+		sysl->TRACE("Daemonize::changeToUser: Group changed.");
 
 #ifdef _BSD_SOURCE
 		/* init suplementary groups
 		 * (must be done before we change our uid)
 		 */
-		if (initgroups(usr, gr_gid) == -1)
+		if (initgroups(usr.c_str(), gr_gid) == -1)
 			sysl->errlog("cannot init suplementary groups of user "+usr+": "+std::string(strerror(errno)));
 #endif
 
+		sysl->TRACE("Daemonize::changeToUser: UID="+to_string(userpwd->pw_uid));
 		/* set uid */
 		if (setuid(userpwd->pw_uid) == -1)
 		{
 			sysl->errlog("cannot change to uid of user "+usr+": "+std::string(strerror(errno)));
 			return;
-//			exit(EXIT_FAILURE);
 		}
+
+		sysl->TRACE("Daemonize::changeToUser: User changed.");
 
 		if (userpwd->pw_dir)
 		{
 			setenv("HOME", userpwd->pw_dir, 1);
 			Configuration->setHOME(userpwd->pw_dir);
 			Configuration->Initialize();
+			sysl->TRACE("Daemonize::changeToUser: HOME="+string(userpwd->pw_dir));
 		}
 	}
 }

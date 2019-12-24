@@ -99,6 +99,7 @@ void Config::init()
 	usr = "nobody";
 	grp = "nobody";
 	LogFile = "";
+	ClientLog = "";
 	FontPath = "/usr/share/amxpanel/fonts";
 	web_location = "/amxpanel";
 //	AMXPanelType = "MVS-5200i";
@@ -184,6 +185,8 @@ void Config::readConfig(const string &sFile)
 				grp = right;
 			else if (Str::caseCompare(left, "LOGFILE") == 0 && !right.empty())
 				LogFile = right;
+			else if (Str::caseCompare(left, "CLIENTLOG") == 0 && !right.empty())
+				ClientLog = right;
 			else if (Str::caseCompare(left, "FONTPATH") == 0 && !right.empty())
 				FontPath = right;
 			else if (Str::caseCompare(left, "WEBLOCATION") == 0 && !right.empty())

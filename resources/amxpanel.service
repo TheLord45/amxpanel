@@ -3,8 +3,9 @@ Description=AMXPanel communication daemon
 After=network.target auditd.service
 
 [Service]
-Type=oneshot
+Type=forking
 ExecStart=/usr/sbin/amxpanel
+PIDFile=/run/amxpanel.run
 
 [Install]
 WantedBy=multi-user.target

@@ -79,6 +79,7 @@ namespace amx
 			std::string getPassword();
 			long getPanelID(websocketpp::connection_hdl hdl);
 			std::string cutIpAddress(std::string& addr);
+			void appendToFile(const std::string& str);
 
 			std::mutex mut;
 			server sock_server;

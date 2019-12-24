@@ -33,6 +33,7 @@ var hdOffTimer = null;
 var __debug = true;         // TRUE = Display debugging messages
 var __errlog = true;        // TRUE = Display error messages
 var __TRACE = true;         // TRUE = Display trace messages
+var __REMOTE = true;		// TRUE = Write messages to to server
 
 var cmdArray = {
     "commands": [
@@ -5286,7 +5287,10 @@ function debug(text)
     if (!__debug)
         return;
 
-    console.log(text);
+	if (__REMOTE && wsocket !== null && wsocket.readyState == WebSocket.OPEN)
+		wsocket.send("DEBUG:" + text);
+	else
+		console.log(text);
 }
 
 function errlog(text)
@@ -5294,7 +5298,10 @@ function errlog(text)
     if (!__errlog)
         return;
 
-    console.log(text);
+	if (__REMOTE && wsocket !== null && wsocket.readyState == WebSocket.OPEN)
+		wsocket.send("DEBUG:" + text);
+	else
+		console.log(text);
 }
 
 function TRACE(text)
@@ -5302,5 +5309,8 @@ function TRACE(text)
     if (!__TRACE)
         return;
 
-    console.log(text);
+	if (__REMOTE && wsocket !== null && wsocket.readyState == WebSocket.OPEN)
+		wsocket.send("DEBUG:" + text);
+	else
+		console.log(text);
 }
