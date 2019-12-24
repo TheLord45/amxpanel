@@ -25,13 +25,24 @@ you've to create a directory named **build**. Enter this directory and type:
 After the daemon was installed, you need to create a config file. For details about this,
 look at the [Wiki](https://github.com/TheLord45/amxpanel/wiki). Then you can start the daemon.
 
-Copy the files of the panel into a directory of your WEB server. You can create a
-surface with the application **TPDesign4** from AMX (G5 panels are currently not
-supported!). To get the files, download the source of **[FSFReader](https://github.com/TheLord45/fsfreader)**.
+In case you don't want to change the standard installation directories, you'll find
+the installed files in the following directories:
+
+* The executable at `/usr/sbin`.
+* The configuration file at `/etc/amxpanel`.
+* The directory of the panel configuration files at `/usr/share/amxpanel`. There
+are some other directories like `images`, `scripts` or `fonts`.
+* For *apache2* you'll find a configuration file at `/etc/apache2/sites-available`. Link it to
+`/etc/apache2/sites-enabled` and restart apache.
+
+Copy the files of the panel into the directory of your WEB server. By default this is
+`/usr/share/amaxpanel`. You can create a surface with the application **TPDesign4**
+from AMX (G5 panels are currently not supported!). To get the files, download the
+source of **[FSFReader](https://github.com/TheLord45/fsfreader)**.
 
     git clone https://github.com/TheLord45/fsfreader.git
 
-**FSFReader** is able to read a TPDesign4 file and extract the contents into
+**FSFReader** is able to read a *TPDesign4* file and extract the contents into
 a directory. Then move all the files with the extensions `.xma` and `.xml` into the main directory
 of the directory of your WEB server. In this directory create the subdirectories `images`,
 `sounds` and `fonts`. Move all graphic files with the extensions `.png` and `.jpg` into
@@ -46,6 +57,9 @@ transfer the surface directly with **TPDesign4** as you would with a real panel.
 depends on the type of panel you use. If you use Android or iPhone, iPad, etc., you'll
 not see this panels in **TPDesign4**. You'll see only all the other supported panels.
 This will change at the moment *TPDesign5* is supported.
+
+The filetransfer will currently not work on an empty panel. So you've to put at least a small
+surface to the directory described above. Then you can use the filetransfer mechanism.
 
 Not all of the possible panel commands are supported. This is what works until now:
 

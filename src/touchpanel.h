@@ -38,7 +38,7 @@
 #include "fontlist.h"
 #include "atomicvector.h"
 
-#define VERSION		"1.2.2"
+#define VERSION		"1.2.3"
 #define PAIR(ID, REG)	std::pair<int, REGISTRATION_T>(ID, REG)
 
 namespace amx
