@@ -26,6 +26,7 @@
 
 extern Config *Configuration;
 extern Syslog *sysl;
+extern std::atomic<bool> killed;
 
 using websocketpp::connection_hdl;
 using websocketpp::lib::placeholders::_1;
@@ -158,6 +159,13 @@ void WebSocket::run()
 		{
 			sysl->errlog(string("WebSocket::run: WEBSocketPP exception:")+e.what());
 			repeatCount++;
+
+			if (e.code() == asio::error::address_in_use)
+			{
+				sysl->warnlog("WebSocket::run: Suicide mode activated!");
+				killed = true;
+				break;
+			}
 		}
 		catch (const exception & e)
 		{
@@ -169,6 +177,12 @@ void WebSocket::run()
 			sysl->errlog("WebSocket::run: Other exception!");
 			repeatCount++;
 		}
+	}
+
+	if (repeatCount >= 5)
+	{
+		sysl->warnlog("WebSocket::run: Killing myself ...");
+		killed = true;
 	}
 
 	if (cbInitStop)

@@ -1268,7 +1268,7 @@ bool TouchPanel::parsePages()
 	pgFile << "<!DOCTYPE html>\n";
 	pgFile << "<html>\n<head>\n<meta charset=\"UTF-8\">\n";
 	pgFile << "<title>AMX Panel</title>\n";
-	pgFile << "<meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=0.7, minimum-scale=0.7, maximum-scale=1.0, user-scalable=yes\"/>\n";
+	pgFile << "<meta id=\"viewport\" name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=0.7, minimum-scale=0.7, maximum-scale=1.0, user-scalable=yes\"/>\n";
 	pgFile << "<meta name=\"mobile-web-app-capable\" content=\"yes\" />" << endl;
 	pgFile << "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n";
 	pgFile << "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\" />" << endl;
@@ -1528,6 +1528,56 @@ bool TouchPanel::parsePages()
 		return false;
 	}
 
+	int pw = getProject().panelSetup.screenWidth;
+	int ph = getProject().panelSetup.screenHeight;
+
+	pgFile << "function setViewportMeta()" << endl;
+	pgFile << "{" << endl;
+	pgFile << "\tif (window.screen.width)" << endl;
+	pgFile << "\t{" << endl;
+	pgFile << "\t\tvar w = Math.min(window.screen.availWidth, window.innerWidth);" << endl;
+	pgFile << "\t\tvar h = Math.min(window.screen.availHeight, window.innerHeight);" << endl;
+	pgFile << "\t\tvar scale = 1.0;" << endl;
+	pgFile << "\t\tvar scale_max = 1.0;" << endl << endl;
+	pgFile << "\t\tif ((w < " << pw << " && h >= " << ph << ") || (w >= " << pw << " && h >= " << ph << " && w > h))" << endl;
+	pgFile << "\t\t{" << endl;
+	pgFile << "\t\t\tscale = 100.0 / " << pw << " * w;" << endl;
+	pgFile << "\t\t\tscale = scale.toFixed(0) / 100.0;" << endl;
+	pgFile << "\t\t}" << endl;
+	pgFile << "\t\telse" << endl;
+	pgFile << "\t\t{" << endl;
+	pgFile << "\t\t\tscale = 100.0 / " << ph << " * h;" << endl;
+	pgFile << "\t\t\tscale = scale.toFixed(0) / 100.0;" << endl;
+	pgFile << "\t\t}" << endl << endl;
+
+	pgFile << "\t\tif (scale > 1.0)" << endl;
+	pgFile << "\t\t\tscale_max = scale;" << endl << endl;
+	pgFile << "\t\tvar setViewport = {" << endl;
+	pgFile << "\t\t\tphone: 'width=device-width,height=device-height,initial-scale='+scale+',minimum-scale='+scale+',maximum-scale='+scale_max+',user-scalable=yes'," << endl;
+	pgFile << "\t\t\twidthDevice: window.screen.width," << endl;
+	pgFile << "\t\t\twidthMin: 560," << endl;
+	pgFile << "\t\t\tsetMeta: function () {" << endl;
+	pgFile << "\t\t\t\tvar params = this.phone; " << endl;
+	pgFile << "\t\t\t\tvar head = document.getElementsByTagName(\"head\")[0];" << endl;
+	pgFile << "\t\t\t\tvar viewport = document.getElementById(\"viewport\");" << endl << endl;
+	pgFile << "\t\t\t\tif (viewport === null)" << endl;
+	pgFile << "\t\t\t\t{" << endl;
+	pgFile << "\t\t\t\t\tviewport = document.createElement('meta');" << endl;
+	pgFile << "\t\t\t\t\tviewport.setAttribute('name','viewport');" << endl;
+	pgFile << "\t\t\t\t\tviewport.setAttribute('content',params);" << endl;
+	pgFile << "\t\t\t\t\thead.appendChild(viewport);" << endl;
+	pgFile << "\t\t\t\t}" << endl;
+	pgFile << "\t\t\t\telse" << endl;
+	pgFile << "\t\t\t\t\tviewport.setAttribute('content',params);" << endl << endl;
+	pgFile << "\t\t\t\tdocument.body.style.opacity = .9999;" << endl;
+	pgFile << "\t\t\t\tsetTimeout(function(){" << endl;
+	pgFile << "\t\t\t\t\tdocument.body.style.opacity = 1;" << endl;
+	pgFile << "\t\t\t\t}, 1);" << endl << endl;
+	pgFile << "\t\t\t}" << endl;
+	pgFile << "\t\t}" << endl;
+	pgFile << "\t\tsetViewport.setMeta();" << endl;
+	pgFile << "\t}" << endl;
+	pgFile << "}" << endl;
 	pgFile << "</script>" << endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/browser.js\"></script>" << endl;
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/pages.js\"></script>" << endl;
@@ -1612,8 +1662,7 @@ bool TouchPanel::parsePages()
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
-//	pgFile << "<body onload=\"main(); connect(); onlineStatus();\">" << endl;
-	pgFile << "<body onload=\"main(); connect();\">" << endl;
+	pgFile << "<body onload=\"setViewportMeta(); main(); connect();\">" << endl;
 	pgFile << "   <div id=\"main\"></div>" << endl;
 	pgFile << "</body>\n</html>\n";
 	pgFile.close();
