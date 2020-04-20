@@ -595,11 +595,15 @@ async function activeTouch(event, name, object)
  			// If pixel is not transparent, send a click event
 			if( alpha != 0)
 			{
-				var name1 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_1";
-				var name2 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_2";
-
 				if (button.cp >= 0 && button.ch > 0)
 				{
+					var name1 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_1";
+					var name2 = "Page_"+btKenn[0]+"_Button_"+btKenn[1]+"_2";
+					var bt = findButtonDistinct(btKenn[0], btKenn[1]);
+				
+					if (bt === null || bt.enabled == 0)
+						return;
+
 					if (event.type == "mousedown" || event.type == "pointerdown" || event.type == "touchdown")
 					{
 						if (button.fb == FEEDBACK.FB_MOMENTARY)
@@ -1015,7 +1019,7 @@ function doDraw(pgKey, pageID, what)
 							bt.addEventListener(EVENT_DOWN, switchDisplay.bind(null, name1,name2,1,button.cp,button.ch),false);
 
 							if (button.op.length > 0)
-								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op), false);
+								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op, pageID, button.bID), false);
 
 							if (button.sr[0].sd.length > 0)
 							{
@@ -1084,12 +1088,12 @@ function doDraw(pgKey, pageID, what)
 						}
 						else
 						{
-							bt.addEventListener(EVENT_DOWN, pushButton.bind(null, button.cp,button.ch,1),false);
+							bt.addEventListener(EVENT_DOWN, pushButton.bind(null, button.cp,button.ch,1, pageID, button.bID),false);
 
 							if (button.op.length > 0)
-								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op), false);
+								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op, pageID, button.bID), false);
 
-							bt.addEventListener(EVENT_UP, pushButton.bind(null, button.cp,button.ch,0),false);
+							bt.addEventListener(EVENT_UP, pushButton.bind(null, button.cp,button.ch,0, pageID, button.bID),false);
 						}
 					}
 					else if (button.fb == FEEDBACK.FB_INV_CHANNEL)
@@ -1121,12 +1125,12 @@ function doDraw(pgKey, pageID, what)
 						}
 						else
 						{
-							bt.addEventListener(EVENT_DOWN, pushButton.bind(null, button.cp,button.ch,0),false);
+							bt.addEventListener(EVENT_DOWN, pushButton.bind(null, button.cp,button.ch,0, pageID, button.bID),false);
 
 							if (button.op.length > 0)
-								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op), false);
+								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op, pageID, button.bID), false);
 
-							bt.addEventListener(EVENT_UP, pushButton.bind(null, button.cp,button.ch,1),false);
+							bt.addEventListener(EVENT_UP, pushButton.bind(null, button.cp,button.ch,1, pageID, button.bID),false);
 						}
 					}
 					else if (button.fb == FEEDBACK.FB_ALWAYS_ON)
@@ -1147,15 +1151,15 @@ function doDraw(pgKey, pageID, what)
 						}
 						else
 						{
-							bt.addEventListener(EVENT_DOWN, pushButton.bind(null, button.cp,button.ch,1));
+							bt.addEventListener(EVENT_DOWN, pushButton.bind(null, button.cp,button.ch,1, pageID, button.bID));
 
 							if (button.op.length > 0)
-								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op), false);
+								bt.addEventListener(EVENT_DOWN, sendString.bind(null, button.cp, button.ch, button.op, pageID, button.bID), false);
 						}
 					}
 				}
 				else if (button.sr.length == 2 && button.op.length > 0)
-					bt.addEventListener(EVENT_DOWN, sendString.bind(null, 1, 1, button.op), false);
+					bt.addEventListener(EVENT_DOWN, sendString.bind(null, 1, 1, button.op, pageID, button.bID), false);
 
 				for (var x in button.pf)
 				{

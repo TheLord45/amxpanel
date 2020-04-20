@@ -33,7 +33,7 @@ var hdOffTimer = null;
 var __debug = true;         // TRUE = Display debugging messages
 var __errlog = true;        // TRUE = Display error messages
 var __TRACE = true;         // TRUE = Display trace messages
-var __REMOTE = true;		// TRUE = Write messages to to server
+var __REMOTE = false;		// TRUE = Write messages to server
 
 var cmdArray = {
     "commands": [
@@ -509,14 +509,14 @@ function getRGBAColor(name)
 
     for (var i in palette.colors)
     {
-        var col = palette.colors[i];
+		var col = palette.colors[i];
 
         if (col.name == name)
         {
             colArr.push(col.red);
             colArr.push(col.green);
             colArr.push(col.blue);
-            colArr.push(col.alpha);
+            colArr.push(parseInt(col.alpha * 255, 10));
             return colArr;
         }
     }
@@ -1274,13 +1274,29 @@ function switchDisplay(name1, name2, dStat, cport, cnum)
     }
 }
 
-function pushButton(cport, cnum, stat)
+function pushButton(cport, cnum, stat, pnum=0, bi=0)
 {
-    writeTextOut("PUSH:" + panelID + ":" + cport + ":" + cnum + ":" + stat);
+	if (pnum > 0 && bi > 0)
+	{
+		var bt = findButtonDistinct(pnum, bi);
+	
+		if (bt === null || bt.enabled == 0)
+			return;
+	}
+
+	writeTextOut("PUSH:" + panelID + ":" + cport + ":" + cnum + ":" + stat);
 }
 
-function sendString(cport, cnum, txt)
+function sendString(cport, cnum, txt, pnum=0, bi=0)
 {
+	if (pnum > 0 && bi > 0)
+	{
+		var bt = findButtonDistinct(pnum, bi);
+	
+		if (bt === null || bt.enabled == 0)
+			return;
+	}
+
 	writeTextOut("STRING:" + panelID + ":" + cport + ":" + cnum + ":" + txt);
 }
 
@@ -1365,8 +1381,8 @@ function setOFF(msg)
 
     for (b = 0; b < bt.length; b++)
     {
-        if (bt[b].enabled == 0)
-            continue;
+//		if (bt[b].enabled == 0)
+//			continue;
 
         try
         {
@@ -1405,6 +1421,8 @@ function setLEVEL(msg)
         var name = "Page_" + bgArray[i].pnum + "_Button_" + bgArray[i].bi + "_1";
         var width, height, dir;
 
+		setBargraphLevel(bgArray[i].pnum, bgArray[i].bi, level);
+
         if (bgArray[i].states[0].mi.length > 0)
         {
             width = bgArray[i].states[0].mi_width;
@@ -1438,8 +1456,6 @@ function setLEVEL(msg)
 
         if (bgArray[i].states[0].mi.length > 0 && bgArray[i].states[1].bm.length > 0)
         {
-            setBargraphLevel(bgArray[i].pnum, bgArray[i].bi, level);
-
             try
             {
                 drawBargraph(makeURL("images/" + bgArray[i].states[0].mi), makeURL("images/" + bgArray[i].states[1].bm), name, value, width, height, getAMXColor(bgArray[i].states[1].cf), getAMXColor(bgArray[i].states[1].cb), dir);
@@ -2514,7 +2530,7 @@ function cbBMF(name, button, bt, idx, data)
 
             if (parts.length != 4)
             {
-                errlog('doBMF: Rectangle (%R) needs 4 coordinates!');
+                errlog('cbBMF: Rectangle (%R) needs 4 coordinates!');
                 a = a + str.length;
                 continue;
             }
@@ -2544,7 +2560,7 @@ function cbBMF(name, button, bt, idx, data)
         }
         else if (bPFlag && data.charAt(a) == 'D' && data.charAt(a+1) == 'O')    // Draw order
         {
-            errlog("doBMF: Command %DO is not implemented.");
+            errlog("cbBMF: Command %DO is not implemented.");
             bPFlag = false;
             var next = data.indexOf('%', a);
 
@@ -3263,15 +3279,12 @@ function doENA(msg)
 
         if (bt.length == 0)
         {
-            errlog('doCPF: Error button ' + addrRange[i] + ' not found!');
+            errlog('doENA: Error button ' + addrRange[i] + ' not found!');
             continue;
         }
 
         for (var b = 0; b < bt.length; b++)
-        {
-            var name = 'Page_' + bt[b].pnum + "_Button_" + bt[b].bi;
             bt[b].enabled = val;
-        }
     }
 }
 /*

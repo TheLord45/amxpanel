@@ -1204,7 +1204,7 @@ bool TouchPanel::parsePages()
 
 		jsFile << Configuration->getWebSocketServer() << "/" << Configuration->getWebLocation() << "/index.html\"," << endl;
 		jsFile << "\t\"background_color\": \"#5a005a\"," << endl;
-		jsFile << "\t\"display\": \"standalone\"," << endl;
+		jsFile << "\t\"display\": \"fullscreen\"," << endl;
 
 		if (Configuration->getWSStatus())
 			jsFile << "\t\"scope\": \"https://";
@@ -1274,6 +1274,7 @@ bool TouchPanel::parsePages()
 	pgFile << "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\" />" << endl;
 	pgFile << "<link rel=\"manifest\" href=\"manifest.json\">" << endl;
 	pgFile << "<link rel=\"icon\" sizes=\"256x256\" href=\"images/icon.png\">" << endl;
+	pgFile << "<link rel=\"apple-touch-icon\" sizes=\"256x256\" href=\"images/icon.png\">" << endl;
 	pgFile << "<link rel=\"stylesheet\" type=\"text/css\" href=\"amxpanel.css\">" << endl;
 	// Scripts
 	pgFile << "<script type=\"text/javascript\" src=\"scripts/sw.js\"></script>" << endl;
@@ -1535,8 +1536,8 @@ bool TouchPanel::parsePages()
 	pgFile << "{" << endl;
 	pgFile << "\tif (window.screen.width)" << endl;
 	pgFile << "\t{" << endl;
-	pgFile << "\t\tvar w = Math.min(window.screen.availWidth, window.innerWidth);" << endl;
-	pgFile << "\t\tvar h = Math.min(window.screen.availHeight, window.innerHeight);" << endl;
+	pgFile << "\t\tvar w = Math.min(window.screen.availWidth, window.screen.width);" << endl;
+	pgFile << "\t\tvar h = Math.min(window.screen.availHeight, window.screen.height);" << endl;
 	pgFile << "\t\tvar scale = 1.0;" << endl;
 	pgFile << "\t\tvar scale_max = 1.0;" << endl << endl;
 	pgFile << "\t\tif ((w < " << pw << " && h >= " << ph << ") || (w >= " << pw << " && h >= " << ph << " && w > h))" << endl;
@@ -1645,24 +1646,26 @@ bool TouchPanel::parsePages()
 	pgFile << "\t\tTRACE(\"main: Events were set to MOUSE...\");\n\t}\n" << endl;
 	pgFile << "\thandleStandby();" << endl;
 	pgFile << "\tvar elem = document.documentElement;\n\n\tif (elem.requestFullscreen)\n";
-    pgFile << "\t\telem.requestFullscreen();\n";
+	pgFile << "\t\telem.requestFullscreen();\n";
 	pgFile << "\telse if (elem.mozRequestFullScreen)\t/* Firefox */\n";
-    pgFile << "\t\telem.mozRequestFullScreen();\n";
+	pgFile << "\t\telem.mozRequestFullScreen();\n";
 	pgFile << "\telse if (elem.webkitRequestFullscreen)\t/* Chrome, Safari and Opera */\n";
-    pgFile << "\t\telem.webkitRequestFullscreen();\n\n";
+	pgFile << "\t\telem.webkitRequestFullscreen();\n\n";
+	pgFile << "\twindow.statusbar.visible = 0;\n\twindow.toolbar.visible = 0;" << endl << endl;
+
 	pgFile << "\twindow.addEventListener('online',  onOnline);\n";
 	pgFile << "\twindow.addEventListener('offline', onOffline);\n";
+	pgFile << "\tsetViewportMeta();" << endl;
 	pgFile << "\tshowPage('"<< prg.panelSetup.powerUpPage << "');\n";
 
 	for (size_t i = 0; i < prg.panelSetup.powerUpPopup.size(); i++)
 		pgFile << "\tshowPopup('" << prg.panelSetup.powerUpPopup[i] << "');\n";
 
-	pgFile << string("\t")+scrStart+"\n";
-	pgFile << "}\n";
+	pgFile << "\t" << scrStart << endl << "}" << endl;
 	pgFile << "</script>\n";
 	pgFile << "</head>\n";
 	// The page body
-	pgFile << "<body onload=\"setViewportMeta(); main(); connect();\">" << endl;
+	pgFile << "<body onload=\"main(); connect();\">" << endl;
 	pgFile << "   <div id=\"main\"></div>" << endl;
 	pgFile << "</body>\n</html>\n";
 	pgFile.close();

@@ -1,0 +1,18 @@
+2020-03-06: Improved the saving of a level value for a bargraph.
+
+2020-03-04: Fixed the drawing of chameleon images. Now the alpha value for
+            the 2nd color is calculatet correct.
+
+2020-02-24: Fixed status button enable/disable. If a button is disabled, it
+            can't send anything anymore.
+            At the moment a button is set to "disable", it is set to state 0.
+
+2019-12-30: Added some code to remove the status bar on android devices.
+            Added some code to avoid that the daemon can be started more than
+            one time.
+            Added dynamic viewport setting on startup.
+
+2019-12-08: Adjusted the code so that it compiles even with GNU C++ compiler
+            version less than 9.0. Now the compiler must support C++17
+            standard, even if the filesystem methods are experimental.
+

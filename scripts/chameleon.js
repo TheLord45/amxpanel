@@ -151,14 +151,19 @@ function baseColor(basePix, maskPix, col1, col2)
 	var alpha = basePix[3];
 	var red = basePix[0];
 	var green = basePix[1];
-	var blue = basePix[2];
-
-	if ((red > 0 && (green > 0 || blue > 0)) ||
-		(green > 0 && (red > 0 || blue > 0)))
-		return [0, 0, 0, 0];
 
 	if (alpha == 0)
 		return maskPix;
+
+	if (red && green)
+	{
+		var newR = parseInt((col1[0] + col2[0]) / 2, 10);
+		var newG = parseInt((col1[1] + col2[1]) / 2, 10);
+		var newB = parseInt((col1[2] + col2[2]) / 2, 10);
+		var newA = parseInt((col1[3] + col2[3]) / 2, 10);
+
+		return [newR, newG, newB, newA];
+	}
 
 	if (red)
 		return col1;
@@ -166,7 +171,7 @@ function baseColor(basePix, maskPix, col1, col2)
 	if (green)
 		return col2;
 
-	return [0, 0, 0, 0];
+	return [0, 0, 0, 0];	// transparent pixel
 }
 /**
  * Deterines the color to set for a particular pixel in an image and sets all
@@ -513,6 +518,8 @@ async function drawBargraph(uriRed, uriMask, name, level, width, height, col1, c
 			div.appendChild(canvas3);
 			div.insertBefore(canvas3, div.firstChild);
 		}
+		else
+			div.replaceChild(canvas3, document.getElementById(name+"_canvas"));
 
 		if (feedback)
         {
@@ -668,6 +675,8 @@ async function drawBargraphLight(name, level, width, height, col1, col2, dir, fe
 			div.appendChild(canvas1);
 			div.insertBefore(canvas1, div.firstChild);
 		}
+		else
+			div.replaceChild(canvas1, document.getElementById(name+"_canvas"));
 
 		if (feedback)
         {
@@ -885,6 +894,8 @@ async function drawBargraph2Graph(uriFg, uriBg, name, level, width, height, dir,
 			div.appendChild(canvas3);
 			div.insertBefore(canvas3, div.firstChild);
 		}
+		else
+			div.replaceChild(canvas3, document.getElementById(name+"_canvas"));
 
 		if (feedback)
         {
@@ -1005,33 +1016,7 @@ async function drawBargraphMultistate(button, name, level)
 			}
 		}
 	}
-/**
-	if (feedback)
-	{
-		div.addEventListener(EVENT_DOWN, function(evt)
-		{
-			var mousePos = getMousePos(canvas3, evt);
-			var lev = 0;
 
-			if (dir)
-				lev = 100 - ~~(100.0 / height * mousePos.y);
-			else
-				lev = ~~(100.0 / width * mousePos.x);
-
-			drawBargraph(uriRed, uriMask, name, lev, width, height, col1, col2, dir);
-
-			if (button !== null)
-			{
-				var l = ~~((button.rh - button.rl) / 100.0 * lev);
-				writeTextOut("LEVEL:"+panelID+':'+button.lp+":"+button.lv+":"+l);
-				var butKenn = getButtonKennung(name);
-
-				if (butKenn !== null)
-					setBargraphLevel(butKenn[0], butKenn[1], l);
-			}
-		}, false);
-	}
-**/
 	return true;
 }
 async function drawButtonMultistateAni(button, name, run = 0, start = 0, end = 0, zeit = 0)
@@ -1051,7 +1036,6 @@ async function drawButtonMultistateAni(button, name, run = 0, start = 0, end = 0
 	var state = 1;
 	var idx = 0;
 	var runlen = button.nu * 10;
-	var ticks = 0;
 
 	if (button.ar == 0 && run > 0 && start > 0)
 	{
